@@ -46,6 +46,12 @@ A partial unique index permits at most one `OWNER`. Users are disabled rather th
 
 All monetary columns end in `_minor`. Fuel price uses millionths of a currency unit per litre because pump prices commonly need more precision than cents.
 
+## Activities and vehicles
+
+`business_activities` and `vehicles` are reusable records rather than application enums. Activity type keys are configurable uppercase identifiers and do not encode a specific platform provider. Case-insensitive uniqueness prevents ambiguous activity names and vehicle registrations.
+
+Lifecycle changes use `active` with `started_at`/`ended_at` or `acquired_at`/`retired_at`. Reactivation clears the closing date. The application exposes no hard-delete path, preserving IDs referenced by expenses, income, allocations, mileage, and vehicle-specific details.
+
 ## Mileage integrity
 
 `work_sessions.distance_km` is a stored generated column calculated from ending and starting odometers. Callers cannot supply a contradictory distance. Date and odometer checks prevent negative sessions.

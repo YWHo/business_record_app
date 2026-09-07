@@ -22,6 +22,7 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 - Keep public signup unavailable. Owner bootstrap must remain secret-backed, idempotent for the configured owner, unable to create a session, and unable to transfer ownership implicitly.
 - Store session, login, and invitation tokens only as hashes. Keep deployed login challenge verification, route rate limits, secure cookies, invitation expiry/replay checks, and status-aware backend authorization intact.
 - Account disabling must preserve the user and audit references, forbid disabling the owner, and revoke active sessions.
+- Treat business activities and vehicles as reusable database reference records, never hard-coded provider enums. Preserve historical links by deactivating/reactivating instead of deleting, and keep all mutations owner-only at the Worker boundary.
 
 ## Important paths
 

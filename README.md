@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 4 provides an invitation-only React PWA and Cloudflare Worker API with passwordless email sign-in, owner/accountant authorization, owner bootstrap, user management, account disabling, and expiring invitations. Local development uses persisted simulated D1 and R2 bindings and an in-app email outbox, so it still needs no Cloudflare account or email provider.
+Phase 5 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, owner/accountant authorization, and reusable business activity and vehicle management. Owners can add, edit, activate, and deactivate reference records; accountants have read-only visibility. Local development uses persisted simulated D1 and R2 bindings and an in-app email outbox, so it still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -88,7 +88,13 @@ Run the complete local flow against a running development server with:
 pnpm test:local
 ```
 
-This checks owner bootstrap idempotency, login-link replay protection, role denial, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
+This checks owner bootstrap idempotency, login-link replay protection, role denial, activity and vehicle lifecycle changes, duplicate rejection, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
+
+## Business activities and vehicles
+
+Authenticated users can view all active and inactive activities and vehicles from **Setup**. Owners can create and edit them or change their lifecycle status; accountants see the same historical context without mutation controls.
+
+Activities have a configurable name and uppercase type key rather than a hard-coded provider enum. Vehicles retain registration, description, acquisition/retirement dates, and optional notes. Deactivation sets an end or retirement date, while reactivation clears it. Records are never hard-deleted, so future financial and mileage records can keep stable historical references.
 
 ## Production authentication setup
 
@@ -181,7 +187,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-The schema and access layer are available, but business feature APIs and screens are intentionally added in later phases. Activities and vehicles begin in Phase 5; attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
+Authentication, activities, and vehicles are available. Mileage and work-session entry begins in Phase 6; financial records, attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

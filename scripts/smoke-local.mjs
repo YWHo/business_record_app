@@ -107,6 +107,191 @@ expectStatus(deniedOwnerPermission, 403, 'accountant owner permission denial');
 const deniedUserList = await request('/api/users', {}, accountantCookie);
 expectStatus(deniedUserList, 403, 'accountant user-list denial');
 
+const accountantActivities = await request(
+  '/api/business-activities',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantActivities, 200, 'accountant activity read');
+const deniedActivityCreate = await request(
+  '/api/business-activities',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Denied Activity', activityType: 'TEST' }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedActivityCreate, 403, 'accountant activity create denial');
+const deniedActivityUpdate = await request(
+  '/api/business-activities',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: 'activity-contracting', active: false }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedActivityUpdate, 403, 'accountant activity update denial');
+
+const createdActivity = await request(
+  '/api/business-activities',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Phase 5 Consulting',
+      activityType: 'professional_services',
+      startedAt: '2026-04-01',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(createdActivity, 201, 'owner activity create');
+if (createdActivity.body.activity.activityType !== 'PROFESSIONAL_SERVICES') {
+  throw new Error('activity type was not normalized');
+}
+const duplicateActivity = await request(
+  '/api/business-activities',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'phase 5 consulting',
+      activityType: 'SERVICES',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(duplicateActivity, 409, 'duplicate activity denial');
+const activityId = createdActivity.body.activity.id;
+const deactivatedActivity = await request(
+  '/api/business-activities',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: activityId,
+      name: 'Phase 5 Advisory',
+      active: false,
+      endedAt: '2026-09-01',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(deactivatedActivity, 200, 'activity rename and deactivate');
+if (
+  deactivatedActivity.body.activity.active !== false ||
+  deactivatedActivity.body.activity.endedAt !== '2026-09-01'
+) {
+  throw new Error('activity deactivation did not preserve its end date');
+}
+const reactivatedActivity = await request(
+  '/api/business-activities',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: activityId, active: true }),
+  },
+  ownerCookie,
+);
+expectStatus(reactivatedActivity, 200, 'activity reactivate');
+if (reactivatedActivity.body.activity.endedAt !== null) {
+  throw new Error('activity reactivation did not clear its end date');
+}
+
+const accountantVehicles = await request('/api/vehicles', {}, accountantCookie);
+expectStatus(accountantVehicles, 200, 'accountant vehicle read');
+const deniedVehicleCreate = await request(
+  '/api/vehicles',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      registration: 'DENIED',
+      description: 'Denied vehicle',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedVehicleCreate, 403, 'accountant vehicle create denial');
+const deniedVehicleUpdate = await request(
+  '/api/vehicles',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: 'vehicle-local', active: false }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedVehicleUpdate, 403, 'accountant vehicle update denial');
+const createdVehicle = await request(
+  '/api/vehicles',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      registration: 'p5-test',
+      description: 'Phase 5 test vehicle',
+      acquiredAt: '2026-02-01',
+      notes: 'Synthetic local smoke data',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(createdVehicle, 201, 'owner vehicle create');
+if (createdVehicle.body.vehicle.registration !== 'P5-TEST') {
+  throw new Error('vehicle registration was not normalized');
+}
+const duplicateVehicle = await request(
+  '/api/vehicles',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      registration: 'p5-test',
+      description: 'Duplicate test vehicle',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(duplicateVehicle, 409, 'duplicate vehicle denial');
+const vehicleId = createdVehicle.body.vehicle.id;
+const deactivatedVehicle = await request(
+  '/api/vehicles',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: vehicleId,
+      description: 'Phase 5 updated vehicle',
+      active: false,
+      retiredAt: '2026-08-31',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(deactivatedVehicle, 200, 'vehicle edit and deactivate');
+if (
+  deactivatedVehicle.body.vehicle.active !== false ||
+  deactivatedVehicle.body.vehicle.retiredAt !== '2026-08-31'
+) {
+  throw new Error('vehicle deactivation did not preserve its retirement date');
+}
+const reactivatedVehicle = await request(
+  '/api/vehicles',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: vehicleId, active: true }),
+  },
+  ownerCookie,
+);
+expectStatus(reactivatedVehicle, 200, 'vehicle reactivate');
+if (reactivatedVehicle.body.vehicle.retiredAt !== null) {
+  throw new Error('vehicle reactivation did not clear its retirement date');
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -209,5 +394,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local auth smoke passed: bootstrap, login links, invitations, roles, revocation, and R2.',
+  'Local smoke passed: authentication, roles, activities, vehicles, revocation, and R2.',
 );

@@ -26,6 +26,12 @@ import {
   writeStorageProbe,
 } from './routes/development';
 import { health } from './routes/health';
+import {
+  createActivity,
+  listActivities,
+  updateActivity,
+} from './routes/activities';
+import { createVehicle, listVehicles, updateVehicle } from './routes/vehicles';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -50,6 +56,24 @@ const routes: Route[] = [
   { method: 'POST', pathname: '/api/auth/login', handler: requestLogin },
   { method: 'POST', pathname: '/api/auth/verify', handler: verifyLogin },
   { method: 'POST', pathname: '/api/auth/logout', handler: logout },
+  {
+    method: 'GET',
+    pathname: '/api/business-activities',
+    handler: listActivities,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/business-activities',
+    handler: createActivity,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/business-activities',
+    handler: updateActivity,
+  },
+  { method: 'GET', pathname: '/api/vehicles', handler: listVehicles },
+  { method: 'POST', pathname: '/api/vehicles', handler: createVehicle },
+  { method: 'PATCH', pathname: '/api/vehicles', handler: updateVehicle },
   {
     method: 'POST',
     pathname: '/api/admin/bootstrap-owner',

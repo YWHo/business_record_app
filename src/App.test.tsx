@@ -15,7 +15,10 @@ function renderApp(path: string) {
 }
 
 describe('App', () => {
+  let currentRole: 'OWNER' | 'ACCOUNTANT';
+
   beforeEach(() => {
+    currentRole = 'OWNER';
     vi.stubGlobal(
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
@@ -32,14 +35,41 @@ describe('App', () => {
               turnstileRequired: false,
               turnstileSiteKey: null,
             }
-          : {
-              user: {
-                id: 'owner',
-                email: 'owner@local.test',
-                role: 'OWNER',
-                status: 'ACTIVE',
-              },
-            };
+          : url.endsWith('/api/business-activities')
+            ? {
+                activities: [
+                  {
+                    id: 'activity-contracting',
+                    name: 'IT Contracting',
+                    activityType: 'PROFESSIONAL_SERVICES',
+                    active: true,
+                    startedAt: '2025-04-01',
+                    endedAt: null,
+                  },
+                ],
+              }
+            : url.endsWith('/api/vehicles')
+              ? {
+                  vehicles: [
+                    {
+                      id: 'vehicle-local',
+                      registration: 'ABC123',
+                      description: 'Work vehicle',
+                      active: true,
+                      acquiredAt: '2025-01-01',
+                      retiredAt: null,
+                      notes: null,
+                    },
+                  ],
+                }
+              : {
+                  user: {
+                    id: 'owner',
+                    email: 'owner@local.test',
+                    role: currentRole,
+                    status: 'ACTIVE',
+                  },
+                };
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status: 200,
@@ -68,6 +98,31 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: /page not found/i }),
     ).toBeInTheDocument();
+  });
+
+  it('renders owner management for activities and vehicles', async () => {
+    renderApp('/setup');
+
+    expect(
+      await screen.findByRole('heading', { name: /activities and vehicles/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('IT Contracting')).toBeInTheDocument();
+    expect(await screen.findByText('ABC123')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /add activity/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps setup read-only for accountants', async () => {
+    currentRole = 'ACCOUNTANT';
+    renderApp('/setup');
+
+    expect(
+      await screen.findByText(/only the owner can change it/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /add activity/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('consumes a login link only once under strict effects', async () => {
