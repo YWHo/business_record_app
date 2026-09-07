@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.wrangler/state/
+*.local
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+storybook-static/
