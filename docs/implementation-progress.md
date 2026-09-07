@@ -59,4 +59,20 @@ Notes: Polymorphic attachment and comment targets require Worker validation in t
 
 ## Phase 4: Authentication and roles
 
-Status: Not started
+Status: Complete
+
+Commit: `dbe8aed`
+
+Acceptance criteria completed:
+
+- Added idempotent, deployment-configured first-owner bootstrap without creating an authenticated session or permitting silent ownership transfer.
+- Added passwordless email login with hashed, 15-minute, single-use challenges and eight-hour HTTP-only sessions.
+- Added server-verified Turnstile for production login plus separate route-specific rate limit bindings for authentication and invitation operations.
+- Added provider-neutral production email delivery and protected local authentication/invitation outboxes.
+- Added owner-only user and invitation management with backend role checks.
+- Added 72-hour accountant invitations with email matching, expiry, hash-only token storage, and atomic replay prevention.
+- Added account disabling that preserves history and immediately revokes every active session; the owner cannot be disabled.
+- Added public login, login verification, and invitation-acceptance screens plus protected application routes and owner-only management UI.
+- Extended the local smoke flow across bootstrap, login links, invitations, role denial, expiry/replay rejection, disable/revocation, and R2 persistence.
+
+Notes: Production requires real D1/R2 identifiers, `APP_ORIGIN`, Turnstile credentials, an HTTPS email relay, and secret-backed bootstrap values. Setup and relay contracts are documented in the README. Business activity and vehicle workflows begin in Phase 5.
