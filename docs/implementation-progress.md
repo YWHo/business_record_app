@@ -76,3 +76,23 @@ Acceptance criteria completed:
 - Extended the local smoke flow across bootstrap, login links, invitations, role denial, expiry/replay rejection, disable/revocation, and R2 persistence.
 
 Notes: Production requires real D1/R2 identifiers, `APP_ORIGIN`, Turnstile credentials, an HTTPS email relay, and secret-backed bootstrap values. Setup and relay contracts are documented in the README. Business activity and vehicle workflows begin in Phase 5.
+
+## Phase 5: Business activities and vehicles
+
+Status: Complete
+
+Commit: `a91f1d5`
+
+Acceptance criteria completed:
+
+- Added authenticated business activity and vehicle collection APIs with owner-only create and update operations.
+- Added server-side normalization, length, format, valid-calendar-date, and lifecycle-order validation.
+- Kept names and registrations case-insensitively unique with clear duplicate responses.
+- Added owner-controlled rename/edit, activation, and deactivation while deliberately exposing no hard-delete path.
+- Preserved start/end and acquisition/retirement history, including automatic closing dates and clearing them on reactivation.
+- Allowed accountants to read all active and inactive reference data while denying every mutation at the Worker boundary.
+- Recorded creates, edits, activations, and deactivations in the audit log.
+- Added a responsive Setup screen with owner forms and controls plus an explicitly read-only accountant presentation.
+- Added unit/component coverage and extended the local smoke flow through activity and vehicle creation, normalization, duplicates, editing, lifecycle transitions, and role denial.
+
+Notes: The Phase 3 schema already provided the required restrictive historical foreign keys, so Phase 5 required no schema migration. Mileage and work-session workflows begin in Phase 6.
