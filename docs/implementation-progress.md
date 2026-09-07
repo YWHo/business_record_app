@@ -41,7 +41,7 @@ Notes: Production authentication remains intentionally unavailable until Phase 4
 
 Status: Complete
 
-Commit: Pending phase commit
+Commit: `4ff2b6b`
 
 Acceptance criteria completed:
 
