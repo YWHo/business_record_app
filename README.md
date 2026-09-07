@@ -109,10 +109,17 @@ pnpm test:watch          Run tests interactively
 pnpm test:local          Smoke-test a running local Worker (optional URL argument)
 pnpm cf-typegen          Regenerate binding types when configuration changes
 pnpm db:migrate:local    Apply pending migrations to local D1
-pnpm db:seed:local       Replace local foundation seed data
+pnpm db:seed:local       Replace deterministic synthetic local seed data
 pnpm db:inspect:local    Inspect local runtime metadata
+pnpm db:verify:local     Check D1 integrity, foreign keys, and seed counts
 pnpm db:reset:local      Reset, migrate, and seed local D1/R2 state
 ```
+
+## Database schema
+
+Migrations are ordered SQL files under `migrations/` and must never be edited after deployment. Phase 3 adds normalized activities, vehicles, expense categories, expenses and specialised details, allocations, work sessions, income and specialised details, clients, reconciliation, attachments, comments, audit history, saved filters, and retention settings.
+
+Money is stored in integer minor units with an explicit currency. Mileage distance is generated from odometer readings. See [the data model](docs/data-model.md) for relationships and invariants.
 
 ## Environment separation
 
@@ -131,7 +138,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-The Phase 2 schema contains only runtime identity/session foundations. Phase 3 adds the complete business records schema. Phase 4 adds production owner bootstrap and invitation-only authentication. Business modules, attachments, exports, Storybook, end-to-end coverage, demo data, and deployment/recovery documentation follow their numbered implementation phases.
+The schema is available, but feature APIs and screens are intentionally added in later phases. Phase 4 adds production owner bootstrap and invitation-only authentication. Business modules, attachments, exports, Storybook, end-to-end coverage, demo data, and deployment/recovery documentation follow their numbered implementation phases.
 
 ## Source-visible notice
 

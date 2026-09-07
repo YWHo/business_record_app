@@ -39,4 +39,24 @@ Notes: Production authentication remains intentionally unavailable until Phase 4
 
 ## Phase 3: Database schema and migrations
 
+Status: Complete
+
+Commit: Pending phase commit
+
+Acceptance criteria completed:
+
+- Added normalized business activities, vehicles, categories, clients, expenses, and specialised expense detail tables.
+- Added allocations, work sessions, generated odometer distance, and full-tank workflow linkage fields.
+- Added common income records with platform, contract, and subscription detail tables plus reconciliation.
+- Added versioned attachments, comment threads, audit history, and saved filters.
+- Added retention fields and configurable ten-tax-year/31 March retention defaults.
+- Stored monetary values as integer minor units and measurements in explicit metric units.
+- Added restrictive foreign keys, status/domain checks, indexes, and generated calculation columns.
+- Seeded configurable expense categories and deterministic local activities, vehicles, and a synthetic client.
+- Added a repeatable D1 quick-check, foreign-key check, and schema/seed verification command.
+
+Notes: Polymorphic attachment and comment targets require Worker validation in their feature phases. Business feature APIs and screens remain intentionally deferred to their numbered phases.
+
+## Phase 4: Authentication and roles
+
 Status: Not started

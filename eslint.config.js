@@ -13,6 +13,7 @@ export default tseslint.config(
       '.wrangler',
       'storybook-static',
       'eslint.config.js',
+      'worker-configuration.d.ts',
     ],
   },
   eslint.configs.recommended,

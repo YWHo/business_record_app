@@ -20,6 +20,7 @@
     "db:migrate:local": "wrangler d1 migrations apply business-records-local --local --persist-to .wrangler/state",
     "db:seed:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/seed-local.sql",
     "db:inspect:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --command \"SELECT key, value, updated_at FROM runtime_metadata ORDER BY key\"",
+    "db:verify:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/verify-schema.sql",
     "db:reset:local": "node ./scripts/reset-local.mjs"
   },
   "dependencies": {
