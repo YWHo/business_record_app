@@ -1,5 +1,7 @@
 PRAGMA foreign_keys = ON;
 
+DELETE FROM development_auth_outbox;
+DELETE FROM authentication_challenges;
 DELETE FROM audit_log;
 DELETE FROM comments;
 DELETE FROM attachments;
@@ -71,4 +73,4 @@ VALUES (
 INSERT INTO runtime_metadata (key, value, updated_at)
 VALUES
   ('seed_profile', 'local-development', '2026-01-01T00:00:00.000Z'),
-  ('schema_phase', '3', '2026-09-07T00:00:00.000Z');
+  ('schema_phase', '4', '2026-09-07T00:00:00.000Z');

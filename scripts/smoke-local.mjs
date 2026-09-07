@@ -50,6 +50,39 @@ if (health.body.database !== 'ready') {
 }
 
 const ownerCookie = await login('owner@local.test');
+const bootstrap = await request('/api/admin/bootstrap-owner', {
+  method: 'POST',
+  headers: { 'x-bootstrap-key': 'local-bootstrap-only' },
+});
+expectStatus(bootstrap, 200, 'idempotent owner bootstrap');
+
+const loginLinkRequest = await request('/api/auth/login', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ email: 'owner@local.test' }),
+});
+expectStatus(loginLinkRequest, 200, 'request login link');
+const authOutbox = await request('/api/dev/auth/outbox', {}, ownerCookie);
+expectStatus(authOutbox, 200, 'authentication outbox');
+const loginActionUrl = authOutbox.body.messages[0]?.action_url;
+const loginToken = loginActionUrl
+  ? new URL(loginActionUrl).searchParams.get('token')
+  : null;
+if (!loginToken)
+  throw new Error('authentication outbox did not contain a login token');
+const verifiedLogin = await request('/api/auth/verify', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ token: loginToken }),
+});
+expectStatus(verifiedLogin, 200, 'verify login link');
+const reusedLogin = await request('/api/auth/verify', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ token: loginToken }),
+});
+expectStatus(reusedLogin, 400, 'single-use login link denial');
+
 const ownerPermission = await request(
   '/api/dev/permissions/owner',
   {},
@@ -71,6 +104,8 @@ const deniedOwnerPermission = await request(
   accountantCookie,
 );
 expectStatus(deniedOwnerPermission, 403, 'accountant owner permission denial');
+const deniedUserList = await request('/api/users', {}, accountantCookie);
+expectStatus(deniedUserList, 403, 'accountant user-list denial');
 
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
@@ -80,11 +115,11 @@ const disabledLogin = await request('/api/dev/auth/login', {
 expectStatus(disabledLogin, 401, 'disabled account denial');
 
 const invitation = await request(
-  '/api/dev/invitations',
+  '/api/invitations',
   {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'phase2-invitee@local.test' }),
+    body: JSON.stringify({ email: 'phase4-invitee@local.test' }),
   },
   ownerCookie,
 );
@@ -101,24 +136,24 @@ if (!token) {
 }
 
 const acceptBody = {
-  email: 'phase2-invitee@local.test',
+  email: 'phase4-invitee@local.test',
   token,
 };
-const accepted = await request('/api/dev/invitations/accept', {
+const accepted = await request('/api/invitations/accept', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(acceptBody),
 });
 expectStatus(accepted, 200, 'accept invitation');
 
-const reused = await request('/api/dev/invitations/accept', {
+const reused = await request('/api/invitations/accept', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(acceptBody),
 });
 expectStatus(reused, 400, 'single-use invitation denial');
 
-const expired = await request('/api/dev/invitations/accept', {
+const expired = await request('/api/invitations/accept', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({
@@ -128,13 +163,36 @@ const expired = await request('/api/dev/invitations/accept', {
 });
 expectStatus(expired, 400, 'expired invitation denial');
 
-const invitedCookie = await login('phase2-invitee@local.test');
+const invitedCookie = await login('phase4-invitee@local.test');
 const invitedPermission = await request(
   '/api/dev/permissions/records',
   {},
   invitedCookie,
 );
 expectStatus(invitedPermission, 200, 'invited accountant permission');
+const users = await request('/api/users', {}, ownerCookie);
+expectStatus(users, 200, 'owner user list');
+const invitedUser = users.body.users.find(
+  (candidate) => candidate.email === 'phase4-invitee@local.test',
+);
+if (!invitedUser)
+  throw new Error('invited accountant did not appear in user list');
+const disabled = await request(
+  '/api/users/disable',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: invitedUser.id }),
+  },
+  ownerCookie,
+);
+expectStatus(disabled, 200, 'disable accountant');
+const revokedSession = await request(
+  '/api/dev/permissions/records',
+  {},
+  invitedCookie,
+);
+expectStatus(revokedSession, 401, 'disabled accountant session revocation');
 
 const storageWrite = await request(
   '/api/dev/storage-probe',
@@ -151,5 +209,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local runtime smoke test passed: D1, sessions, roles, invitations, and R2.',
+  'Local auth smoke passed: bootstrap, login links, invitations, roles, revocation, and R2.',
 );

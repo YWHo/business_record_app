@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 2 provides the React PWA and a Cloudflare Worker API with locally simulated, persisted D1 and R2 bindings. Authentication routes intended for real deployments arrive in Phase 4; the current local-only helper exercises roles, sessions, disabled accounts, invitations, and storage without weakening backend authorization.
+Phase 4 provides an invitation-only React PWA and Cloudflare Worker API with passwordless email sign-in, owner/accountant authorization, owner bootstrap, user management, account disabling, and expiring invitations. Local development uses persisted simulated D1 and R2 bindings and an in-app email outbox, so it still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -50,6 +50,8 @@ Seed identities:
 - Accountant: `accountant@local.test`
 - Disabled accountant: `disabled@local.test`
 
+The sign-in screen exposes local owner/accountant shortcuts only when the guarded helper is available. The regular passwordless flow also works locally: submit an active email at `POST /api/auth/login`, then read its single-use 15-minute URL from the owner-protected `GET /api/dev/auth/outbox` endpoint.
+
 Sign in and preserve the returned HTTP-only cookie:
 
 ```bash
@@ -66,19 +68,58 @@ curl -b /tmp/business-records-owner.cookies \
   http://localhost:5173/api/dev/permissions/owner
 ```
 
-Create an invitation. The response and local outbox contain the invitation URL because local development sends no email:
+Create an invitation. The production-shaped endpoint and local outbox contain the invitation URL because local development sends no email:
 
 ```bash
 curl -b /tmp/business-records-owner.cookies \
   -H 'content-type: application/json' \
   -d '{"email":"new-accountant@local.test"}' \
-  http://localhost:5173/api/dev/invitations
+  http://localhost:5173/api/invitations
 
 curl -b /tmp/business-records-owner.cookies \
   http://localhost:5173/api/dev/invitations/outbox
 ```
 
-Submit the URL token and matching email to `POST /api/dev/invitations/accept`. Tokens are hashed in D1, expire after 72 hours, and become unusable after acceptance. The seed also contains an expired invitation for testing rejection.
+Submit the URL token and matching email to `POST /api/invitations/accept`. Tokens are hashed in D1, expire after 72 hours, and become unusable after acceptance. Acceptance creates an accountant account but no session; the new accountant signs in through the normal email-link flow. The seed also contains an expired invitation for testing rejection.
+
+Run the complete local flow against a running development server with:
+
+```bash
+pnpm test:local
+```
+
+This checks owner bootstrap idempotency, login-link replay protection, role denial, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
+
+## Production authentication setup
+
+Before the first production deployment:
+
+1. Replace the production D1/R2 IDs, `APP_ORIGIN`, Turnstile site key, email relay URL, and sender placeholders in `wrangler.jsonc`.
+2. Configure a Turnstile widget for the production hostname. Production rejects login requests unless the response is verified server-side.
+3. Configure an HTTPS email relay accepting `POST` JSON with `from`, `to`, `subject`, and `text` fields plus a bearer token.
+4. Store the real owner email, a strong one-time administrative key, the Turnstile secret, and relay token as Worker secrets—never committed variables:
+
+```bash
+pnpm exec wrangler secret put BOOTSTRAP_OWNER_EMAIL --env production
+pnpm exec wrangler secret put BOOTSTRAP_ADMIN_KEY --env production
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production
+pnpm exec wrangler secret put EMAIL_DELIVERY_BEARER_TOKEN --env production
+```
+
+Apply migrations to the deliberately selected remote production D1 database, deploy, then initialise the configured owner once:
+
+```bash
+pnpm exec wrangler d1 migrations apply business-records-production --env production --remote
+pnpm deploy:production
+
+curl -X POST \
+  -H 'x-bootstrap-key: <BOOTSTRAP_ADMIN_KEY>' \
+  https://<production-host>/api/admin/bootstrap-owner
+```
+
+The operation is idempotent for the configured email and refuses to create or transfer to a second owner. It does not create a session: the owner must request a normal email sign-in link. Public signup does not exist; afterward, the owner invites accountants from the Users screen. Disable preserves the user and audit history while revoking all active sessions.
+
+The generic relay contract keeps the application provider-neutral. Confirm delivery, sender-domain authentication, suppression handling, and data residency with the selected provider before production use.
 
 ## Local R2 verification
 
@@ -131,14 +172,16 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 - D1 and R2 are accessed only from the Worker. R2 has no public bucket URL.
 - Backend routes enforce roles; frontend checks are never authoritative.
-- Session and invitation tokens are random and stored only as SHA-256 hashes.
+- Session, login-link, and invitation tokens are random and stored only as SHA-256 hashes.
+- Production login uses server-verified Turnstile and route-specific Cloudflare rate limiting.
+- Cookies are HTTP-only, same-site strict, and secure over HTTPS; disabled accounts lose active sessions immediately.
 - API responses are non-cacheable and do not expose internal errors.
 - `.dev.vars*`, `.env*`, local Wrangler state, and generated builds are ignored.
 - Do not commit real financial data, identities, resource IDs, or secrets.
 
 ## Known limitations and roadmap
 
-The schema is available, but feature APIs and screens are intentionally added in later phases. Phase 4 adds production owner bootstrap and invitation-only authentication. Business modules, attachments, exports, Storybook, end-to-end coverage, demo data, and deployment/recovery documentation follow their numbered implementation phases.
+The schema and access layer are available, but business feature APIs and screens are intentionally added in later phases. Activities and vehicles begin in Phase 5; attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

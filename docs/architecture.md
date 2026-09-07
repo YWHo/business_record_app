@@ -16,14 +16,20 @@ The Vite plugin runs this topology locally in the Workers runtime and builds the
 
 ## Environments
 
-| Environment | D1                                            | R2                              | Local auth helper        |
-| ----------- | --------------------------------------------- | ------------------------------- | ------------------------ |
-| Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root      | Enabled only on loopback |
-| Demo        | Dedicated synthetic-data database             | Dedicated synthetic-data bucket | Disabled                 |
-| Production  | Dedicated private database                    | Dedicated private bucket        | Disabled                 |
+| Environment | D1                                            | R2                              | Authentication                                    |
+| ----------- | --------------------------------------------- | ------------------------------- | ------------------------------------------------- |
+| Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root      | Email outbox plus loopback-only seeded helper     |
+| Demo        | Dedicated synthetic-data database             | Dedicated synthetic-data bucket | Synthetic identities only; local helper disabled  |
+| Production  | Dedicated private database                    | Dedicated private bucket        | Email links, Turnstile, and local helper disabled |
 
 Bindings are deliberately non-inheritable in `wrangler.jsonc`, so every named environment declares its own resources and variables. Remote resource IDs remain placeholders until an operator creates each environment.
 
-## Phase 2 identity foundation
+## Identity and authorization
 
-The foundation migration establishes users, hashed-token sessions, hashed single-use invitations, and a local outbox. The local login helper selects only configured seeded identities; it does not bypass route authorization. Production authentication and owner bootstrap are deferred to Phase 4.
+The Worker owns every identity and role decision. Passwordless sign-in and invitation URLs contain random single-use tokens; D1 stores only their SHA-256 hashes. Authentication challenges expire after 15 minutes, invitations after 72 hours, and sessions after 8 hours. Session cookies are HTTP-only and same-site strict, with the secure flag on HTTPS.
+
+Production login is rejected through a route-specific Cloudflare rate limiter before database work and requires server-side Turnstile verification. A separate limiter protects invitation and bootstrap routes. The email service posts a minimal provider-neutral payload to a configured HTTPS relay; local requests are written to D1 outboxes instead.
+
+Owner bootstrap requires the configured email and an administrative secret. It creates no session, is idempotent only for the same owner, and refuses silent ownership transfer. Further accounts originate only from owner-created accountant invitations. Disabling an accountant retains its database identity and audit references while deleting every active session.
+
+The local login helper selects only configured seeded identities and requires both `APP_ENV=local` and a loopback request hostname. It never bypasses normal route authorization.

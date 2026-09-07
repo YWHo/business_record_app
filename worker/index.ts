@@ -1,10 +1,26 @@
 import { HttpError, json, methodNotAllowed } from './lib/http';
-import { currentUser, loginLocally, logout } from './routes/auth';
+import {
+  authConfiguration,
+  currentUser,
+  loginLocally,
+  logout,
+  requestLogin,
+  verifyLogin,
+} from './routes/auth';
 import {
   acceptInvitation,
+  bootstrapOwner,
+  disableUser,
+  inviteAccountant,
+  listInvitations,
+  listUsers,
+} from './routes/accounts';
+import {
+  acceptInvitation as acceptDevelopmentInvitation,
   checkOwnerPermission,
   checkRecordsPermission,
-  createInvitation,
+  createInvitation as createDevelopmentInvitation,
+  listDevelopmentAuthOutbox,
   listDevelopmentOutbox,
   readStorageProbe,
   writeStorageProbe,
@@ -12,7 +28,10 @@ import {
 import { health } from './routes/health';
 import type { Env } from './types';
 
-type RouteHandler = (request: Request, env: Env) => Promise<Response>;
+type RouteHandler = (
+  request: Request,
+  env: Env,
+) => Response | Promise<Response>;
 
 interface Route {
   method: string;
@@ -27,8 +46,30 @@ const routes: Route[] = [
     handler: (_request, env) => health(env),
   },
   { method: 'GET', pathname: '/api/auth/me', handler: currentUser },
+  { method: 'GET', pathname: '/api/auth/config', handler: authConfiguration },
+  { method: 'POST', pathname: '/api/auth/login', handler: requestLogin },
+  { method: 'POST', pathname: '/api/auth/verify', handler: verifyLogin },
   { method: 'POST', pathname: '/api/auth/logout', handler: logout },
+  {
+    method: 'POST',
+    pathname: '/api/admin/bootstrap-owner',
+    handler: bootstrapOwner,
+  },
+  { method: 'GET', pathname: '/api/users', handler: listUsers },
+  { method: 'POST', pathname: '/api/users/disable', handler: disableUser },
+  { method: 'GET', pathname: '/api/invitations', handler: listInvitations },
+  { method: 'POST', pathname: '/api/invitations', handler: inviteAccountant },
+  {
+    method: 'POST',
+    pathname: '/api/invitations/accept',
+    handler: acceptInvitation,
+  },
   { method: 'POST', pathname: '/api/dev/auth/login', handler: loginLocally },
+  {
+    method: 'GET',
+    pathname: '/api/dev/auth/outbox',
+    handler: listDevelopmentAuthOutbox,
+  },
   {
     method: 'GET',
     pathname: '/api/dev/invitations/outbox',
@@ -37,12 +78,12 @@ const routes: Route[] = [
   {
     method: 'POST',
     pathname: '/api/dev/invitations',
-    handler: createInvitation,
+    handler: createDevelopmentInvitation,
   },
   {
     method: 'POST',
     pathname: '/api/dev/invitations/accept',
-    handler: acceptInvitation,
+    handler: acceptDevelopmentInvitation,
   },
   {
     method: 'GET',
@@ -87,6 +128,15 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 export default {
   async fetch(request, env): Promise<Response> {
     try {
+      const url = new URL(request.url);
+      if (env.APP_ENV !== 'local' && url.protocol !== 'https:') {
+        url.protocol = 'https:';
+        return new Response(null, {
+          status: 308,
+          headers: { location: url.toString(), 'cache-control': 'no-store' },
+        });
+      }
+
       return await handleRequest(request, env);
     } catch (error) {
       if (error instanceof HttpError) {

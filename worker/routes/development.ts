@@ -2,8 +2,8 @@ import { requireRole, requireUser } from '../auth/authorization';
 import { requireLocalAuth } from '../auth/localOnly';
 import { getRequiredString, json, readJsonObject } from '../lib/http';
 import {
-  acceptDevelopmentInvitation,
-  createDevelopmentInvitation,
+  acceptAccountantInvitation,
+  createAccountantInvitation,
 } from '../services/invitationService';
 import type { Env } from '../types';
 
@@ -31,7 +31,7 @@ export async function createInvitation(
   const user = await requireUser(request, env);
   requireRole(user, ['OWNER']);
   const body = await readJsonObject(request);
-  const invitation = await createDevelopmentInvitation(
+  const invitation = await createAccountantInvitation(
     env,
     user,
     getRequiredString(body, 'email'),
@@ -46,13 +46,29 @@ export async function acceptInvitation(
 ): Promise<Response> {
   requireLocalAuth(request, env);
   const body = await readJsonObject(request);
-  const result = await acceptDevelopmentInvitation(
+  const result = await acceptAccountantInvitation(
     env,
     getRequiredString(body, 'email'),
     getRequiredString(body, 'token'),
   );
 
   return json({ user: result });
+}
+
+export async function listDevelopmentAuthOutbox(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  requireLocalAuth(request, env);
+  const user = await requireUser(request, env);
+  requireRole(user, ['OWNER']);
+  const result = await env.DB.prepare(
+    `SELECT recipient_email, subject, action_url, created_at
+       FROM development_auth_outbox
+      ORDER BY created_at DESC`,
+  ).all();
+
+  return json({ messages: result.results });
 }
 
 export async function checkRecordsPermission(

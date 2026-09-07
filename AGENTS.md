@@ -19,6 +19,9 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 - Use explicit metric column names such as `_km` and `_litres`. Work-session distance must remain derived from odometers.
 - Never rewrite an applied migration. Add the next ordered migration and keep restrictive historical-record foreign keys.
 - Validate polymorphic attachment/comment targets in the Worker because D1 cannot apply one foreign key across multiple record tables.
+- Keep public signup unavailable. Owner bootstrap must remain secret-backed, idempotent for the configured owner, unable to create a session, and unable to transfer ownership implicitly.
+- Store session, login, and invitation tokens only as hashes. Keep deployed login challenge verification, route rate limits, secure cookies, invitation expiry/replay checks, and status-aware backend authorization intact.
+- Account disabling must preserve the user and audit references, forbid disabling the owner, and revoke active sessions.
 
 ## Important paths
 

@@ -1,2 +1,6 @@
-# Copy to .dev.vars only when a later phase introduces local secrets.
-# Never put production credentials in this file.
+# Optional local-only secret examples. Copy to .dev.vars when exercising secret-backed paths.
+# Never put production credentials in this file or commit .dev.vars.
+BOOTSTRAP_OWNER_EMAIL=owner@local.test
+BOOTSTRAP_ADMIN_KEY=replace-with-a-random-local-value
+EMAIL_DELIVERY_BEARER_TOKEN=replace-with-local-relay-token
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

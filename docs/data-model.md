@@ -14,6 +14,7 @@
 ```text
 users
   ├─ sessions
+  ├─ authentication_challenges ─ development_auth_outbox (local only)
   ├─ invitations ─ development_outbox (local only)
   ├─ expenses ─┬─ fuel_expense_details ─ vehicles
   │            ├─ parking_expense_details ─ vehicles
@@ -32,6 +33,12 @@ users
 retention_settings (single configured row)
 expense_categories (configurable lookup records)
 ```
+
+## Authentication lifecycle
+
+`authentication_challenges` stores hashed, expiring, single-use login tokens associated with an existing active user. `invitations` separately stores hashed, expiring, single-use accountant invitations and their creating owner. The two local outbox tables retain action URLs only in the simulated local database; deployed environments send those URLs through the configured relay.
+
+A partial unique index permits at most one `OWNER`. Users are disabled rather than deleted so historical foreign keys and audit actors remain intact. Disabling deletes their sessions; authorization also checks current user status on every protected request.
 
 ## Financial record bases
 

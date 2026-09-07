@@ -1,14 +1,34 @@
-import { NavLink, Route, Routes } from 'react-router-dom';
+import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
+import { useAuth } from './features/auth/AuthContext';
+import { AcceptInvitationPage } from './routes/AcceptInvitationPage';
 import { DashboardPage } from './routes/DashboardPage';
+import { LoginPage } from './routes/LoginPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { RecordsPage } from './routes/RecordsPage';
+import { UserManagementPage } from './routes/UserManagementPage';
+import { VerifyLoginPage } from './routes/VerifyLoginPage';
 
-const navItems = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/records', label: 'Records', end: false },
-];
+function WorkspaceLayout() {
+  const { loading, logout, user } = useAuth();
 
-export function App() {
+  if (loading) {
+    return (
+      <main className="auth-page">
+        <p role="status">Loading secure workspace…</p>
+      </main>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  const navItems = [
+    { to: '/', label: 'Dashboard', end: true },
+    { to: '/records', label: 'Records', end: false },
+    ...(user.role === 'OWNER'
+      ? [{ to: '/settings/users', label: 'Users', end: false }]
+      : []),
+  ];
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -16,7 +36,16 @@ export function App() {
           <span className="eyebrow">Private workspace</span>
           <strong>Business Records</strong>
         </div>
-        <span className="environment-pill">Secure workspace</span>
+        <div className="account-summary">
+          <span>{user.email}</span>
+          <button
+            type="button"
+            className="header-button"
+            onClick={() => void logout()}
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <nav aria-label="Primary navigation" className="primary-nav">
@@ -33,12 +62,24 @@ export function App() {
       </nav>
 
       <main className="page-content">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/records" element={<RecordsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        <Outlet />
       </main>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/verify-login" element={<VerifyLoginPage />} />
+      <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+      <Route element={<WorkspaceLayout />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/records" element={<RecordsPage />} />
+        <Route path="/settings/users" element={<UserManagementPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }

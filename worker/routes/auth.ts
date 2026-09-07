@@ -13,6 +13,12 @@ import {
   readJsonObject,
 } from '../lib/http';
 import { normalizeEmail } from '../services/invitationService';
+import {
+  consumeLoginLink,
+  createSession,
+  requestLoginLink,
+} from '../services/authService';
+import { enforceRateLimit, verifyTurnstile } from '../services/securityService';
 import type { Env } from '../types';
 
 export async function loginLocally(
@@ -33,20 +39,60 @@ export async function loginLocally(
     throw new HttpError(401, 'Unable to sign in with those details.');
   }
 
-  const token = crypto.randomUUID() + crypto.randomUUID();
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString();
-
-  await env.DB.prepare(
-    `INSERT INTO sessions (token_hash, user_id, expires_at, created_at)
-     VALUES (?, ?, ?, ?)`,
-  )
-    .bind(await hashToken(token), user.id, expiresAt, now.toISOString())
-    .run();
+  const token = await createSession(env, user.id);
 
   return json(
     { user: { id: user.id, email: user.email, role: user.role } },
     { headers: { 'set-cookie': sessionCookie(token, request) } },
+  );
+}
+
+export function authConfiguration(request: Request, env: Env): Response {
+  const localHelper =
+    env.APP_ENV === 'local' &&
+    env.LOCAL_AUTH_ENABLED === 'true' &&
+    ['localhost', '127.0.0.1', '[::1]'].includes(new URL(request.url).hostname);
+
+  return json({
+    environment: env.APP_ENV,
+    localHelper,
+    turnstileRequired: env.TURNSTILE_REQUIRED === 'true',
+    turnstileSiteKey:
+      env.TURNSTILE_REQUIRED === 'true' ? env.TURNSTILE_SITE_KEY : null,
+  });
+}
+
+export async function requestLogin(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const body = await readJsonObject(request);
+  const email = normalizeEmail(getRequiredString(body, 'email'));
+  await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'login', email);
+  await verifyTurnstile(
+    request,
+    env,
+    typeof body.turnstileToken === 'string' ? body.turnstileToken : undefined,
+  );
+  await requestLoginLink(env, email);
+
+  return json({
+    message: 'If the account is active, a sign-in link has been sent.',
+  });
+}
+
+export async function verifyLogin(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const body = await readJsonObject(request);
+  const token = getRequiredString(body, 'token');
+  await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'verify');
+  const session = await consumeLoginLink(env, token);
+
+  return json(
+    { success: true },
+    { headers: { 'set-cookie': sessionCookie(session, request) } },
   );
 }
 

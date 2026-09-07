@@ -3,11 +3,20 @@ import type { Env } from '../types';
 import { isLocalAuthRequest } from './localOnly';
 
 function environment(overrides: Partial<Env> = {}): Env {
+  const limiter = { limit: () => Promise.resolve({ success: true }) };
   return {
     APP_ENV: 'local',
     LOCAL_AUTH_ENABLED: 'true',
     DEV_OWNER_EMAIL: 'owner@local.test',
     DEV_ACCOUNTANT_EMAIL: 'accountant@local.test',
+    DEV_BOOTSTRAP_KEY: 'test-only',
+    APP_ORIGIN: 'http://localhost:5173',
+    TURNSTILE_REQUIRED: 'false',
+    TURNSTILE_SITE_KEY: '',
+    EMAIL_DELIVERY_URL: '',
+    EMAIL_FROM: 'no-reply@local.test',
+    AUTH_RATE_LIMITER: limiter,
+    INVITE_RATE_LIMITER: limiter,
     DB: {} as D1Database,
     DOCUMENTS: {} as R2Bucket,
     ...overrides,
