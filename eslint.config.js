@@ -39,5 +39,17 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        fetch: 'readonly',
+        Headers: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
   prettier,
 );

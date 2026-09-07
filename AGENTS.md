@@ -19,8 +19,9 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 ## Important paths
 
 - `src/`: React application
-- `worker/`: Cloudflare Worker API (from Phase 2)
-- `migrations/`: D1 migrations (from Phase 2)
+- `worker/`: Cloudflare Worker API
+- `migrations/`: ordered D1 migrations
+- `scripts/`: local seed and reset utilities
 - `docs/`: architecture decisions and implementation progress
 - `e2e/`: Playwright workflows (when introduced)
 
@@ -33,5 +34,9 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 - `pnpm test`: unit and component tests
 - `pnpm test:watch`: interactive tests
 - `pnpm format`: format source files
+- `pnpm db:migrate:local`: apply migrations to simulated D1
+- `pnpm db:seed:local`: seed deterministic local identities and metadata
+- `pnpm db:reset:local`: safely recreate local D1 and R2 state
+- `pnpm db:inspect:local`: inspect local metadata
 
-Environment, D1/R2, authentication, seed, reset, deployment, invitation, retention, export, backup, and recovery commands will be documented as their implementation phases land.
+Local state lives only in `.wrangler/state/`. Local authentication helpers must retain both the `APP_ENV=local` and loopback-host safeguards. Never weaken these guards for tests. Environment, deployment, retention, export, backup, and recovery commands must remain documented as their implementation phases land.

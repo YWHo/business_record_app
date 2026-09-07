@@ -16,7 +16,7 @@ export function App() {
           <span className="eyebrow">Private workspace</span>
           <strong>Business Records</strong>
         </div>
-        <span className="environment-pill">Local</span>
+        <span className="environment-pill">Secure workspace</span>
       </header>
 
       <nav aria-label="Primary navigation" className="primary-nav">

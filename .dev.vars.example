@@ -1,0 +1,2 @@
+# Copy to .dev.vars only when a later phase introduces local secrets.
+# Never put production credentials in this file.

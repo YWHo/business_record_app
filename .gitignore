@@ -2,11 +2,14 @@ node_modules/
 dist/
 coverage/
 .vite/
-.wrangler/state/
+.wrangler/
+worker-configuration.d.ts
 *.local
 .env
 .env.*
 !.env.example
+.dev.vars*
+!.dev.vars.example
 playwright-report/
 test-results/
 storybook-static/
