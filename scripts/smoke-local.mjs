@@ -292,6 +292,127 @@ if (reactivatedVehicle.body.vehicle.retiredAt !== null) {
   throw new Error('vehicle reactivation did not clear its retirement date');
 }
 
+const accountantSessions = await request(
+  '/api/work-sessions',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantSessions, 200, 'accountant work-session read');
+const deniedSessionCreate = await request(
+  '/api/work-sessions',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  },
+  accountantCookie,
+);
+expectStatus(deniedSessionCreate, 403, 'accountant work-session create denial');
+const inactiveVehicleSession = await request(
+  '/api/work-sessions',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId: 'vehicle-retired',
+      startedAt: '2026-09-08T00:00:00.000Z',
+      endedAt: '2026-09-08T01:00:00.000Z',
+      odometerStartKm: 1000,
+      odometerEndKm: 1020,
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(inactiveVehicleSession, 400, 'inactive vehicle session denial');
+const invalidOdometerSession = await request(
+  '/api/work-sessions',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId,
+      startedAt: '2026-09-08T00:00:00.000Z',
+      endedAt: '2026-09-08T01:00:00.000Z',
+      odometerStartKm: 1050,
+      odometerEndKm: 1000,
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(invalidOdometerSession, 400, 'reversed odometer denial');
+const createdSession = await request(
+  '/api/work-sessions',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId,
+      startedAt: '2026-09-08T00:00:00.000Z',
+      endedAt: '2026-09-08T02:30:00.000Z',
+      odometerStartKm: 1000,
+      odometerEndKm: 1075,
+      distanceKm: 999,
+      grossRevenue: '150.00',
+      currency: 'NZD',
+      notes: 'Synthetic Phase 6 session',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(createdSession, 201, 'owner work-session create');
+if (
+  createdSession.body.session.distanceKm !== 75 ||
+  createdSession.body.session.revenuePerHourMinor !== 6000 ||
+  createdSession.body.session.revenuePerKmMinor !== 200
+) {
+  throw new Error('work-session derived metrics were incorrect');
+}
+const sessionId = createdSession.body.session.id;
+const deniedSessionUpdate = await request(
+  '/api/work-sessions',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: sessionId, notes: 'Denied edit' }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedSessionUpdate, 403, 'accountant work-session update denial');
+const updatedSession = await request(
+  '/api/work-sessions',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: sessionId,
+      endedAt: '2026-09-08T03:00:00.000Z',
+      odometerEndKm: 1080,
+      grossRevenue: '180.00',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedSession, 200, 'owner work-session update');
+if (
+  updatedSession.body.session.distanceKm !== 80 ||
+  updatedSession.body.session.durationHours !== 3 ||
+  updatedSession.body.session.revenuePerHourMinor !== 6000 ||
+  updatedSession.body.session.revenuePerKmMinor !== 225
+) {
+  throw new Error('updated work-session metrics were not recalculated');
+}
+const sessionList = await request('/api/work-sessions', {}, ownerCookie);
+expectStatus(sessionList, 200, 'owner work-session list');
+if (
+  sessionList.body.summary.totalDistanceKm !== 80 ||
+  sessionList.body.summary.revenuePerKmMinor !== 225
+) {
+  throw new Error('work-session aggregate metrics were incorrect');
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -394,5 +515,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, activities, vehicles, revocation, and R2.',
+  'Local smoke passed: authentication, roles, activities, vehicles, mileage, revocation, and R2.',
 );

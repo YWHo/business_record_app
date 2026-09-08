@@ -51,6 +51,7 @@ button:disabled {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid #b9c5d0;
@@ -64,6 +65,10 @@ textarea {
 textarea {
   min-height: 5rem;
   resize: vertical;
+}
+
+select {
+  width: 100%;
 }
 
 :focus-visible {
@@ -337,9 +342,78 @@ th {
 
 .reference-grid,
 .record-list,
-.reference-form {
+.reference-form,
+.work-session-form,
+.session-list {
   display: grid;
   gap: 1rem;
+}
+
+.work-session-form {
+  margin-top: 1rem;
+}
+
+.work-session-form > label,
+.form-pair label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 650;
+}
+
+.form-pair {
+  display: grid;
+  gap: 1rem;
+}
+
+.money-input {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.money-input span {
+  color: #66788a;
+  font-weight: 700;
+}
+
+.mileage-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.session-card {
+  border: 1px solid #d9e1e8;
+  border-radius: 0.8rem;
+  padding: 1.25rem;
+  background: #fff;
+  box-shadow: 0 4px 16px rgb(31 41 51 / 5%);
+}
+
+.session-card h3 {
+  margin: 0 0 0.25rem;
+}
+
+.session-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-block: 1rem;
+}
+
+.session-details div {
+  border-radius: 0.55rem;
+  padding: 0.7rem;
+  background: #f7f9fb;
+}
+
+.session-details dt {
+  color: #66788a;
+  font-size: 0.75rem;
+}
+
+.session-details dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
 }
 
 .reference-panel {
@@ -471,6 +545,14 @@ th {
 
   .reference-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mileage-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

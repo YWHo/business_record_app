@@ -56,6 +56,8 @@ Lifecycle changes use `active` with `started_at`/`ended_at` or `acquired_at`/`re
 
 `work_sessions.distance_km` is a stored generated column calculated from ending and starting odometers. Callers cannot supply a contradictory distance. Date and odometer checks prevent negative sessions.
 
+Session timestamps are stored as UTC ISO instants after requiring an explicit timezone. Optional gross revenue uses integer minor units and an explicit currency. Duration, revenue/hour, and revenue/km are response-time calculations rather than stored columns, so edits cannot leave stale analytics. Active references are required for new sessions, while an existing session may retain an activity or vehicle that later becomes inactive.
+
 The full-tank confirmations and optional start/end fuel expense links are stored separately. A later service phase will validate that linked expenses are fuel records for the same vehicle and decide whether analytics may be labelled exact.
 
 ## Attachments and comments
@@ -64,4 +66,4 @@ Attachments and comments refer to several record families, so `record_type` plus
 
 ## Retention
 
-Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Application services will calculate exact dates and enforce trash/purge transitions in the retention phase.
+Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Work sessions calculate these dates from their end instant when created or edited. The retention phase will apply the same policy services to other record types and enforce trash/purge transitions.

@@ -62,14 +62,48 @@ describe('App', () => {
                     },
                   ],
                 }
-              : {
-                  user: {
-                    id: 'owner',
-                    email: 'owner@local.test',
-                    role: currentRole,
-                    status: 'ACTIVE',
-                  },
-                };
+              : url.endsWith('/api/work-sessions')
+                ? {
+                    sessions: [
+                      {
+                        id: 'session-local',
+                        businessActivityId: 'activity-contracting',
+                        activityName: 'IT Contracting',
+                        vehicleId: 'vehicle-local',
+                        vehicleRegistration: 'ABC123',
+                        startedAt: '2026-09-08T00:00:00.000Z',
+                        endedAt: '2026-09-08T02:00:00.000Z',
+                        odometerStartKm: 100,
+                        odometerEndKm: 150,
+                        distanceKm: 50,
+                        durationMinutes: 120,
+                        durationHours: 2,
+                        grossRevenueMinor: 10_000,
+                        currency: 'NZD',
+                        revenuePerHourMinor: 5000,
+                        revenuePerKmMinor: 200,
+                        notes: null,
+                      },
+                    ],
+                    summary: {
+                      sessionCount: 1,
+                      totalDurationHours: 2,
+                      totalDistanceKm: 50,
+                      totalRevenueMinor: 10_000,
+                      revenuePerHourMinor: 5000,
+                      revenuePerKmMinor: 200,
+                      currency: 'NZD',
+                      completeRevenueData: true,
+                    },
+                  }
+                : {
+                    user: {
+                      id: 'owner',
+                      email: 'owner@local.test',
+                      role: currentRole,
+                      status: 'ACTIVE',
+                    },
+                  };
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status: 200,
@@ -122,6 +156,31 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: /add activity/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders calculated mileage and owner entry controls', async () => {
+    renderApp('/mileage');
+
+    expect(
+      await screen.findByRole('heading', { name: /work sessions/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findAllByText('50 km')).toHaveLength(2);
+    expect(screen.getByText('ABC123')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /add work session/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps mileage entry read-only for accountants', async () => {
+    currentRole = 'ACCOUNTANT';
+    renderApp('/mileage');
+
+    expect(
+      await screen.findByText(/only the owner can change them/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /add work session/i }),
     ).not.toBeInTheDocument();
   });
 

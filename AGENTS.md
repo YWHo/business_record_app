@@ -23,6 +23,7 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 - Store session, login, and invitation tokens only as hashes. Keep deployed login challenge verification, route rate limits, secure cookies, invitation expiry/replay checks, and status-aware backend authorization intact.
 - Account disabling must preserve the user and audit references, forbid disabling the owner, and revoke active sessions.
 - Treat business activities and vehicles as reusable database reference records, never hard-coded provider enums. Preserve historical links by deactivating/reactivating instead of deleting, and keep all mutations owner-only at the Worker boundary.
+- Keep work-session distance generated exclusively from ending minus starting odometer; never accept an authoritative distance field. Store revenue in integer minor units, require timezone-qualified API timestamps, derive rates from source values, and avoid aggregating incomplete or mixed-currency revenue into misleading rates.
 
 ## Important paths
 
