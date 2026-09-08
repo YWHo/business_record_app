@@ -58,7 +58,13 @@ Lifecycle changes use `active` with `started_at`/`ended_at` or `acquired_at`/`re
 
 Session timestamps are stored as UTC ISO instants after requiring an explicit timezone. Optional gross revenue uses integer minor units and an explicit currency. Duration, revenue/hour, and revenue/km are response-time calculations rather than stored columns, so edits cannot leave stale analytics. Active references are required for new sessions, while an existing session may retain an activity or vehicle that later becomes inactive.
 
-The full-tank confirmations and optional start/end fuel expense links are stored separately. A later service phase will validate that linked expenses are fuel records for the same vehicle and decide whether analytics may be labelled exact.
+The full-tank confirmations and optional start/end fuel expense links are stored separately. The Worker validates that linked expenses are live fuel records for the same vehicle and that start/end do not point to the same record. The starting receipt is optional. A full ending fill supplies litres and receipt cost; the service derives km/L and cost/km at response time. It labels the result exact only when all three confirmations—full at start, no personal driving, and full at end—are true. Otherwise usable evidence is explicitly an estimate.
+
+## Fuel records
+
+Every fuel expense has one common `expenses` row and one `fuel_expense_details` row. The shared row owns activity allocation, merchant, purchase instant, total, currency, GST, description, status, creator, audit context, and retention dates. The detail row owns vehicle, station, pump price, litres, odometer, fill type, and notes.
+
+Pump price is stored as integer millionths per litre and receipt amounts as integer minor units. Litres use an explicit floating measurement column. Price and litres are nullable by design; the service warns and requires deliberate confirmation when either is missing. When both exist, it warns if their calculated total differs from the receipt total by at least the greater of one currency unit or two percent.
 
 ## Attachments and comments
 
@@ -66,4 +72,4 @@ Attachments and comments refer to several record families, so `record_type` plus
 
 ## Retention
 
-Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Work sessions calculate these dates from their end instant when created or edited. The retention phase will apply the same policy services to other record types and enforce trash/purge transitions.
+Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Work sessions calculate these dates from their end instant when created or edited; fuel expenses calculate them from the purchase instant. The retention phase will apply the same policy services to other record types and enforce trash/purge transitions.

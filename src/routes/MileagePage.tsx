@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { WorkSessionForm } from '../features/mileage/WorkSessionForm';
 import {
@@ -26,6 +26,26 @@ interface WorkSession {
   revenuePerHourMinor: number | null;
   revenuePerKmMinor: number | null;
   notes: string | null;
+  tankFullAtStart: boolean | null;
+  noPersonalDriving: boolean | null;
+  tankFullAtEnd: boolean | null;
+  startingFuelExpenseId: string | null;
+  endingFuelExpenseId: string | null;
+  fuelCalculationStatus: 'EXACT' | 'ESTIMATE' | 'UNAVAILABLE';
+  fuelLitresUsed: number | null;
+  fuelCostMinor: number | null;
+  fuelCurrency: string | null;
+  kilometresPerLitre: number | null;
+  fuelCostPerKmMinor: number | null;
+}
+
+interface FuelOption {
+  id: string;
+  vehicleId: string;
+  merchantName: string;
+  purchaseDatetime: string;
+  fillType: string;
+  fuelLitres: number | null;
 }
 
 interface Summary {
@@ -92,22 +112,30 @@ export function MileagePage() {
   const [summary, setSummary] = useState(emptySummary);
   const [activities, setActivities] = useState<ReferenceOption[]>([]);
   const [vehicles, setVehicles] = useState<ReferenceOption[]>([]);
+  const [fuelRecords, setFuelRecords] = useState<FuelOption[]>([]);
   const [editing, setEditing] = useState<WorkSession | null>(null);
+  const [fuelEditing, setFuelEditing] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const [sessionResult, activityResult, vehicleResult] = await Promise.all([
-      apiRequest<{ sessions: WorkSession[]; summary: Summary }>(
-        '/api/work-sessions',
-      ),
-      apiRequest<{
-        activities: Array<{ id: string; name: string; active: boolean }>;
-      }>('/api/business-activities'),
-      apiRequest<{
-        vehicles: Array<{ id: string; registration: string; active: boolean }>;
-      }>('/api/vehicles'),
-    ]);
+    const [sessionResult, activityResult, vehicleResult, fuelResult] =
+      await Promise.all([
+        apiRequest<{ sessions: WorkSession[]; summary: Summary }>(
+          '/api/work-sessions',
+        ),
+        apiRequest<{
+          activities: Array<{ id: string; name: string; active: boolean }>;
+        }>('/api/business-activities'),
+        apiRequest<{
+          vehicles: Array<{
+            id: string;
+            registration: string;
+            active: boolean;
+          }>;
+        }>('/api/vehicles'),
+        apiRequest<{ fuelRecords: FuelOption[] }>('/api/fuel-records'),
+      ]);
     setSessions(sessionResult.sessions);
     setSummary(sessionResult.summary);
     setActivities(
@@ -124,6 +152,7 @@ export function MileagePage() {
         active: item.active,
       })),
     );
+    setFuelRecords(fuelResult.fuelRecords);
   }, []);
 
   useEffect(() => {
@@ -177,6 +206,36 @@ export function MileagePage() {
         caught instanceof Error
           ? caught
           : new Error('Unable to update work session.');
+      setError(failure.message);
+      throw failure;
+    }
+  }
+
+  async function saveFuelWorkflow(
+    session: WorkSession,
+    values: {
+      tankFullAtStart: boolean;
+      noPersonalDriving: boolean;
+      tankFullAtEnd: boolean;
+      startingFuelExpenseId: string;
+      endingFuelExpenseId: string;
+    },
+  ) {
+    setError('');
+    setMessage('');
+    try {
+      await apiRequest('/api/work-sessions/fuel-workflow', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: session.id, ...values }),
+      });
+      setFuelEditing(null);
+      setMessage('Full-tank fuel evidence updated and analytics recalculated.');
+      await load();
+    } catch (caught) {
+      const failure =
+        caught instanceof Error
+          ? caught
+          : new Error('Unable to update fuel evidence.');
       setError(failure.message);
       throw failure;
     }
@@ -324,20 +383,84 @@ export function MileagePage() {
                           {money(session.revenuePerKmMinor, session.currency)}
                         </dd>
                       </div>
+                      <div>
+                        <dt>Fuel evidence</dt>
+                        <dd>
+                          {session.fuelCalculationStatus === 'EXACT'
+                            ? 'Exact full-tank'
+                            : session.fuelCalculationStatus === 'ESTIMATE'
+                              ? 'Estimate only'
+                              : 'Unavailable'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Fuel used</dt>
+                        <dd>
+                          {session.fuelLitresUsed === null
+                            ? '—'
+                            : `${session.fuelLitresUsed.toLocaleString('en-NZ')} L`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Efficiency</dt>
+                        <dd>
+                          {session.kilometresPerLitre === null
+                            ? '—'
+                            : `${session.kilometresPerLitre.toLocaleString('en-NZ')} km/L`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Fuel cost/km</dt>
+                        <dd>
+                          {money(
+                            session.fuelCostPerKmMinor,
+                            session.fuelCurrency ?? session.currency,
+                          )}
+                        </dd>
+                      </div>
                     </dl>
+                    {session.fuelCalculationStatus === 'ESTIMATE' ? (
+                      <p className="notice">
+                        This fuel-use result is not exact because all three
+                        full-tank confirmations are not true.
+                      </p>
+                    ) : null}
                     <p className="record-dates">
                       Odometer {session.odometerStartKm.toLocaleString('en-NZ')}{' '}
                       → {session.odometerEndKm.toLocaleString('en-NZ')} km
                     </p>
                     {session.notes ? <p>{session.notes}</p> : null}
                     {canManage ? (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => setEditing(session)}
-                      >
-                        Edit session
-                      </button>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => setEditing(session)}
+                        >
+                          Edit session
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() =>
+                            setFuelEditing(
+                              fuelEditing === session.id ? null : session.id,
+                            )
+                          }
+                        >
+                          Fuel workflow
+                        </button>
+                      </div>
+                    ) : null}
+                    {fuelEditing === session.id ? (
+                      <FuelWorkflowForm
+                        session={session}
+                        fuelRecords={fuelRecords.filter(
+                          (fuel) => fuel.vehicleId === session.vehicleId,
+                        )}
+                        onSubmit={(values) => saveFuelWorkflow(session, values)}
+                        onCancel={() => setFuelEditing(null)}
+                      />
                     ) : null}
                   </>
                 )}
@@ -347,5 +470,120 @@ export function MileagePage() {
         )}
       </section>
     </section>
+  );
+}
+
+function FuelWorkflowForm({
+  session,
+  fuelRecords,
+  onSubmit,
+  onCancel,
+}: {
+  session: WorkSession;
+  fuelRecords: FuelOption[];
+  onSubmit: (values: {
+    tankFullAtStart: boolean;
+    noPersonalDriving: boolean;
+    tankFullAtEnd: boolean;
+    startingFuelExpenseId: string;
+    endingFuelExpenseId: string;
+  }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [values, setValues] = useState({
+    tankFullAtStart: session.tankFullAtStart ?? false,
+    noPersonalDriving: session.noPersonalDriving ?? false,
+    tankFullAtEnd: session.tankFullAtEnd ?? false,
+    startingFuelExpenseId: session.startingFuelExpenseId ?? '',
+    endingFuelExpenseId: session.endingFuelExpenseId ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await onSubmit(values);
+    } catch {
+      /* parent displays */
+    } finally {
+      setSaving(false);
+    }
+  }
+  const label = (fuel: FuelOption) =>
+    `${new Date(fuel.purchaseDatetime).toLocaleDateString('en-NZ')} · ${fuel.merchantName}${fuel.fillType === 'FULL' ? ' · full' : ''}${fuel.fuelLitres === null ? '' : ` · ${fuel.fuelLitres} L`}`;
+  return (
+    <form className="fuel-workflow" onSubmit={(event) => void submit(event)}>
+      <h4>Full-tank session evidence</h4>
+      <p>
+        The starting receipt is optional. Link the ending full-fill receipt to
+        support actual fuel-use calculations.
+      </p>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={values.tankFullAtStart}
+          onChange={(event) =>
+            setValues({ ...values, tankFullAtStart: event.target.checked })
+          }
+        />
+        Tank was full at the start
+      </label>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={values.noPersonalDriving}
+          onChange={(event) =>
+            setValues({ ...values, noPersonalDriving: event.target.checked })
+          }
+        />
+        No personal driving occurred during the session
+      </label>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={values.tankFullAtEnd}
+          onChange={(event) =>
+            setValues({ ...values, tankFullAtEnd: event.target.checked })
+          }
+        />
+        Tank was full at the end
+      </label>
+      <label>Starting fuel receipt (optional)</label>
+      <select
+        value={values.startingFuelExpenseId}
+        onChange={(event) =>
+          setValues({ ...values, startingFuelExpenseId: event.target.value })
+        }
+      >
+        <option value="">None</option>
+        {fuelRecords.map((fuel) => (
+          <option key={fuel.id} value={fuel.id}>
+            {label(fuel)}
+          </option>
+        ))}
+      </select>
+      <label>Ending full-fill receipt</label>
+      <select
+        value={values.endingFuelExpenseId}
+        onChange={(event) =>
+          setValues({ ...values, endingFuelExpenseId: event.target.value })
+        }
+      >
+        <option value="">None</option>
+        {fuelRecords.map((fuel) => (
+          <option key={fuel.id} value={fuel.id}>
+            {label(fuel)}
+          </option>
+        ))}
+      </select>
+      <div className="button-row">
+        <button disabled={saving}>
+          {saving ? 'Saving…' : 'Save fuel workflow'}
+        </button>
+        <button type="button" className="secondary-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

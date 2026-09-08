@@ -6,6 +6,7 @@ import {
   readJsonObject,
 } from '../lib/http';
 import { writeAudit } from '../services/auditService';
+import { calculateFuelMetrics } from '../services/fuelService';
 import {
   calculateRetentionDate,
   calculateWorkSessionMetrics,
@@ -31,6 +32,17 @@ interface WorkSessionRow {
   status: string;
   created_at: string;
   updated_at: string;
+  tank_full_at_start: number | null;
+  no_personal_driving: number | null;
+  tank_full_at_end: number | null;
+  starting_fuel_expense_id: string | null;
+  starting_fuel_merchant: string | null;
+  ending_fuel_expense_id: string | null;
+  ending_fuel_merchant: string | null;
+  ending_fuel_total_minor: number | null;
+  ending_fuel_currency: string | null;
+  ending_fuel_litres: number | null;
+  ending_fill_type: string | null;
 }
 
 interface RetentionSettings {
@@ -45,12 +57,29 @@ const sessionSelect = `SELECT work_sessions.id, work_sessions.business_activity_
   work_sessions.ended_at, work_sessions.odometer_start_km,
   work_sessions.odometer_end_km, work_sessions.distance_km,
   work_sessions.gross_revenue_minor, work_sessions.currency, work_sessions.notes,
-  work_sessions.status, work_sessions.created_at, work_sessions.updated_at
+  work_sessions.status, work_sessions.created_at, work_sessions.updated_at,
+  work_sessions.tank_full_at_start, work_sessions.no_personal_driving,
+  work_sessions.tank_full_at_end, work_sessions.starting_fuel_expense_id,
+  starting_fuel.merchant_name AS starting_fuel_merchant,
+  work_sessions.ending_fuel_expense_id,
+  ending_fuel.merchant_name AS ending_fuel_merchant,
+  ending_fuel.total_amount_minor AS ending_fuel_total_minor,
+  ending_fuel.currency AS ending_fuel_currency,
+  ending_detail.fuel_litres AS ending_fuel_litres,
+  ending_detail.fill_type AS ending_fill_type
   FROM work_sessions
   JOIN business_activities ON business_activities.id = work_sessions.business_activity_id
-  JOIN vehicles ON vehicles.id = work_sessions.vehicle_id`;
+  JOIN vehicles ON vehicles.id = work_sessions.vehicle_id
+  LEFT JOIN expenses AS starting_fuel ON starting_fuel.id = work_sessions.starting_fuel_expense_id
+  LEFT JOIN expenses AS ending_fuel ON ending_fuel.id = work_sessions.ending_fuel_expense_id
+  LEFT JOIN fuel_expense_details AS ending_detail ON ending_detail.expense_id = ending_fuel.id`;
 
 function serialize(row: WorkSessionRow) {
+  const evidenceReady =
+    row.tank_full_at_start === 1 &&
+    row.no_personal_driving === 1 &&
+    row.tank_full_at_end === 1 &&
+    row.ending_fill_type === 'FULL';
   return {
     id: row.id,
     businessActivityId: row.business_activity_id,
@@ -65,11 +94,28 @@ function serialize(row: WorkSessionRow) {
     currency: row.currency,
     notes: row.notes,
     status: row.status,
+    tankFullAtStart:
+      row.tank_full_at_start === null ? null : row.tank_full_at_start === 1,
+    noPersonalDriving:
+      row.no_personal_driving === null ? null : row.no_personal_driving === 1,
+    tankFullAtEnd:
+      row.tank_full_at_end === null ? null : row.tank_full_at_end === 1,
+    startingFuelExpenseId: row.starting_fuel_expense_id,
+    startingFuelMerchant: row.starting_fuel_merchant,
+    endingFuelExpenseId: row.ending_fuel_expense_id,
+    endingFuelMerchant: row.ending_fuel_merchant,
+    fuelCurrency: row.ending_fuel_currency,
     ...calculateWorkSessionMetrics(
       row.started_at,
       row.ended_at,
       row.distance_km,
       row.gross_revenue_minor,
+    ),
+    ...calculateFuelMetrics(
+      row.distance_km,
+      row.ending_fill_type === 'FULL' ? row.ending_fuel_litres : null,
+      row.ending_fill_type === 'FULL' ? row.ending_fuel_total_minor : null,
+      evidenceReady,
     ),
   };
 }
@@ -297,6 +343,128 @@ export async function updateWorkSession(
     id,
     'Work session updated.',
     values.businessActivityId,
+  );
+  const updated = await env.DB.prepare(
+    `${sessionSelect} WHERE work_sessions.id = ?`,
+  )
+    .bind(id)
+    .first<WorkSessionRow>();
+  if (!updated) throw new HttpError(500, 'Work session could not be loaded.');
+  return json({ session: serialize(updated) });
+}
+
+function requiredBoolean(
+  input: Record<string, unknown>,
+  field: string,
+): boolean {
+  const value = input[field];
+  if (typeof value !== 'boolean') {
+    throw new HttpError(400, `${field} must be confirmed as yes or no.`);
+  }
+  return value;
+}
+
+function optionalId(
+  input: Record<string, unknown>,
+  field: string,
+): string | null {
+  const value = input[field];
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || value.trim().length > 100) {
+    throw new HttpError(400, `${field} is invalid.`);
+  }
+  return value.trim();
+}
+
+interface LinkedFuelRow {
+  id: string;
+  vehicle_id: string;
+}
+
+async function linkedFuel(
+  env: Env,
+  id: string | null,
+): Promise<LinkedFuelRow | null> {
+  if (!id) return null;
+  const fuel = await env.DB.prepare(
+    `SELECT expenses.id, fuel_expense_details.vehicle_id FROM expenses
+     JOIN fuel_expense_details ON fuel_expense_details.expense_id = expenses.id
+     WHERE expenses.id = ? AND expenses.expense_type = 'FUEL' AND expenses.deleted_at IS NULL`,
+  )
+    .bind(id)
+    .first<LinkedFuelRow>();
+  if (!fuel) throw new HttpError(400, 'Select a valid fuel expense.');
+  return fuel;
+}
+
+export async function updateFuelWorkflow(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const owner = await requireUser(request, env);
+  requireRole(owner, ['OWNER']);
+  const input = await readJsonObject(request);
+  const id = getRequiredString(input, 'id');
+  const row = await env.DB.prepare(
+    `${sessionSelect} WHERE work_sessions.id = ?`,
+  )
+    .bind(id)
+    .first<WorkSessionRow>();
+  if (!row) throw new HttpError(404, 'Work session not found.');
+
+  const tankFullAtStart = requiredBoolean(input, 'tankFullAtStart');
+  const noPersonalDriving = requiredBoolean(input, 'noPersonalDriving');
+  const tankFullAtEnd = requiredBoolean(input, 'tankFullAtEnd');
+  const startingFuelExpenseId = optionalId(input, 'startingFuelExpenseId');
+  const endingFuelExpenseId = optionalId(input, 'endingFuelExpenseId');
+  if (
+    startingFuelExpenseId &&
+    endingFuelExpenseId &&
+    startingFuelExpenseId === endingFuelExpenseId
+  ) {
+    throw new HttpError(
+      400,
+      'Starting and ending fuel expenses must be different.',
+    );
+  }
+  const [startingFuel, endingFuel] = await Promise.all([
+    linkedFuel(env, startingFuelExpenseId),
+    linkedFuel(env, endingFuelExpenseId),
+  ]);
+  if (
+    (startingFuel && startingFuel.vehicle_id !== row.vehicle_id) ||
+    (endingFuel && endingFuel.vehicle_id !== row.vehicle_id)
+  ) {
+    throw new HttpError(
+      400,
+      'Linked fuel expenses must use the session vehicle.',
+    );
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE work_sessions SET tank_full_at_start = ?, no_personal_driving = ?,
+      tank_full_at_end = ?, starting_fuel_expense_id = ?, ending_fuel_expense_id = ?,
+      updated_at = ? WHERE id = ?`,
+  )
+    .bind(
+      tankFullAtStart ? 1 : 0,
+      noPersonalDriving ? 1 : 0,
+      tankFullAtEnd ? 1 : 0,
+      startingFuelExpenseId,
+      endingFuelExpenseId,
+      now,
+      id,
+    )
+    .run();
+  await writeAudit(
+    env,
+    owner,
+    'WORK_SESSION_FUEL_UPDATED',
+    'WORK_SESSION',
+    id,
+    'Full-tank fuel workflow updated.',
+    row.business_activity_id,
   );
   const updated = await env.DB.prepare(
     `${sessionSelect} WHERE work_sessions.id = ?`,

@@ -24,6 +24,7 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 - Account disabling must preserve the user and audit references, forbid disabling the owner, and revoke active sessions.
 - Treat business activities and vehicles as reusable database reference records, never hard-coded provider enums. Preserve historical links by deactivating/reactivating instead of deleting, and keep all mutations owner-only at the Worker boundary.
 - Keep work-session distance generated exclusively from ending minus starting odometer; never accept an authoritative distance field. Store revenue in integer minor units, require timezone-qualified API timestamps, derive rates from source values, and avoid aggregating incomplete or mixed-currency revenue into misleading rates.
+- Keep fuel receipt money in integer minor units and pump prices in integer millionths per litre. Price and litres are optional warning conditions, not hard requirements. Never label full-tank fuel use exact unless all three confirmations are true and a same-vehicle ending full fill supplies litres and cost evidence.
 
 ## Important paths
 

@@ -117,3 +117,24 @@ Acceptance criteria completed:
 - Added calculation, validation, retention, and component tests and extended the local acceptance suite through inactive-reference rejection, odometer rejection, authoritative distance, recalculation, aggregation, and role denial.
 
 Notes: Phase 7 will extend work sessions with fuel records, full-tank confirmations, optional receipt linkage, and fuel-efficiency/cost analytics. Phase 6 deliberately does not claim GPS or trip-level tracking.
+
+## Phase 7: Fuel tracking and full-tank workflow
+
+Status: Complete
+
+Commit: Pending phase checkpoint
+
+Acceptance criteria completed:
+
+- Added authenticated fuel-expense list, create, and edit APIs backed by the common expense record and one-to-one fuel details.
+- Required owner authorization for mutations while retaining accountant read access and server-side validation of references, timestamps, money, GST, measurements, fill type, and text limits.
+- Kept fuel price and litres optional, returning a non-blocking confirmation response when either is omitted.
+- Added a material receipt-total comparison using the greater of one currency unit or two percent, with explicit save-anyway confirmation instead of silent rejection.
+- Stored receipt and GST amounts as integer minor units and pump price as integer millionths per litre; applied the configured New Zealand tax-year retention policy and audit history to fuel changes.
+- Added same-vehicle starting/ending receipt linkage to work sessions, with an optional starting receipt and an ending full-fill receipt as the calculation evidence.
+- Required explicit tank-full-at-start, no-personal-driving, and tank-full-at-end confirmations before any result can be labelled exact.
+- Derived business distance, ending-refill litres/cost, km/L, and fuel cost/km from persisted source values; incomplete confirmations are clearly labelled estimates and insufficient ending evidence is unavailable.
+- Added responsive Fuel entry/history and Mileage full-tank workflow interfaces, including Go back and Save anyway warning actions and read-only accountant presentation.
+- Added unit/component coverage and extended the local acceptance suite through warning confirmation, material mismatch, exact/estimated analytics, linkage, and role denial.
+
+Notes: The Phase 3 schema already included fuel details and session linkage fields, so no migration was required. Phase 8 adds parking and general expenses.

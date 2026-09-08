@@ -353,6 +353,35 @@ th {
   margin-top: 1rem;
 }
 
+.fuel-workflow {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  border-top: 1px solid #d9e1e8;
+  padding-top: 1rem;
+}
+
+.fuel-workflow h4,
+.fuel-workflow p {
+  margin: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 650;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+.warning-panel {
+  border-color: #b7791f;
+  background: #fffaf0;
+}
+
 .work-session-form > label,
 .form-pair label {
   display: block;

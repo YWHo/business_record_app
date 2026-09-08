@@ -34,11 +34,17 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-async function parseError(response: Response): Promise<string> {
-  const body = (await response.json().catch(() => null)) as {
-    error?: string;
-  } | null;
-  return body?.error ?? 'The request could not be completed.';
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly body: Record<string, unknown> | null,
+  ) {
+    super(
+      typeof body?.error === 'string'
+        ? body.error
+        : 'The request could not be completed.',
+    );
+  }
 }
 
 export async function apiRequest<T>(
@@ -54,7 +60,11 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const body = (await response.json().catch(() => null)) as Record<
+      string,
+      unknown
+    > | null;
+    throw new ApiError(response.status, body);
   }
 
   return response.json() as Promise<T>;

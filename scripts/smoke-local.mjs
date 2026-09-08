@@ -413,6 +413,182 @@ if (
   throw new Error('work-session aggregate metrics were incorrect');
 }
 
+const accountantFuel = await request('/api/fuel-records', {}, accountantCookie);
+expectStatus(accountantFuel, 200, 'accountant fuel read');
+const deniedFuelCreate = await request(
+  '/api/fuel-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  },
+  accountantCookie,
+);
+expectStatus(deniedFuelCreate, 403, 'accountant fuel create denial');
+
+const incompleteFuelBody = {
+  businessActivityId: activityId,
+  vehicleId,
+  merchantName: 'Phase 7 Start Fuel',
+  purchaseDatetime: '2026-09-07T23:45:00.000Z',
+  totalAmount: '25.00',
+  currency: 'NZD',
+  gstStatus: 'UNKNOWN',
+  fillType: 'FULL',
+};
+const incompleteFuelWarning = await request(
+  '/api/fuel-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(incompleteFuelBody),
+  },
+  ownerCookie,
+);
+expectStatus(incompleteFuelWarning, 409, 'incomplete fuel warning');
+if (
+  incompleteFuelWarning.body.warnings?.[0]?.code !== 'INCOMPLETE_FUEL_DETAIL'
+) {
+  throw new Error('incomplete fuel warning code was not returned');
+}
+const startingFuel = await request(
+  '/api/fuel-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      ...incompleteFuelBody,
+      confirmedWarnings: ['INCOMPLETE_FUEL_DETAIL'],
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(startingFuel, 201, 'confirmed incomplete fuel create');
+
+const mismatchedFuel = await request(
+  '/api/fuel-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId,
+      merchantName: 'Phase 7 End Fuel',
+      purchaseDatetime: '2026-09-08T03:05:00.000Z',
+      totalAmount: '120.00',
+      fuelPricePerLitre: '2.500000',
+      fuelLitres: 40,
+      odometerKm: 1080,
+      fillType: 'FULL',
+      currency: 'NZD',
+      gstStatus: 'GST_INCLUDED',
+      gstAmount: '15.65',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(mismatchedFuel, 409, 'fuel total mismatch warning');
+if (mismatchedFuel.body.warnings?.[0]?.code !== 'TOTAL_MISMATCH') {
+  throw new Error('fuel mismatch warning code was not returned');
+}
+const endingFuel = await request(
+  '/api/fuel-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId,
+      merchantName: 'Phase 7 End Fuel',
+      purchaseDatetime: '2026-09-08T03:05:00.000Z',
+      totalAmount: '100.00',
+      fuelPricePerLitre: '2.500000',
+      fuelLitres: 40,
+      odometerKm: 1080,
+      fillType: 'FULL',
+      currency: 'NZD',
+      gstStatus: 'GST_INCLUDED',
+      gstAmount: '13.04',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(endingFuel, 201, 'complete fuel create');
+const updatedFuel = await request(
+  '/api/fuel-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: endingFuel.body.fuelRecord.id,
+      fuelStation: 'Phase 7 Central Pump',
+      notes: 'Ending full-fill evidence',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedFuel, 200, 'fuel edit');
+if (updatedFuel.body.fuelRecord.fuelStation !== 'Phase 7 Central Pump') {
+  throw new Error('fuel detail edit was not persisted');
+}
+
+const deniedFuelWorkflow = await request(
+  '/api/work-sessions/fuel-workflow',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: sessionId }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedFuelWorkflow, 403, 'accountant fuel workflow denial');
+const exactFuelWorkflow = await request(
+  '/api/work-sessions/fuel-workflow',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: sessionId,
+      tankFullAtStart: true,
+      noPersonalDriving: true,
+      tankFullAtEnd: true,
+      startingFuelExpenseId: startingFuel.body.fuelRecord.id,
+      endingFuelExpenseId: endingFuel.body.fuelRecord.id,
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(exactFuelWorkflow, 200, 'exact full-tank workflow');
+if (
+  exactFuelWorkflow.body.session.fuelCalculationStatus !== 'EXACT' ||
+  exactFuelWorkflow.body.session.fuelLitresUsed !== 40 ||
+  exactFuelWorkflow.body.session.kilometresPerLitre !== 2 ||
+  exactFuelWorkflow.body.session.fuelCostPerKmMinor !== 125
+) {
+  throw new Error('full-tank fuel metrics were incorrect');
+}
+const estimatedFuelWorkflow = await request(
+  '/api/work-sessions/fuel-workflow',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: sessionId,
+      tankFullAtStart: true,
+      noPersonalDriving: false,
+      tankFullAtEnd: true,
+      endingFuelExpenseId: endingFuel.body.fuelRecord.id,
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(estimatedFuelWorkflow, 200, 'non-exact full-tank workflow');
+if (estimatedFuelWorkflow.body.session.fuelCalculationStatus !== 'ESTIMATE') {
+  throw new Error(
+    'incomplete confirmations were incorrectly presented as exact',
+  );
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -515,5 +691,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, activities, vehicles, mileage, revocation, and R2.',
+  'Local smoke passed: authentication, roles, activities, vehicles, mileage, fuel workflows, revocation, and R2.',
 );

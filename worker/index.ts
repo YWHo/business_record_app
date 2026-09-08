@@ -35,8 +35,14 @@ import { createVehicle, listVehicles, updateVehicle } from './routes/vehicles';
 import {
   createWorkSession,
   listWorkSessions,
+  updateFuelWorkflow,
   updateWorkSession,
 } from './routes/workSessions';
+import {
+  createFuelRecord,
+  listFuelRecords,
+  updateFuelRecord,
+} from './routes/fuelRecords';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -90,6 +96,14 @@ const routes: Route[] = [
     pathname: '/api/work-sessions',
     handler: updateWorkSession,
   },
+  {
+    method: 'PATCH',
+    pathname: '/api/work-sessions/fuel-workflow',
+    handler: updateFuelWorkflow,
+  },
+  { method: 'GET', pathname: '/api/fuel-records', handler: listFuelRecords },
+  { method: 'POST', pathname: '/api/fuel-records', handler: createFuelRecord },
+  { method: 'PATCH', pathname: '/api/fuel-records', handler: updateFuelRecord },
   {
     method: 'POST',
     pathname: '/api/admin/bootstrap-owner',
