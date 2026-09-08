@@ -138,3 +138,24 @@ Acceptance criteria completed:
 - Added unit/component coverage and extended the local acceptance suite through warning confirmation, material mismatch, exact/estimated analytics, linkage, and role denial.
 
 Notes: The Phase 3 schema already included fuel details and session linkage fields, so no migration was required. Phase 8 adds parking and general expenses.
+
+## Phase 8: Parking and general expenses
+
+Status: Complete
+
+Commit: Pending phase checkpoint
+
+Acceptance criteria completed:
+
+- Added authenticated parking and general-expense list, create, and edit APIs with owner-only mutations and accountant read access.
+- Persisted both record families through the common expense model with activity, category, merchant, purchase instant, amount, currency, GST, description, recurrence, status, creator, audit, and retention fields.
+- Added specialised parking details for optional vehicle/provider/start/end/reference plus required location.
+- Required timezone-qualified parking instants, rejected reversed intervals, and derived duration from persisted start/end values without storing a second authoritative duration.
+- Added flexible general expenses using configurable active categories, supporting software, hosting, training, professional services, and future unstructured costs without new detail tables.
+- Added authenticated category listing and owner-only create, rename, activate, and deactivate operations with case-insensitive uniqueness and audit history.
+- Kept the specialised Fuel and Parking categories active so their workflows cannot be disabled accidentally, while custom and other seeded categories remain lifecycle-managed.
+- Added explicit one-off/recurring controls and displays to parking and general expenses.
+- Replaced the Records placeholder with responsive parking/general entry, editing, and history views, and added category management to Setup.
+- Added validation/component tests and extended the local acceptance suite through category lifecycle, recurrence, parking duration/recalculation, general-expense editing, normalization, and role denial.
+
+Notes: The Phase 3 tables already contained all Phase 8 columns, so no migration was required. Attachments remain deferred to Phase 11. Phase 9 adds insurance and mixed-use allocations.

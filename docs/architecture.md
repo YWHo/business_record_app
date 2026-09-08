@@ -53,3 +53,11 @@ Work-session writes receive retention dates from the configured tax-year policy 
 Fuel data uses the shared `expenses` row for financial and retention fields and `fuel_expense_details` for vehicle and pump measurements. Receipt and GST totals are integer minor units; pump price is integer millionths per litre. The Worker—not the browser—validates both records and writes them as one D1 batch. Fuel price and litres are optional, but incomplete detail and a material price-times-litres mismatch return structured confirmation warnings before any write. A retry must name every current warning code to save deliberately.
 
 The full-tank workflow updates the existing work session rather than copying fuel data into it. Linked records must be live fuel expenses for the session vehicle, and start/end links cannot be the same record. The starting receipt is optional. Analytics use generated session distance plus the linked ending full fill's litres and receipt cost. The response labels those analytics `EXACT` only when tank-full-at-start, no-personal-driving, and tank-full-at-end are all explicitly true; usable ending evidence with any false confirmation is `ESTIMATE`, never exact.
+
+## Expense workflows and categories
+
+Parking and general expenses share the authoritative `expenses` write path and tax-year retention calculation. All financial values reach D1 as integer minor units with uppercase currency. References must be active for new selections, while edits may retain a reference that became inactive. Successful mutations create activity-aware audit events.
+
+Parking writes its common expense and one-to-one detail row as a D1 batch. Start and end must be timezone-qualified instants in chronological order. Duration is calculated only for responses and UI display, never accepted or stored as an independent source value.
+
+General expenses deliberately have no detail row. Their configurable category and common description support new cost types without arbitrary JSON or immediate migrations. Category lifecycle mutations are owner-only, case-insensitively unique, and non-destructive. The built-in Fuel and Parking categories cannot be deactivated because specialised creation depends on their stable system keys.

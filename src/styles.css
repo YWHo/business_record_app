@@ -382,6 +382,10 @@ th {
   background: #fffaf0;
 }
 
+.history-section {
+  margin-top: 2rem;
+}
+
 .work-session-form > label,
 .form-pair label {
   display: block;

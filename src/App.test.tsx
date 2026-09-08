@@ -35,112 +35,127 @@ describe('App', () => {
               turnstileRequired: false,
               turnstileSiteKey: null,
             }
-          : url.endsWith('/api/business-activities')
-            ? {
-                activities: [
-                  {
-                    id: 'activity-contracting',
-                    name: 'IT Contracting',
-                    activityType: 'PROFESSIONAL_SERVICES',
-                    active: true,
-                    startedAt: '2025-04-01',
-                    endedAt: null,
-                  },
-                ],
-              }
-            : url.endsWith('/api/vehicles')
-              ? {
-                  vehicles: [
-                    {
-                      id: 'vehicle-local',
-                      registration: 'ABC123',
-                      description: 'Work vehicle',
-                      active: true,
-                      acquiredAt: '2025-01-01',
-                      retiredAt: null,
-                      notes: null,
-                    },
-                  ],
-                }
-              : url.endsWith('/api/fuel-records')
+          : url.endsWith('/api/parking-records')
+            ? { parkingRecords: [] }
+            : url.endsWith('/api/general-expenses')
+              ? { generalExpenses: [] }
+              : url.endsWith('/api/expense-categories')
                 ? {
-                    fuelRecords: [
+                    categories: [
                       {
-                        id: 'fuel-local',
-                        businessActivityId: 'activity-contracting',
-                        activityName: 'IT Contracting',
-                        vehicleId: 'vehicle-local',
-                        vehicleRegistration: 'ABC123',
-                        merchantName: 'Harbour Fuel',
-                        purchaseDatetime: '2026-09-08T03:00:00.000Z',
-                        totalAmountMinor: 10_000,
-                        currency: 'NZD',
-                        gstAmountMinor: null,
-                        gstStatus: 'UNKNOWN',
-                        description: null,
-                        recurrenceType: 'ONE_OFF',
-                        fuelStation: null,
-                        fuelPriceMicrosPerLitre: 2_500_000,
-                        fuelLitres: 40,
-                        odometerKm: 150,
-                        fillType: 'FULL',
-                        notes: null,
+                        id: 'category-software',
+                        name: 'Software',
+                        active: true,
+                        systemKey: 'SOFTWARE',
                       },
                     ],
                   }
-                : url.endsWith('/api/work-sessions')
+                : url.endsWith('/api/business-activities')
                   ? {
-                      sessions: [
+                      activities: [
                         {
-                          id: 'session-local',
-                          businessActivityId: 'activity-contracting',
-                          activityName: 'IT Contracting',
-                          vehicleId: 'vehicle-local',
-                          vehicleRegistration: 'ABC123',
-                          startedAt: '2026-09-08T00:00:00.000Z',
-                          endedAt: '2026-09-08T02:00:00.000Z',
-                          odometerStartKm: 100,
-                          odometerEndKm: 150,
-                          distanceKm: 50,
-                          durationMinutes: 120,
-                          durationHours: 2,
-                          grossRevenueMinor: 10_000,
-                          currency: 'NZD',
-                          revenuePerHourMinor: 5000,
-                          revenuePerKmMinor: 200,
-                          notes: null,
-                          tankFullAtStart: true,
-                          noPersonalDriving: true,
-                          tankFullAtEnd: true,
-                          startingFuelExpenseId: null,
-                          endingFuelExpenseId: 'fuel-local',
-                          fuelCalculationStatus: 'EXACT',
-                          fuelLitresUsed: 40,
-                          fuelCostMinor: 10_000,
-                          fuelCurrency: 'NZD',
-                          kilometresPerLitre: 1.25,
-                          fuelCostPerKmMinor: 200,
+                          id: 'activity-contracting',
+                          name: 'IT Contracting',
+                          activityType: 'PROFESSIONAL_SERVICES',
+                          active: true,
+                          startedAt: '2025-04-01',
+                          endedAt: null,
                         },
                       ],
-                      summary: {
-                        sessionCount: 1,
-                        totalDurationHours: 2,
-                        totalDistanceKm: 50,
-                        totalRevenueMinor: 10_000,
-                        revenuePerHourMinor: 5000,
-                        revenuePerKmMinor: 200,
-                        currency: 'NZD',
-                        completeRevenueData: true,
-                      },
                     }
-                  : {
-                      user: {
-                        id: 'owner',
-                        email: 'owner@local.test',
-                        role: currentRole,
-                        status: 'ACTIVE',
-                      },
-                    };
+                  : url.endsWith('/api/vehicles')
+                    ? {
+                        vehicles: [
+                          {
+                            id: 'vehicle-local',
+                            registration: 'ABC123',
+                            description: 'Work vehicle',
+                            active: true,
+                            acquiredAt: '2025-01-01',
+                            retiredAt: null,
+                            notes: null,
+                          },
+                        ],
+                      }
+                    : url.endsWith('/api/fuel-records')
+                      ? {
+                          fuelRecords: [
+                            {
+                              id: 'fuel-local',
+                              businessActivityId: 'activity-contracting',
+                              activityName: 'IT Contracting',
+                              vehicleId: 'vehicle-local',
+                              vehicleRegistration: 'ABC123',
+                              merchantName: 'Harbour Fuel',
+                              purchaseDatetime: '2026-09-08T03:00:00.000Z',
+                              totalAmountMinor: 10_000,
+                              currency: 'NZD',
+                              gstAmountMinor: null,
+                              gstStatus: 'UNKNOWN',
+                              description: null,
+                              recurrenceType: 'ONE_OFF',
+                              fuelStation: null,
+                              fuelPriceMicrosPerLitre: 2_500_000,
+                              fuelLitres: 40,
+                              odometerKm: 150,
+                              fillType: 'FULL',
+                              notes: null,
+                            },
+                          ],
+                        }
+                      : url.endsWith('/api/work-sessions')
+                        ? {
+                            sessions: [
+                              {
+                                id: 'session-local',
+                                businessActivityId: 'activity-contracting',
+                                activityName: 'IT Contracting',
+                                vehicleId: 'vehicle-local',
+                                vehicleRegistration: 'ABC123',
+                                startedAt: '2026-09-08T00:00:00.000Z',
+                                endedAt: '2026-09-08T02:00:00.000Z',
+                                odometerStartKm: 100,
+                                odometerEndKm: 150,
+                                distanceKm: 50,
+                                durationMinutes: 120,
+                                durationHours: 2,
+                                grossRevenueMinor: 10_000,
+                                currency: 'NZD',
+                                revenuePerHourMinor: 5000,
+                                revenuePerKmMinor: 200,
+                                notes: null,
+                                tankFullAtStart: true,
+                                noPersonalDriving: true,
+                                tankFullAtEnd: true,
+                                startingFuelExpenseId: null,
+                                endingFuelExpenseId: 'fuel-local',
+                                fuelCalculationStatus: 'EXACT',
+                                fuelLitresUsed: 40,
+                                fuelCostMinor: 10_000,
+                                fuelCurrency: 'NZD',
+                                kilometresPerLitre: 1.25,
+                                fuelCostPerKmMinor: 200,
+                              },
+                            ],
+                            summary: {
+                              sessionCount: 1,
+                              totalDurationHours: 2,
+                              totalDistanceKm: 50,
+                              totalRevenueMinor: 10_000,
+                              revenuePerHourMinor: 5000,
+                              revenuePerKmMinor: 200,
+                              currency: 'NZD',
+                              completeRevenueData: true,
+                            },
+                          }
+                        : {
+                            user: {
+                              id: 'owner',
+                              email: 'owner@local.test',
+                              role: currentRole,
+                              status: 'ACTIVE',
+                            },
+                          };
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status: 200,
@@ -175,7 +190,9 @@ describe('App', () => {
     renderApp('/setup');
 
     expect(
-      await screen.findByRole('heading', { name: /activities and vehicles/i }),
+      await screen.findByRole('heading', {
+        name: /activities, vehicles, and categories/i,
+      }),
     ).toBeInTheDocument();
     expect(await screen.findByText('IT Contracting')).toBeInTheDocument();
     expect(await screen.findByText('ABC123')).toBeInTheDocument();
@@ -206,6 +223,21 @@ describe('App', () => {
     expect(screen.getByText('ABC123')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /add work session/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders parking and general expense entry workflows', async () => {
+    renderApp('/records');
+    expect(
+      await screen.findByRole('heading', {
+        name: /parking and general expenses/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /add parking/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /add general expense/i }),
     ).toBeInTheDocument();
   });
 

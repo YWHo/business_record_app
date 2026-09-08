@@ -66,6 +66,14 @@ Every fuel expense has one common `expenses` row and one `fuel_expense_details` 
 
 Pump price is stored as integer millionths per litre and receipt amounts as integer minor units. Litres use an explicit floating measurement column. Price and litres are nullable by design; the service warns and requires deliberate confirmation when either is missing. When both exist, it warns if their calculated total differs from the receipt total by at least the greater of one currency unit or two percent.
 
+## Parking and general expenses
+
+Parking uses one `expenses` row plus one `parking_expense_details` row. The detail requires a location and optionally links a vehicle, provider, timezone-qualified start/end instants, and ticket reference. The Worker validates interval ordering and calculates duration at response time, avoiding a stale stored duration.
+
+General expenses use only the common `expenses` row. This intentionally supports future expense types through a configurable category and description while retaining structured financial, recurrence, status, retention, and audit fields. It does not introduce arbitrary JSON metadata.
+
+`expense_categories` combines seeded rows with owner-created categories. Names remain case-insensitively unique; lifecycle changes use `active` rather than deletion so historical foreign keys stay valid. Stable `system_key` values distinguish built-in categories. Fuel and Parking must remain active for their specialised routes.
+
 ## Attachments and comments
 
 Attachments and comments refer to several record families, so `record_type` plus `record_id` is intentionally polymorphic and cannot use one SQL foreign key. The Worker must validate the target transaction before any insert. Attachments enforce supported MIME types, the 25 MB limit, SHA-256 presence, ordered versions, and at most one current item in each version group.

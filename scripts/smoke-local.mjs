@@ -589,6 +589,225 @@ if (estimatedFuelWorkflow.body.session.fuelCalculationStatus !== 'ESTIMATE') {
   );
 }
 
+const accountantCategories = await request(
+  '/api/expense-categories',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantCategories, 200, 'accountant category read');
+const parkingCategory = accountantCategories.body.categories.find(
+  (category) => category.systemKey === 'PARKING',
+);
+if (!parkingCategory)
+  throw new Error('built-in parking category was not listed');
+const protectedCategory = await request(
+  '/api/expense-categories',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: parkingCategory.id, active: false }),
+  },
+  ownerCookie,
+);
+expectStatus(
+  protectedCategory,
+  400,
+  'specialised category deactivation denial',
+);
+const deniedCategoryCreate = await request(
+  '/api/expense-categories',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Denied category' }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedCategoryCreate, 403, 'accountant category create denial');
+const createdCategory = await request(
+  '/api/expense-categories',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Phase 8 Equipment Rental' }),
+  },
+  ownerCookie,
+);
+expectStatus(createdCategory, 201, 'owner category create');
+const categoryId = createdCategory.body.category.id;
+const duplicateCategory = await request(
+  '/api/expense-categories',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'phase 8 equipment rental' }),
+  },
+  ownerCookie,
+);
+expectStatus(duplicateCategory, 409, 'duplicate category denial');
+const deactivatedCategory = await request(
+  '/api/expense-categories',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: categoryId, active: false }),
+  },
+  ownerCookie,
+);
+expectStatus(deactivatedCategory, 200, 'category deactivate');
+const reactivatedCategory = await request(
+  '/api/expense-categories',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: categoryId,
+      active: true,
+      name: 'Phase 8 Equipment Hire',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(reactivatedCategory, 200, 'category rename and reactivate');
+
+const accountantGeneral = await request(
+  '/api/general-expenses',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantGeneral, 200, 'accountant general expense read');
+const deniedGeneralCreate = await request(
+  '/api/general-expenses',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  },
+  accountantCookie,
+);
+expectStatus(deniedGeneralCreate, 403, 'accountant general expense denial');
+const createdGeneral = await request(
+  '/api/general-expenses',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      expenseCategoryId: categoryId,
+      merchantName: 'Phase 8 Hire Co',
+      purchaseDatetime: '2026-09-08T04:00:00.000Z',
+      totalAmount: '46.00',
+      currency: 'nzd',
+      gstAmount: '6.00',
+      gstStatus: 'GST_INCLUDED',
+      recurrenceType: 'RECURRING',
+      description: 'Synthetic recurring general expense',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(createdGeneral, 201, 'general expense create');
+if (
+  createdGeneral.body.generalExpense.totalAmountMinor !== 4600 ||
+  createdGeneral.body.generalExpense.recurrenceType !== 'RECURRING' ||
+  createdGeneral.body.generalExpense.currency !== 'NZD'
+) {
+  throw new Error('general expense values were not normalized');
+}
+const updatedGeneral = await request(
+  '/api/general-expenses',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: createdGeneral.body.generalExpense.id,
+      totalAmount: '57.50',
+      recurrenceType: 'ONE_OFF',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedGeneral, 200, 'general expense edit');
+if (updatedGeneral.body.generalExpense.totalAmountMinor !== 5750)
+  throw new Error('general expense edit was not persisted');
+
+const accountantParking = await request(
+  '/api/parking-records',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantParking, 200, 'accountant parking read');
+const deniedParkingCreate = await request(
+  '/api/parking-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  },
+  accountantCookie,
+);
+expectStatus(deniedParkingCreate, 403, 'accountant parking expense denial');
+const reversedParking = await request(
+  '/api/parking-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId,
+      parkingProvider: 'Phase 8 Parking',
+      parkingLocation: 'Waterfront',
+      purchaseDatetime: '2026-09-08T05:00:00.000Z',
+      parkingStartDatetime: '2026-09-08T06:00:00.000Z',
+      parkingEndDatetime: '2026-09-08T05:30:00.000Z',
+      totalAmount: '12.00',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(reversedParking, 400, 'reversed parking interval denial');
+const createdParking = await request(
+  '/api/parking-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      vehicleId,
+      parkingProvider: 'Phase 8 Parking',
+      parkingLocation: 'Waterfront',
+      purchaseDatetime: '2026-09-08T05:00:00.000Z',
+      parkingStartDatetime: '2026-09-08T05:00:00.000Z',
+      parkingEndDatetime: '2026-09-08T06:30:00.000Z',
+      parkingReference: 'P8-001',
+      totalAmount: '12.00',
+      gstAmount: '1.57',
+      gstStatus: 'GST_INCLUDED',
+      recurrenceType: 'ONE_OFF',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(createdParking, 201, 'parking expense create');
+if (createdParking.body.parkingRecord.parkingDurationMinutes !== 90)
+  throw new Error('parking duration was not derived correctly');
+const updatedParking = await request(
+  '/api/parking-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: createdParking.body.parkingRecord.id,
+      parkingLocation: 'Waterfront level 2',
+      parkingEndDatetime: '2026-09-08T07:00:00.000Z',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedParking, 200, 'parking expense edit');
+if (updatedParking.body.parkingRecord.parkingDurationMinutes !== 120)
+  throw new Error('parking duration was not recalculated');
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -691,5 +910,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, activities, vehicles, mileage, fuel workflows, revocation, and R2.',
+  'Local smoke passed: authentication, roles, activities, vehicles, mileage, fuel, parking, general expenses, categories, revocation, and R2.',
 );

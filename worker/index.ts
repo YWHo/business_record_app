@@ -43,6 +43,19 @@ import {
   listFuelRecords,
   updateFuelRecord,
 } from './routes/fuelRecords';
+import {
+  createExpenseCategory,
+  listExpenseCategories,
+  updateExpenseCategory,
+} from './routes/expenseCategories';
+import {
+  createGeneralExpense,
+  createParkingRecord,
+  listGeneralExpenses,
+  listParkingRecords,
+  updateGeneralExpense,
+  updateParkingRecord,
+} from './routes/expenseRecords';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -104,6 +117,51 @@ const routes: Route[] = [
   { method: 'GET', pathname: '/api/fuel-records', handler: listFuelRecords },
   { method: 'POST', pathname: '/api/fuel-records', handler: createFuelRecord },
   { method: 'PATCH', pathname: '/api/fuel-records', handler: updateFuelRecord },
+  {
+    method: 'GET',
+    pathname: '/api/expense-categories',
+    handler: listExpenseCategories,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/expense-categories',
+    handler: createExpenseCategory,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/expense-categories',
+    handler: updateExpenseCategory,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/general-expenses',
+    handler: listGeneralExpenses,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/general-expenses',
+    handler: createGeneralExpense,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/general-expenses',
+    handler: updateGeneralExpense,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/parking-records',
+    handler: listParkingRecords,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/parking-records',
+    handler: createParkingRecord,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/parking-records',
+    handler: updateParkingRecord,
+  },
   {
     method: 'POST',
     pathname: '/api/admin/bootstrap-owner',
