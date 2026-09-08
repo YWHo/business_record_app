@@ -185,7 +185,7 @@ Notes: The Phase 3 schema already provided insurance detail and allocation table
 
 Status: Complete
 
-Commit: recorded after implementation
+Commit: `8119b0b`
 
 Acceptance criteria completed:
 
