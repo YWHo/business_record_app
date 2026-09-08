@@ -164,7 +164,7 @@ Notes: The Phase 3 tables already contained all Phase 8 columns, so no migration
 
 Status: Complete
 
-Commit: Pending phase checkpoint
+Commit: `878c696`
 
 Acceptance criteria completed:
 
