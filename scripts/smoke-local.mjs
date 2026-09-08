@@ -1393,6 +1393,271 @@ if (
   throw new Error('attachment replacement overwrote the original object');
 }
 
+const platformSearch = await request(
+  '/api/transactions?q=Configurable&direction=INCOME&subtype=PLATFORM',
+  {},
+  ownerCookie,
+);
+expectStatus(platformSearch, 200, 'transaction text and type search');
+if (
+  platformSearch.body.transactions.length !== 1 ||
+  platformSearch.body.transactions[0].id !== attachmentRecordId ||
+  platformSearch.body.transactions[0].attachmentCount !== 2
+) {
+  throw new Error('transaction search or attachment count was incorrect');
+}
+const taxYearSearch = await request(
+  '/api/transactions?taxYear=2027&amountMin=90.00&amountMax=95.00',
+  {},
+  accountantCookie,
+);
+expectStatus(taxYearSearch, 200, 'tax-year and amount search');
+if (
+  !taxYearSearch.body.transactions.some(
+    (item) => item.id === attachmentRecordId,
+  )
+) {
+  throw new Error('tax-year and amount filters omitted platform income');
+}
+const receiptPresent = await request(
+  '/api/receipts?attachment=PRESENT',
+  {},
+  accountantCookie,
+);
+expectStatus(receiptPresent, 200, 'receipt attachment-present filter');
+if (
+  receiptPresent.body.transactions.length !== 1 ||
+  receiptPresent.body.transactions[0].id !== attachmentRecordId
+) {
+  throw new Error('receipt attachment-present filter was incorrect');
+}
+const savedFilter = await request(
+  '/api/saved-filters',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Phase 12 missing income evidence',
+      filterType: 'TRANSACTIONS',
+      criteria: { direction: 'INCOME', attachment: 'MISSING' },
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(savedFilter, 201, 'saved transaction filter');
+const duplicateSavedFilter = await request(
+  '/api/saved-filters',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Phase 12 missing income evidence',
+      filterType: 'TRANSACTIONS',
+      criteria: {},
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(duplicateSavedFilter, 409, 'duplicate saved filter denial');
+const accountantFilters = await request(
+  '/api/saved-filters?filterType=TRANSACTIONS',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantFilters, 200, 'accountant saved filter isolation');
+if (accountantFilters.body.savedFilters.length !== 0) {
+  throw new Error('saved filters leaked between users');
+}
+const updatedSavedFilter = await request(
+  '/api/saved-filters',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: savedFilter.body.savedFilter.id,
+      name: 'Phase 12 evidence queue',
+      criteria: { attachment: 'MISSING', review: 'UNREVIEWED' },
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedSavedFilter, 200, 'saved filter update');
+const readyForReview = await request(
+  '/api/record-status',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      status: 'READY_FOR_REVIEW',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(readyForReview, 200, 'owner ready-for-review status');
+const deniedOwnerReview = await request(
+  '/api/record-status',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      status: 'REVIEWED',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(deniedOwnerReview, 403, 'owner reviewed-status denial');
+const reviewedRecord = await request(
+  '/api/record-status',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      status: 'REVIEWED',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(reviewedRecord, 200, 'accountant review');
+if (reviewedRecord.body.record.reviewerEmail !== 'accountant@local.test') {
+  throw new Error('accountant review attribution was incorrect');
+}
+const deniedAccountantVoid = await request(
+  '/api/record-status',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      status: 'VOIDED',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedAccountantVoid, 403, 'accountant void denial');
+const reviewedSearch = await request(
+  '/api/transactions?review=REVIEWED&status=REVIEWED',
+  {},
+  ownerCookie,
+);
+expectStatus(reviewedSearch, 200, 'reviewed transaction filter');
+if (
+  reviewedSearch.body.transactions.length !== 1 ||
+  reviewedSearch.body.transactions[0].reviewerEmail !== 'accountant@local.test'
+) {
+  throw new Error('review filter or reviewer attribution was incorrect');
+}
+const processedRecord = await request(
+  '/api/record-status',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      status: 'PROCESSED',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(processedRecord, 200, 'accountant process reviewed record');
+if (processedRecord.body.record.reviewerEmail !== 'accountant@local.test') {
+  throw new Error('processing did not preserve original reviewer attribution');
+}
+const accountantComment = await request(
+  '/api/comments',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      message: 'Phase 12 accountant review comment',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(accountantComment, 201, 'accountant comment');
+const ownerComment = await request(
+  '/api/comments',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'INCOME',
+      recordId: attachmentRecordId,
+      message: 'Phase 12 owner response',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(ownerComment, 201, 'owner comment response');
+const commentThread = await request(
+  `/api/comments?recordType=INCOME&recordId=${attachmentRecordId}`,
+  {},
+  accountantCookie,
+);
+expectStatus(commentThread, 200, 'comment thread');
+if (
+  commentThread.body.comments.length !== 2 ||
+  !commentThread.body.comments.some(
+    (item) =>
+      item.authorEmail === 'accountant@local.test' &&
+      item.message === 'Phase 12 accountant review comment',
+  ) ||
+  !commentThread.body.comments.some(
+    (item) =>
+      item.authorEmail === 'owner@local.test' &&
+      item.message === 'Phase 12 owner response',
+  )
+) {
+  throw new Error('append-only attributed comment thread was incorrect');
+}
+const editedAfterReview = await request(
+  '/api/income-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: attachmentRecordId,
+      notes: 'Source corrected after review',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(editedAfterReview, 200, 'source edit after review');
+if (editedAfterReview.body.incomeRecord.status !== 'NEW') {
+  throw new Error('source edit did not return reviewed income to NEW');
+}
+const resetReviewSearch = await request(
+  '/api/transactions?q=Configurable&status=NEW&review=UNREVIEWED',
+  {},
+  accountantCookie,
+);
+expectStatus(resetReviewSearch, 200, 'review reset after source edit');
+if (
+  resetReviewSearch.body.transactions.length !== 1 ||
+  resetReviewSearch.body.transactions[0].reviewedBy !== null
+) {
+  throw new Error('source edit did not clear stale review attribution');
+}
+const deletedSavedFilter = await request(
+  '/api/saved-filters',
+  {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: savedFilter.body.savedFilter.id }),
+  },
+  ownerCookie,
+);
+expectStatus(deletedSavedFilter, 200, 'saved filter deletion');
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -1495,5 +1760,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, records, income, private attachments, duplicate override, immutable versions, revocation, and R2.',
+  'Local smoke passed: authentication, records, attachments, transaction and receipt filters, saved views, review status, comments, revocation, and R2.',
 );

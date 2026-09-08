@@ -97,10 +97,10 @@ export async function uploadAttachment(request: Request, env: Env) {
   try {
     actor = await requireUser(request, env);
   } catch (error) {
-    await request.body?.cancel();
+    await request.arrayBuffer();
     throw error;
   }
-  if (actor.role !== 'OWNER') await request.body?.cancel();
+  if (actor.role !== 'OWNER') await request.arrayBuffer();
   requireRole(actor, ['OWNER']);
   const contentLength = Number(request.headers.get('content-length') ?? 0);
   if (contentLength > 27 * 1024 * 1024)

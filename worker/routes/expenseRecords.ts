@@ -242,6 +242,7 @@ function updateExpense(
     `UPDATE expenses SET business_activity_id = ?, expense_category_id = ?,
     merchant_name = ?, purchase_datetime = ?, total_amount_minor = ?, currency = ?,
     gst_amount_minor = ?, gst_status = ?, description = ?, recurrence_type = ?,
+    status = 'NEW', reviewed_by = NULL, reviewed_at = NULL,
     updated_at = ?, retention_until = ?, purge_eligible_at = ? WHERE id = ?`,
   ).bind(
     values.businessActivityId,

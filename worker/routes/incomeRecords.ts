@@ -542,7 +542,7 @@ export async function updateIncomeRecord(request: Request, env: Env) {
   const detail = detailUpdate(env, id, values);
   const statements = [
     env.DB.prepare(
-      'UPDATE income_records SET business_activity_id=?, received_from=?, transaction_date=?, total_amount_minor=?, currency=?, notes=?, updated_at=?, retention_until=?, purge_eligible_at=? WHERE id=?',
+      "UPDATE income_records SET business_activity_id=?, received_from=?, transaction_date=?, total_amount_minor=?, currency=?, notes=?, status='NEW', reviewed_by=NULL, reviewed_at=NULL, updated_at=?, retention_until=?, purge_eligible_at=? WHERE id=?",
     ).bind(
       values.businessActivityId,
       values.receivedFrom,

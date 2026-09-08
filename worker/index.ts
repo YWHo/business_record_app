@@ -74,6 +74,16 @@ import {
   listAttachments,
   uploadAttachment,
 } from './routes/attachments';
+import {
+  createComment,
+  createSavedFilter,
+  deleteSavedFilter,
+  listComments,
+  listSavedFilters,
+  listTransactions,
+  updateRecordStatus,
+  updateSavedFilter,
+} from './routes/review';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -237,6 +247,43 @@ const routes: Route[] = [
     method: 'GET',
     pathname: '/api/attachments/file',
     handler: downloadAttachment,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/transactions',
+    handler: listTransactions,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/receipts',
+    handler: listTransactions,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/record-status',
+    handler: updateRecordStatus,
+  },
+  { method: 'GET', pathname: '/api/comments', handler: listComments },
+  { method: 'POST', pathname: '/api/comments', handler: createComment },
+  {
+    method: 'GET',
+    pathname: '/api/saved-filters',
+    handler: listSavedFilters,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/saved-filters',
+    handler: createSavedFilter,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/saved-filters',
+    handler: updateSavedFilter,
+  },
+  {
+    method: 'DELETE',
+    pathname: '/api/saved-filters',
+    handler: deleteSavedFilter,
   },
   {
     method: 'POST',

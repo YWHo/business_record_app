@@ -286,7 +286,8 @@ export async function updateFuelRecord(
     env.DB.prepare(
       `UPDATE expenses SET business_activity_id = ?, merchant_name = ?, purchase_datetime = ?,
         total_amount_minor = ?, currency = ?, gst_amount_minor = ?, gst_status = ?,
-        description = ?, recurrence_type = ?, updated_at = ?, retention_until = ?, purge_eligible_at = ?
+        description = ?, recurrence_type = ?, status = 'NEW', reviewed_by = NULL,
+        reviewed_at = NULL, updated_at = ?, retention_until = ?, purge_eligible_at = ?
        WHERE id = ? AND expense_type = 'FUEL'`,
     ).bind(
       values.businessActivityId,

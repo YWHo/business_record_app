@@ -316,7 +316,7 @@ export async function updateWorkSession(
   await env.DB.prepare(
     `UPDATE work_sessions SET business_activity_id = ?, vehicle_id = ?, started_at = ?,
       ended_at = ?, odometer_start_km = ?, odometer_end_km = ?,
-      gross_revenue_minor = ?, currency = ?, notes = ?, updated_at = ?,
+      gross_revenue_minor = ?, currency = ?, notes = ?, status = 'NEW', updated_at = ?,
       retention_until = ?, purge_eligible_at = ? WHERE id = ?`,
   )
     .bind(
@@ -445,7 +445,7 @@ export async function updateFuelWorkflow(
   await env.DB.prepare(
     `UPDATE work_sessions SET tank_full_at_start = ?, no_personal_driving = ?,
       tank_full_at_end = ?, starting_fuel_expense_id = ?, ending_fuel_expense_id = ?,
-      updated_at = ? WHERE id = ?`,
+      status = 'NEW', updated_at = ? WHERE id = ?`,
   )
     .bind(
       tankFullAtStart ? 1 : 0,

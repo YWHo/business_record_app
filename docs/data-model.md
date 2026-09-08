@@ -87,3 +87,5 @@ Attachments and comments refer to several record families, so `record_type` plus
 ## Retention
 
 Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Work sessions and financial records calculate these dates from their authoritative business date when created or edited. New attachment versions inherit both dates from their parent so document retention cannot accidentally be shorter than the record it supports. The retention phase will enforce trash/purge transitions.
+
+`expenses` and `income_records` carry the shared review status plus nullable reviewer identity/time. Owner source edits reset these fields to `NEW`/null so review never survives changed evidence. Work sessions carry the same status vocabulary without financial reviewer columns. `comments` provides an append-only polymorphic thread over expense, income, and work-session IDs; Worker validation supplies the referential check that a polymorphic foreign key cannot express. `saved_filters` stores an allow-listed JSON criteria object scoped by user and log type.

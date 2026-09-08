@@ -222,3 +222,24 @@ Acceptance criteria completed:
 - Added signature/hash and component coverage and extended the clean local acceptance suite through authorization, upload validation, R2 retrieval, duplicate warning/override, multi-attachment storage, and immutable replacement history.
 
 Notes: The Phase 3 schema and Phase 2 private R2 bindings already provided the required storage structures, so no migration was required. Phase 12 adds search, saved filters, comments, statuses, and review workflow.
+
+## Phase 12: Search, filters, and review workflow
+
+Status: Complete
+
+Commit: recorded after implementation
+
+Acceptance criteria completed:
+
+- Added a unified authenticated transaction projection over live income and expenses while retaining specialised source tables as authoritative.
+- Added parameterized search and filters for text, date range, New Zealand tax year, activity, direction, subtype, category, status, vehicle, amount range, attachment presence, and review state.
+- Added a receipt-focused log that includes both present and missing evidence and exposes the existing private attachment controls.
+- Added per-user saved transaction/receipt filters with allow-listed criteria, scoped uniqueness, create, list, update, apply, and removal operations.
+- Added append-only owner/accountant comment threads with validated messages, stable author identity, role, timestamp, and polymorphic record validation.
+- Added backend-enforced owner preparation/voiding and accountant review/processing permissions with ready-before-review and reviewed-before-processed transitions.
+- Preserved voided records as terminal history and recorded meaningful status/review changes in the audit log.
+- Stored reviewer identity and time for financial records and automatically reset status/review attribution whenever an owner edits source data.
+- Added a responsive Transactions workspace with transaction/receipt modes, result summaries, saved views, status controls, review attribution, and expandable comments.
+- Added workflow/component tests and extended the clean local acceptance suite through combined search, evidence counts, tax-year/amount filtering, saved-view isolation, role denial, accountant attribution, comment history, and source-edit review reset.
+
+Notes: The Phase 3 schema already included statuses, reviewer fields, comments, saved filters, and audit structures, so no migration was required. Phase 13 adds the audit log interface, trash/restore, and retention-enforced purge controls.

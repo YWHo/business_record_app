@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 11 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, mileage, expenses, insurance allocation, first-class income tracking, and private versioned document storage. Financial records and work sessions can retain multiple validated supporting files without exposing R2 publicly. Local development still needs no Cloudflare account or email provider.
+Phase 12 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, and a unified review workspace. Income and expenses can be searched together, supporting evidence can be filtered separately, users can save personal views, and owner/accountant review responsibilities remain backend-enforced. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -88,7 +88,7 @@ Run the complete local flow against a running development server with:
 pnpm test:local
 ```
 
-This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, records and income, private document upload/download, content validation, exact-hash warnings, duplicate override, immutable versions, invitation controls, session revocation, and R2 persistence.
+This checks authentication and role controls, business records, private versioned documents, transaction and receipt filters, saved-view isolation, review transitions and attribution, append-only comments, source-edit review reset, invitation controls, session revocation, and R2 persistence.
 
 ## Business activities and vehicles
 
@@ -181,6 +181,14 @@ Each file receives a SHA-256 hash. Matching content or a repeated current filena
 
 R2 has no public URL. Downloads pass through an authenticated endpoint and use `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, and private no-store caching. Attachment retention dates inherit the parent record's configured tax-year dates.
 
+## Transaction search and review
+
+The **Transactions** workspace projects income and expenses into one read-only log without flattening their source tables. Search and parameterized filters cover date range or New Zealand tax year, activity, income/expense direction, record type, expense category, merchant/client/provider text, status, vehicle, amount range, attachment presence, and review state. The Receipt log uses the same authoritative projection but exposes each record's private supporting-document controls, making missing evidence visible rather than hiding records without files.
+
+Authenticated users can save named transaction or receipt filter sets. Saved views are scoped to the current user and can be applied, updated through the API, or removed without affecting another user.
+
+Owners may mark a record new, missing information, ready for review, or voided. Accountants may request information, return a record to the queue, review a ready record, and process a reviewed record; they cannot void source records. Voided records retain their terminal history. Review identity and time are stored on financial records, meaningful transitions are audited, and any later owner edit to source data resets status to **New** and clears stale review attribution. Both roles can append attributed, timestamped comments; prior comments cannot be edited away through the API.
+
 ## Commands
 
 ```text
@@ -227,7 +235,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, mileage, expenses, insurance allocation, all four income families, clients, manual reconciliation, and private versioned attachments are available. Search/review, retention controls, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
+Authentication, reference data, mileage, expenses, insurance allocation, income, clients, reconciliation, private versioned attachments, unified search, saved filters, comments, and review workflow are available. Audit/trash/retention controls, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

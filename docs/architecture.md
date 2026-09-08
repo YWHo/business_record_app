@@ -81,3 +81,11 @@ Attachment metadata lives in D1 while immutable source bytes live in the private
 Exact hashes and repeated current filenames are advisory duplicate signals. An owner must explicitly confirm a warning to proceed. Each replacement retains the same version-group ID, increments its positive version number, marks the prior metadata non-current in the same D1 batch, and writes to a new R2 key. A database failure triggers best-effort removal of only the newly written object; no prior object is overwritten or deleted.
 
 Both authenticated roles can list metadata and download current or historical versions through controlled Worker routes. Only owners can upload or replace. Download responses force attachment disposition, disable content sniffing, and prevent caching. Attachment retention and purge-eligibility dates are copied from the authoritative parent record, and meaningful upload/version events are audited without filenames or document contents in the audit summary.
+
+## Search and review projection
+
+The transaction and receipt APIs query a fixed `UNION ALL` projection over common expense and income fields. Type-specific joins add category, vehicle, and counterparty labels without making the projection an alternative source of truth. Every user filter becomes either a validated enum/date/amount or a bound SQL parameter; record-type-to-table mappings remain fixed in Worker code. Current attachment counts are correlated from D1 metadata so records with missing evidence remain searchable.
+
+Saved filter criteria are allow-listed string maps stored per user and per log type. Names remain unique within that scope. No saved filter can inject SQL or expose another user's views.
+
+The record-status endpoint owns workflow transitions. Owners prepare, reopen, or void records, while accountants review and process them. `REVIEWED` requires `READY_FOR_REVIEW`, and `PROCESSED` requires `REVIEWED`; `VOIDED` is terminal. Financial review identity/timestamps change atomically with status, and every source-data update returns the record to `NEW` and clears prior review attribution. Comments are append-only rows joined to immutable user identity, with no update or delete route.
