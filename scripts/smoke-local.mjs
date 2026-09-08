@@ -11,7 +11,18 @@ async function request(path, init = {}, cookie) {
   }
 
   const response = await fetch(`${baseUrl}${path}`, { ...init, headers });
-  const body = await response.json();
+  const rawBody = await response.arrayBuffer();
+  let body = rawBody;
+  if (response.headers.get('content-type')?.includes('application/json')) {
+    const text = new TextDecoder().decode(rawBody);
+    try {
+      body = JSON.parse(text);
+    } catch {
+      throw new Error(
+        `${path}: received invalid JSON with status ${response.status}: ${text.slice(0, 200)}`,
+      );
+    }
+  }
   return { response, body };
 }
 
@@ -1236,6 +1247,152 @@ if (!nzdIncome || nzdIncome.totalAmountMinor !== 178400) {
   throw new Error('income summary did not preserve per-type recorded values');
 }
 
+const attachmentRecordId = platformIncome.body.incomeRecord.id;
+const attachmentQuery = `/api/attachments?recordType=INCOME&recordId=${attachmentRecordId}`;
+const unauthorizedAttachments = await request(attachmentQuery);
+expectStatus(
+  unauthorizedAttachments,
+  401,
+  'unauthorized attachment list denial',
+);
+const deniedAttachmentForm = new FormData();
+deniedAttachmentForm.set('recordType', 'INCOME');
+deniedAttachmentForm.set('recordId', attachmentRecordId);
+deniedAttachmentForm.set(
+  'file',
+  new Blob(['%PDF-1.7\ndenied'], { type: 'application/pdf' }),
+  'denied.pdf',
+);
+const deniedAttachment = await request(
+  '/api/attachments',
+  { method: 'POST', body: deniedAttachmentForm },
+  accountantCookie,
+);
+expectStatus(deniedAttachment, 403, 'accountant attachment upload denial');
+const invalidAttachmentForm = new FormData();
+invalidAttachmentForm.set('recordType', 'INCOME');
+invalidAttachmentForm.set('recordId', attachmentRecordId);
+invalidAttachmentForm.set(
+  'file',
+  new Blob(['plain text'], { type: 'image/png' }),
+  'spoofed.png',
+);
+const invalidAttachment = await request(
+  '/api/attachments',
+  { method: 'POST', body: invalidAttachmentForm },
+  ownerCookie,
+);
+expectStatus(invalidAttachment, 415, 'spoofed attachment type denial');
+const originalDocument = '%PDF-1.7\nSynthetic Phase 11 statement';
+const uploadForm = new FormData();
+uploadForm.set('recordType', 'INCOME');
+uploadForm.set('recordId', attachmentRecordId);
+uploadForm.set(
+  'file',
+  new Blob([originalDocument], { type: 'application/pdf' }),
+  'platform-statement.pdf',
+);
+const uploadedAttachment = await request(
+  '/api/attachments',
+  { method: 'POST', body: uploadForm },
+  ownerCookie,
+);
+expectStatus(uploadedAttachment, 201, 'attachment upload');
+const attachmentV1 = uploadedAttachment.body.attachment;
+if (
+  attachmentV1.versionNumber !== 1 ||
+  attachmentV1.isCurrent !== true ||
+  attachmentV1.sha256.length !== 64
+) {
+  throw new Error('initial attachment metadata was incorrect');
+}
+const downloadedAttachment = await request(
+  attachmentV1.downloadUrl,
+  {},
+  accountantCookie,
+);
+expectStatus(downloadedAttachment, 200, 'accountant attachment download');
+if (
+  new TextDecoder().decode(downloadedAttachment.body) !== originalDocument ||
+  downloadedAttachment.response.headers.get('x-content-type-options') !==
+    'nosniff' ||
+  !downloadedAttachment.response.headers
+    .get('content-disposition')
+    ?.includes('attachment;')
+) {
+  throw new Error(
+    'private attachment download content or headers were incorrect',
+  );
+}
+const duplicateForm = new FormData();
+duplicateForm.set('recordType', 'INCOME');
+duplicateForm.set('recordId', attachmentRecordId);
+duplicateForm.set(
+  'file',
+  new Blob([originalDocument], { type: 'application/pdf' }),
+  'statement-copy.pdf',
+);
+const duplicateWarning = await request(
+  '/api/attachments',
+  { method: 'POST', body: duplicateForm },
+  ownerCookie,
+);
+expectStatus(duplicateWarning, 409, 'attachment duplicate warning');
+if (!duplicateWarning.body.warnings.includes('FILE_HASH_DUPLICATE')) {
+  throw new Error('exact attachment hash duplicate was not identified');
+}
+duplicateForm.set('confirmDuplicate', 'true');
+const confirmedDuplicate = await request(
+  '/api/attachments',
+  { method: 'POST', body: duplicateForm },
+  ownerCookie,
+);
+expectStatus(confirmedDuplicate, 201, 'confirmed duplicate attachment');
+const replacementDocument = '%PDF-1.7\nSynthetic corrected statement';
+const replacementForm = new FormData();
+replacementForm.set('recordType', 'INCOME');
+replacementForm.set('recordId', attachmentRecordId);
+replacementForm.set('replaceAttachmentId', attachmentV1.id);
+replacementForm.set(
+  'file',
+  new Blob([replacementDocument], { type: 'application/pdf' }),
+  'platform-statement.pdf',
+);
+const replacement = await request(
+  '/api/attachments',
+  { method: 'POST', body: replacementForm },
+  ownerCookie,
+);
+expectStatus(replacement, 201, 'attachment replacement');
+if (
+  replacement.body.attachment.versionNumber !== 2 ||
+  replacement.body.attachment.versionGroupId !== attachmentV1.versionGroupId
+) {
+  throw new Error('attachment replacement did not create the next version');
+}
+const attachmentHistory = await request(attachmentQuery, {}, accountantCookie);
+expectStatus(attachmentHistory, 200, 'attachment version history');
+if (
+  attachmentHistory.body.attachments.length !== 3 ||
+  attachmentHistory.body.attachments.filter((item) => item.isCurrent).length !==
+    2 ||
+  attachmentHistory.body.attachments.find((item) => item.id === attachmentV1.id)
+    ?.isCurrent !== false
+) {
+  throw new Error('multi-attachment version history was incorrect');
+}
+const originalAfterReplacement = await request(
+  attachmentV1.downloadUrl,
+  {},
+  ownerCookie,
+);
+expectStatus(originalAfterReplacement, 200, 'immutable prior version download');
+if (
+  new TextDecoder().decode(originalAfterReplacement.body) !== originalDocument
+) {
+  throw new Error('attachment replacement overwrote the original object');
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -1338,5 +1495,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, reference data, mileage, fuel, parking, expenses, insurance, all income types, reconciliation, revocation, and R2.',
+  'Local smoke passed: authentication, roles, records, income, private attachments, duplicate override, immutable versions, revocation, and R2.',
 );

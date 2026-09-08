@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { WorkSessionForm } from '../features/mileage/WorkSessionForm';
 import {
   emptyWorkSessionDraft,
@@ -464,6 +465,11 @@ export function MileagePage() {
                     ) : null}
                   </>
                 )}
+                <AttachmentPanel
+                  recordType="WORK_SESSION"
+                  recordId={session.id}
+                  canManage={canManage}
+                />
               </article>
             ))}
           </div>

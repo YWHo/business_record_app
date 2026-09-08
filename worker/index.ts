@@ -69,6 +69,11 @@ import {
   reconcileIncome,
   updateIncomeRecord,
 } from './routes/incomeRecords';
+import {
+  downloadAttachment,
+  listAttachments,
+  uploadAttachment,
+} from './routes/attachments';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -217,6 +222,21 @@ const routes: Route[] = [
     method: 'POST',
     pathname: '/api/income-reconciliations',
     handler: reconcileIncome,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/attachments',
+    handler: listAttachments,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/attachments',
+    handler: uploadAttachment,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/attachments/file',
+    handler: downloadAttachment,
   },
   {
     method: 'POST',

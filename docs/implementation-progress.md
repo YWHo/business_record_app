@@ -201,3 +201,24 @@ Acceptance criteria completed:
 - Added validation/component tests and extended the clean local acceptance suite across all income types, duplicate invoice/client protection, contract part-payment, reconciliation, summaries, and role denial.
 
 Notes: The Phase 3 schema already included income, typed detail, client, reconciliation, retention, and audit structures, so no migration was required. Phase 11 adds private versioned attachments.
+
+## Phase 11: Attachments and duplicate detection
+
+Status: Complete
+
+Commit: recorded after implementation
+
+Acceptance criteria completed:
+
+- Added authenticated attachment listing and controlled download routes for expenses, income, and work sessions without exposing public R2 object URLs.
+- Added owner-only multipart uploads supporting multiple documents per record, with a 25 MB per-file limit and server validation of parent records, filenames, declared MIME types, and content signatures.
+- Supported JPEG, PNG, WebP, and PDF while rejecting empty, unsupported, oversized, and MIME-spoofed uploads before storage.
+- Calculated and persisted full SHA-256 hashes and returned confirmable warnings for identical content or repeated current filenames instead of automatically rejecting suspected duplicates.
+- Generated every R2 object key server-side from verified record context and UUIDs, preventing caller-controlled paths and silent overwrites.
+- Implemented immutable replacement versions with stable version groups, incrementing version numbers, exactly one current version per group, and continued retrieval of historical bytes.
+- Copied retention and purge-eligibility dates from the parent record and wrote attachment/version audit events without logging filenames or contents.
+- Forced authenticated downloads with attachment disposition, no-sniff protection, and private no-store caching.
+- Embedded reusable document controls in parking, general expense, fuel, insurance, income, and work-session cards; accountants receive read/download access without mutation controls.
+- Added signature/hash and component coverage and extended the clean local acceptance suite through authorization, upload validation, R2 retrieval, duplicate warning/override, multi-attachment storage, and immutable replacement history.
+
+Notes: The Phase 3 schema and Phase 2 private R2 bindings already provided the required storage structures, so no migration was required. Phase 12 adds search, saved filters, comments, statuses, and review workflow.

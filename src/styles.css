@@ -535,6 +535,51 @@ th {
   margin-top: 1rem;
 }
 
+.attachment-panel {
+  border-top: 1px solid #d9e1e8;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.attachment-panel h4,
+.attachment-panel p {
+  margin-block: 0 0.35rem;
+}
+
+.attachment-list,
+.attachment-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.attachment-row {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.attachment-row a,
+.attachment-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.attachment-history {
+  opacity: 0.7;
+  padding-left: 0.75rem;
+}
+
+.link-button {
+  background: transparent;
+  border: 0;
+  color: #315b6f;
+  display: inline;
+  padding: 0;
+  text-decoration: underline;
+}
+
 .checkbox-label {
   gap: 0.55rem;
 }

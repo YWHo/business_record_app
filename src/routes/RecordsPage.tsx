@@ -13,6 +13,7 @@ import {
   type ReferenceOption,
 } from '../features/expenses/expenseModel';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
 interface ExpenseRecord {
   id: string;
@@ -305,6 +306,11 @@ export function RecordsPage() {
                     ) : null}
                   </>
                 )}
+                <AttachmentPanel
+                  recordType="EXPENSE"
+                  recordId={record.id}
+                  canManage={canManage}
+                />
               </article>
             ))}
           </div>
@@ -385,6 +391,11 @@ export function RecordsPage() {
                     ) : null}
                   </>
                 )}
+                <AttachmentPanel
+                  recordType="EXPENSE"
+                  recordId={record.id}
+                  canManage={canManage}
+                />
               </article>
             ))}
           </div>

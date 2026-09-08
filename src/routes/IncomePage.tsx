@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
 type IncomeType = 'PLATFORM' | 'CONTRACT' | 'SUBSCRIPTION' | 'GENERAL';
 interface Reference {
@@ -764,11 +765,10 @@ export function IncomePage() {
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load().catch(
-      (caught: unknown) =>
-        setError(
-          caught instanceof Error ? caught.message : 'Unable to load income.',
-        ),
+    void load().catch((caught: unknown) =>
+      setError(
+        caught instanceof Error ? caught.message : 'Unable to load income.',
+      ),
     );
   }, [load]);
   async function save(draft: Draft, id?: string) {
@@ -961,6 +961,11 @@ export function IncomePage() {
                   </div>
                 </>
               )}
+              <AttachmentPanel
+                recordType="INCOME"
+                recordId={record.id}
+                canManage={canManage}
+              />
             </article>
           ))}
         </div>

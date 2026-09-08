@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
+import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
 interface Option {
   id: string;
@@ -570,6 +571,11 @@ export function FuelPage() {
                     ) : null}
                   </>
                 )}
+                <AttachmentPanel
+                  recordType="EXPENSE"
+                  recordId={record.id}
+                  canManage={canManage}
+                />
               </article>
             ))}
           </div>

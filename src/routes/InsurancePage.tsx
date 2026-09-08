@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import {
   localDateTime,
   type ReferenceOption,
@@ -765,6 +766,11 @@ export function InsurancePage() {
                     ) : null}
                   </>
                 )}
+                <AttachmentPanel
+                  recordType="EXPENSE"
+                  recordId={record.id}
+                  canManage={isOwner}
+                />
               </article>
             ))}
           </div>

@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 10 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, mileage, expenses, insurance allocation, and first-class income tracking. Platform payouts, contract invoices, subscription summaries, and general income retain their distinct evidence while sharing activity, currency, retention, audit, and reconciliation controls. Local development still needs no Cloudflare account or email provider.
+Phase 11 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, mileage, expenses, insurance allocation, first-class income tracking, and private versioned document storage. Financial records and work sessions can retain multiple validated supporting files without exposing R2 publicly. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -88,7 +88,7 @@ Run the complete local flow against a running development server with:
 pnpm test:local
 ```
 
-This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, mileage and fuel analytics, expenses, insurance premium/allocation separation, all income families, manual reconciliation, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
+This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, records and income, private document upload/download, content validation, exact-hash warnings, duplicate override, immutable versions, invitation controls, session revocation, and R2 persistence.
 
 ## Business activities and vehicles
 
@@ -171,7 +171,15 @@ curl -b /tmp/business-records-owner.cookies \
   http://localhost:5173/api/dev/storage-probe
 ```
 
-The fixed probe key cannot be controlled by user input. Actual attachment handling and file validation arrive in Phase 11.
+The fixed probe key cannot be controlled by user input. It is only a binding diagnostic; normal supporting documents use the authenticated attachment API described below.
+
+## Private supporting documents
+
+Expense, income, and work-session cards include reusable supporting-document controls. Owners may attach multiple JPEG, PNG, WebP, or PDF files up to 25 MB each. Accountants may list and download documents but cannot upload or replace them. Browser MIME claims are checked against file signatures at the Worker boundary, filenames are treated only as metadata, and R2 keys are generated server-side.
+
+Each file receives a SHA-256 hash. Matching content or a repeated current filename returns a visible possible-duplicate warning; the owner may deliberately continue because a warning is not proof of duplication. Replacing a current document writes a new uniquely keyed R2 object and increments its version group. Earlier bytes and metadata remain downloadable, while only the newest version is marked current.
+
+R2 has no public URL. Downloads pass through an authenticated endpoint and use `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, and private no-store caching. Attachment retention dates inherit the parent record's configured tax-year dates.
 
 ## Commands
 
@@ -219,7 +227,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, mileage, expenses, insurance allocation, all four income families, clients, and manual reconciliation are available. Attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
+Authentication, reference data, mileage, expenses, insurance allocation, all four income families, clients, manual reconciliation, and private versioned attachments are available. Search/review, retention controls, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

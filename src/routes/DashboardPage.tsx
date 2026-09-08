@@ -36,8 +36,8 @@ export function DashboardPage() {
         <div>
           <h2 id="getting-started-heading">Ready for your first record</h2>
           <p>
-            The application shell is installed. Business data and secure local
-            storage will be connected in the next implementation phase.
+            Use the workspace sections to add records. Supporting documents stay
+            private and retain their complete replacement history.
           </p>
         </div>
       </section>

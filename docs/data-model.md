@@ -86,4 +86,4 @@ Attachments and comments refer to several record families, so `record_type` plus
 
 ## Retention
 
-Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Work sessions calculate these dates from their end instant when created or edited; fuel expenses calculate them from the purchase instant. The retention phase will apply the same policy services to other record types and enforce trash/purge transitions.
+Financial records and attachments store computed `retention_until` and `purge_eligible_at` values. `retention_settings` defaults to ten tax years ending 31 March, with a 30-day backup reminder. Work sessions and financial records calculate these dates from their authoritative business date when created or edited. New attachment versions inherit both dates from their parent so document retention cannot accidentally be shorter than the record it supports. The retention phase will enforce trash/purge transitions.
