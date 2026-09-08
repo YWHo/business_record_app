@@ -122,7 +122,7 @@ Notes: Phase 7 will extend work sessions with fuel records, full-tank confirmati
 
 Status: Complete
 
-Commit: Pending phase checkpoint
+Commit: `1e8a8a1`
 
 Acceptance criteria completed:
 
