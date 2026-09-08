@@ -227,7 +227,7 @@ Notes: The Phase 3 schema and Phase 2 private R2 bindings already provided the r
 
 Status: Complete
 
-Commit: recorded after implementation
+Commit: `ec1aca8`
 
 Acceptance criteria completed:
 
