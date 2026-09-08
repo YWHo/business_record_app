@@ -206,7 +206,7 @@ Notes: The Phase 3 schema already included income, typed detail, client, reconci
 
 Status: Complete
 
-Commit: recorded after implementation
+Commit: `d686f3f`
 
 Acceptance criteria completed:
 
