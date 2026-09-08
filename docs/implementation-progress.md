@@ -96,3 +96,24 @@ Acceptance criteria completed:
 - Added unit/component coverage and extended the local smoke flow through activity and vehicle creation, normalization, duplicates, editing, lifecycle transitions, and role denial.
 
 Notes: The Phase 3 schema already provided the required restrictive historical foreign keys, so Phase 5 required no schema migration. Mileage and work-session workflows begin in Phase 6.
+
+## Phase 6: Mileage and work sessions
+
+Status: Complete
+
+Commit: `740661b`
+
+Acceptance criteria completed:
+
+- Added authenticated work-session list, create, and edit APIs with owner-only mutations and accountant read access.
+- Required active activities and vehicles for new sessions while allowing historical sessions to retain subsequently inactive references.
+- Added strict server validation for timezone-qualified instants, valid calendar values, chronological order, odometer order/range, notes, currencies, and decimal revenue.
+- Kept business distance authoritative as the existing D1 generated column; caller-provided distance values are ignored.
+- Converted optional gross revenue into integer minor units before persistence.
+- Derived session duration, business kilometres, revenue/hour, and revenue/km from persisted source values after every create or edit.
+- Added aggregate mileage analytics that suppress rates when revenue is incomplete, distance is zero, or currencies differ.
+- Applied configured tax-year retention dates and activity-linked audit events to work-session changes.
+- Added a responsive Mileage screen with owner entry/edit forms, computed summaries, session history, and a read-only accountant presentation.
+- Added calculation, validation, retention, and component tests and extended the local acceptance suite through inactive-reference rejection, odometer rejection, authoritative distance, recalculation, aggregation, and role denial.
+
+Notes: Phase 7 will extend work sessions with fuel records, full-tank confirmations, optional receipt linkage, and fuel-efficiency/cost analytics. Phase 6 deliberately does not claim GPS or trip-level tracking.
