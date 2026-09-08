@@ -5,6 +5,7 @@ import { DashboardPage } from './routes/DashboardPage';
 import { LoginPage } from './routes/LoginPage';
 import { MileagePage } from './routes/MileagePage';
 import { FuelPage } from './routes/FuelPage';
+import { InsurancePage } from './routes/InsurancePage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { RecordsPage } from './routes/RecordsPage';
 import { SetupPage } from './routes/SetupPage';
@@ -29,6 +30,7 @@ function WorkspaceLayout() {
     { to: '/records', label: 'Records', end: false },
     { to: '/mileage', label: 'Mileage', end: false },
     { to: '/fuel', label: 'Fuel', end: false },
+    { to: '/insurance', label: 'Insurance', end: false },
     { to: '/setup', label: 'Setup', end: false },
     ...(user.role === 'OWNER'
       ? [{ to: '/settings/users', label: 'Users', end: false }]
@@ -85,6 +87,7 @@ export function App() {
         <Route path="/records" element={<RecordsPage />} />
         <Route path="/mileage" element={<MileagePage />} />
         <Route path="/fuel" element={<FuelPage />} />
+        <Route path="/insurance" element={<InsurancePage />} />
         <Route path="/setup" element={<SetupPage />} />
         <Route path="/settings/users" element={<UserManagementPage />} />
         <Route path="*" element={<NotFoundPage />} />

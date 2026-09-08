@@ -56,6 +56,12 @@ import {
   updateGeneralExpense,
   updateParkingRecord,
 } from './routes/expenseRecords';
+import {
+  adjustInsuranceAllocation,
+  createInsuranceRecord,
+  listInsuranceRecords,
+  updateInsuranceRecord,
+} from './routes/insuranceRecords';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -161,6 +167,26 @@ const routes: Route[] = [
     method: 'PATCH',
     pathname: '/api/parking-records',
     handler: updateParkingRecord,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/insurance-records',
+    handler: listInsuranceRecords,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/insurance-records',
+    handler: createInsuranceRecord,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/insurance-records',
+    handler: updateInsuranceRecord,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/insurance-allocations',
+    handler: adjustInsuranceAllocation,
   },
   {
     method: 'POST',

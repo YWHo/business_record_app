@@ -159,3 +159,24 @@ Acceptance criteria completed:
 - Added validation/component tests and extended the local acceptance suite through category lifecycle, recurrence, parking duration/recalculation, general-expense editing, normalization, and role denial.
 
 Notes: The Phase 3 tables already contained all Phase 8 columns, so no migration was required. Attachments remain deferred to Phase 11. Phase 9 adds insurance and mixed-use allocations.
+
+## Phase 9: Insurance and mixed-use allocation
+
+Status: Complete
+
+Commit: Pending phase checkpoint
+
+Acceptance criteria completed:
+
+- Added authenticated insurance list, create, and edit APIs using common expense fields plus specialised policy details.
+- Supported professional/liability, vehicle, and other insurance with validated provider, policy number, policy period, full premium, optional GST, recurrence, activity, and vehicle references.
+- Required a business activity for professional liability cover and a vehicle for vehicle cover while preserving full premium independently from business allocation.
+- Implemented 100% business, manual percentage, business-km-over-total-km, accountant adjustment, and undetermined allocation methods.
+- Derived percentage-based allocated amounts from the authoritative premium, stored percentages as basis points, and required a dated calculation period for kilometres-based allocations.
+- Added a narrowly scoped adjustment endpoint for accountants without granting them source policy or premium mutation rights.
+- Attributed adjustments to the reviewing user and preserved before/after methods, percentages, and allocated minor-unit amounts in immutable audit summaries.
+- Recalculated percentage allocations when the owner changes a premium while keeping source and allocated values separately visible.
+- Added an Insurance screen for owner policy entry/editing and owner/accountant adjustment, with explicit wording that allocations are estimates rather than final accounting or tax treatment.
+- Added calculation and component tests and extended the clean local acceptance suite through policy requirements, full/manual allocation, premium recalculation, accountant adjustment, reviewer attribution, audit history, retention, and role denial.
+
+Notes: The Phase 3 schema already provided insurance detail and allocation tables, so no migration was required. Specialised insurance categories now remain active alongside Fuel and Parking. Phase 10 adds income tracking.

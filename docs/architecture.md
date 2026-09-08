@@ -60,4 +60,10 @@ Parking and general expenses share the authoritative `expenses` write path and t
 
 Parking writes its common expense and one-to-one detail row as a D1 batch. Start and end must be timezone-qualified instants in chronological order. Duration is calculated only for responses and UI display, never accepted or stored as an independent source value.
 
-General expenses deliberately have no detail row. Their configurable category and common description support new cost types without arbitrary JSON or immediate migrations. Category lifecycle mutations are owner-only, case-insensitively unique, and non-destructive. The built-in Fuel and Parking categories cannot be deactivated because specialised creation depends on their stable system keys.
+General expenses deliberately have no detail row. Their configurable category and common description support new cost types without arbitrary JSON or immediate migrations. Category lifecycle mutations are owner-only, case-insensitively unique, and non-destructive. Categories required by specialised fuel, parking, and insurance creation cannot be deactivated because those routes depend on their stable system keys.
+
+## Insurance allocation boundary
+
+An insurance write batches three relational records: the common full-premium expense, specialised policy detail, and a separate allocation. The premium always remains an integer minor-unit source value. Percentage methods store basis points and derive the allocated minor-unit amount at the Worker boundary; 100% business derives both fields, kilometres-based allocation additionally requires a calculation period, and undetermined leaves both nullable.
+
+Owners control source policy and premium fields. Both roles may read insurance, but the accountant mutation surface is limited to an allocation-adjustment route that forces `ACCOUNTANT_ADJUSTMENT`, caps the amount at the full premium, and stores the reviewer ID. Meaningful allocation changes write before/after method, percentage, and amount summaries to the append-only audit log. UI wording does not claim tax correctness or final profit.

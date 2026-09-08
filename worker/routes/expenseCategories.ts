@@ -101,10 +101,18 @@ export async function updateExpenseCategory(request: Request, env: Env) {
   const active = Object.hasOwn(body, 'active') ? body.active : row.active === 1;
   if (typeof active !== 'boolean')
     throw new HttpError(400, 'Active must be true or false.');
-  if (!active && ['FUEL', 'PARKING'].includes(row.system_key ?? '')) {
+  if (
+    !active &&
+    [
+      'FUEL',
+      'PARKING',
+      'VEHICLE_INSURANCE',
+      'PROFESSIONAL_LIABILITY_INSURANCE',
+    ].includes(row.system_key ?? '')
+  ) {
     throw new HttpError(
       400,
-      'Fuel and parking categories must remain active for their specialised workflows.',
+      'Specialised expense categories must remain active for their workflows.',
     );
   }
   await assertUnique(env, name, id);

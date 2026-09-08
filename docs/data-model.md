@@ -72,7 +72,13 @@ Parking uses one `expenses` row plus one `parking_expense_details` row. The deta
 
 General expenses use only the common `expenses` row. This intentionally supports future expense types through a configurable category and description while retaining structured financial, recurrence, status, retention, and audit fields. It does not introduce arbitrary JSON metadata.
 
-`expense_categories` combines seeded rows with owner-created categories. Names remain case-insensitively unique; lifecycle changes use `active` rather than deletion so historical foreign keys stay valid. Stable `system_key` values distinguish built-in categories. Fuel and Parking must remain active for their specialised routes.
+`expense_categories` combines seeded rows with owner-created categories. Names remain case-insensitively unique; lifecycle changes use `active` rather than deletion so historical foreign keys stay valid. Stable `system_key` values distinguish built-in categories. Categories required by the specialised fuel, parking, and insurance routes remain active.
+
+## Insurance and allocations
+
+Insurance combines a common `expenses` row with one `insurance_expense_details` row. The common amount is always the full premium. Policy detail identifies professional liability, vehicle, or other cover and stores provider, policy dates, optional policy number, and optional vehicle; vehicle cover requires that vehicle link.
+
+The separate `expense_allocations` row stores the chosen method, optional percentage in basis points, allocated minor-unit amount, calculation period, notes, and optional reviewer. Percentage and 100%-business allocations derive their amount from the current full premium. Accountant adjustments store an explicit amount capped by that premium and derive their displayed percentage. Audit summaries retain the previous and new calculation even though the current allocation row is updated.
 
 ## Attachments and comments
 

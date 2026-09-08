@@ -808,6 +808,203 @@ expectStatus(updatedParking, 200, 'parking expense edit');
 if (updatedParking.body.parkingRecord.parkingDurationMinutes !== 120)
   throw new Error('parking duration was not recalculated');
 
+const accountantInsurance = await request(
+  '/api/insurance-records',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantInsurance, 200, 'accountant insurance read');
+const deniedInsuranceCreate = await request(
+  '/api/insurance-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({}),
+  },
+  accountantCookie,
+);
+expectStatus(deniedInsuranceCreate, 403, 'accountant insurance create denial');
+const invalidVehicleInsurance = await request(
+  '/api/insurance-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      insuranceType: 'VEHICLE',
+      provider: 'Phase 9 Cover',
+      policyPeriodStart: '2026-04-01',
+      policyPeriodEnd: '2027-03-31',
+      purchaseDatetime: '2026-09-08T08:00:00.000Z',
+      totalAmount: '1000.00',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(
+  invalidVehicleInsurance,
+  400,
+  'vehicle insurance vehicle requirement',
+);
+const liabilityInsurance = await request(
+  '/api/insurance-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      insuranceType: 'PROFESSIONAL_LIABILITY',
+      businessActivityId: activityId,
+      provider: 'Phase 9 Liability Cover',
+      policyNumber: 'LIAB-P9',
+      policyPeriodStart: '2026-04-01',
+      policyPeriodEnd: '2027-03-31',
+      purchaseDatetime: '2026-09-08T08:00:00.000Z',
+      totalAmount: '240.00',
+      currency: 'NZD',
+      gstStatus: 'NO_GST',
+      recurrenceType: 'RECURRING',
+      allocationMethod: '100_PERCENT_BUSINESS',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(liabilityInsurance, 201, 'liability insurance create');
+if (
+  liabilityInsurance.body.insuranceRecord.allocation.allocatedAmountMinor !==
+    24000 ||
+  liabilityInsurance.body.insuranceRecord.allocation.percentageBasisPoints !==
+    10000
+) {
+  throw new Error('100 percent liability allocation was incorrect');
+}
+const vehicleInsurance = await request(
+  '/api/insurance-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      insuranceType: 'VEHICLE',
+      businessActivityId: activityId,
+      vehicleId,
+      provider: 'Phase 9 Vehicle Cover',
+      policyNumber: 'VEH-P9',
+      policyPeriodStart: '2026-04-01',
+      policyPeriodEnd: '2027-03-31',
+      purchaseDatetime: '2026-09-08T08:30:00.000Z',
+      totalAmount: '1000.00',
+      currency: 'NZD',
+      gstStatus: 'NO_GST',
+      recurrenceType: 'RECURRING',
+      allocationMethod: 'MANUAL_PERCENTAGE',
+      allocationPercentage: '25.00',
+      allocationNotes: 'Synthetic mixed vehicle use',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(vehicleInsurance, 201, 'vehicle insurance create');
+if (
+  vehicleInsurance.body.insuranceRecord.premiumMinor !== 100000 ||
+  vehicleInsurance.body.insuranceRecord.allocation.allocatedAmountMinor !==
+    25000
+) {
+  throw new Error('manual vehicle allocation was incorrect');
+}
+const insuranceId = vehicleInsurance.body.insuranceRecord.id;
+const deniedInsuranceEdit = await request(
+  '/api/insurance-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: insuranceId, totalAmount: '1.00' }),
+  },
+  accountantCookie,
+);
+expectStatus(
+  deniedInsuranceEdit,
+  403,
+  'accountant source insurance edit denial',
+);
+const updatedInsurance = await request(
+  '/api/insurance-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: insuranceId, totalAmount: '1200.00' }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedInsurance, 200, 'insurance premium edit');
+if (
+  updatedInsurance.body.insuranceRecord.allocation.allocatedAmountMinor !==
+  30000
+) {
+  throw new Error(
+    'insurance allocation was not recalculated after premium edit',
+  );
+}
+const deniedOwnerAdjustment = await request(
+  '/api/insurance-allocations',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      expenseId: insuranceId,
+      allocatedAmount: '400.00',
+      allocationNotes: 'Owner must not impersonate accountant review',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(deniedOwnerAdjustment, 403, 'owner accountant-adjustment denial');
+const accountantAdjustment = await request(
+  '/api/insurance-allocations',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      expenseId: insuranceId,
+      allocatedAmount: '400.00',
+      allocationNotes: 'Reviewed Phase 9 adjustment',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(accountantAdjustment, 200, 'accountant allocation adjustment');
+if (
+  accountantAdjustment.body.insuranceRecord.premiumMinor !== 120000 ||
+  accountantAdjustment.body.insuranceRecord.allocation.method !==
+    'ACCOUNTANT_ADJUSTMENT' ||
+  accountantAdjustment.body.insuranceRecord.allocation.allocatedAmountMinor !==
+    40000 ||
+  accountantAdjustment.body.insuranceRecord.allocation.reviewerEmail !==
+    'accountant@local.test'
+) {
+  throw new Error(
+    'accountant adjustment or reviewer attribution was incorrect',
+  );
+}
+const sourceEditAfterReview = await request(
+  '/api/insurance-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: insuranceId,
+      policyNumber: 'VEH-P9-UPDATED',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(sourceEditAfterReview, 200, 'source edit after allocation review');
+if (
+  sourceEditAfterReview.body.insuranceRecord.allocation.reviewerEmail !==
+  'accountant@local.test'
+) {
+  throw new Error(
+    'unrelated source edit removed allocation reviewer attribution',
+  );
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -910,5 +1107,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, activities, vehicles, mileage, fuel, parking, general expenses, categories, revocation, and R2.',
+  'Local smoke passed: authentication, roles, reference data, mileage, fuel, parking, general expenses, insurance allocations, accountant adjustment, revocation, and R2.',
 );

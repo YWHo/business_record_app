@@ -163,7 +163,12 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
                     >
                       Rename
                     </button>
-                    {!['FUEL', 'PARKING'].includes(category.systemKey ?? '') ? (
+                    {![
+                      'FUEL',
+                      'PARKING',
+                      'VEHICLE_INSURANCE',
+                      'PROFESSIONAL_LIABILITY_INSURANCE',
+                    ].includes(category.systemKey ?? '') ? (
                       <button
                         className={
                           category.active ? 'danger-button' : 'secondary-button'

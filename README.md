@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 8 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, work-session mileage, fuel tracking, parking, and general expenses. Owners can manage expense categories and recurring markers while accountants retain read-only visibility. Local development still needs no Cloudflare account or email provider.
+Phase 9 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, mileage, fuel, parking, general expenses, and insurance allocation. Owners retain the full policy premium separately from estimated business use, while accountants can make attributed allocation adjustments without editing source policies. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -88,7 +88,7 @@ Run the complete local flow against a running development server with:
 pnpm test:local
 ```
 
-This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, work-session validation, fuel warning confirmations, full-tank analytics, parking duration, general expenses, recurring markers, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
+This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, mileage and fuel analytics, parking/general expenses, insurance premium/allocation separation, accountant adjustment attribution, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
 
 ## Business activities and vehicles
 
@@ -114,7 +114,13 @@ The **Records** screen lets owners create and edit parking and general expenses.
 
 Parking adds a required location with optional provider, vehicle, start/end instants, and ticket reference. When both times exist, the Worker derives duration from them and rejects a reversed interval. It does not accept or store a caller-supplied duration.
 
-The **Setup** screen lists built-in and custom expense categories. Owners can create and rename categories or change their lifecycle status; accountants can view them. Fuel and Parking remain active because their specialised record workflows depend on those category identities. Historical expenses may retain inactive categories.
+The **Setup** screen lists built-in and custom expense categories. Owners can create and rename categories or change their lifecycle status; accountants can view them. Fuel, Parking, Vehicle Insurance, and Professional Liability Insurance remain active because specialised record workflows depend on those category identities. Historical expenses may retain inactive categories.
+
+## Insurance and mixed-use allocation
+
+The **Insurance** screen records professional/liability, vehicle, and other policies. The full premium remains the common expense amount. A separate allocation records the estimated business amount and method: 100% business, manual percentage, business kilometres over total kilometres, accountant adjustment, or undetermined. Percentage-based amounts are derived by the Worker; kilometres-based allocations require a dated calculation period.
+
+Professional liability cover requires an activity, and vehicle cover requires a vehicle. Owners create and edit source policies. Accountants can review all insurance and use only the allocation-adjustment endpoint, which records their identity and a before/after audit summary without changing the full premium. The UI consistently describes allocations as record-keeping estimates, not final tax or accounting treatment.
 
 ## Production authentication setup
 
@@ -207,7 +213,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, work-session mileage, fuel receipts, full-tank analytics, parking, general expenses, and configurable categories are available. Insurance, other financial records, attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
+Authentication, reference data, mileage, fuel, parking, general expenses, insurance, mixed-use allocation, and configurable categories are available. Income, attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 
