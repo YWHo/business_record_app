@@ -143,7 +143,7 @@ Notes: The Phase 3 schema already included fuel details and session linkage fiel
 
 Status: Complete
 
-Commit: Pending phase checkpoint
+Commit: `17e5402`
 
 Acceptance criteria completed:
 
