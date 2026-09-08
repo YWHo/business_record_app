@@ -1005,6 +1005,237 @@ if (
   );
 }
 
+const accountantClients = await request('/api/clients', {}, accountantCookie);
+expectStatus(accountantClients, 200, 'accountant client list');
+const deniedClientCreate = await request(
+  '/api/clients',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Denied Phase 10 Client' }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedClientCreate, 403, 'accountant client create denial');
+const clientCreate = await request(
+  '/api/clients',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Phase 10 Consulting Client' }),
+  },
+  ownerCookie,
+);
+expectStatus(clientCreate, 201, 'client create');
+const clientId = clientCreate.body.client.id;
+const duplicateClient = await request(
+  '/api/clients',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Phase 10 Consulting Client' }),
+  },
+  ownerCookie,
+);
+expectStatus(duplicateClient, 409, 'duplicate client denial');
+
+const accountantIncome = await request(
+  '/api/income-records',
+  {},
+  accountantCookie,
+);
+expectStatus(accountantIncome, 200, 'accountant income list');
+const deniedIncomeCreate = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ incomeType: 'GENERAL' }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedIncomeCreate, 403, 'accountant income create denial');
+const platformIncome = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      incomeType: 'PLATFORM',
+      businessActivityId: activityId,
+      providerName: 'Configurable Delivery Platform',
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-07',
+      paymentDate: '2026-09-08',
+      grossEarnings: '100.00',
+      tips: '10.00',
+      bonusesPromotions: '5.00',
+      flatRateCredit: '2.00',
+      platformFees: '20.00',
+      otherAdjustments: '-3.00',
+      netPaymentReceived: '94.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(platformIncome, 201, 'platform income create');
+if (
+  platformIncome.body.incomeRecord.totalAmountMinor !== 9400 ||
+  platformIncome.body.incomeRecord.details.providerName !==
+    'Configurable Delivery Platform' ||
+  platformIncome.body.incomeRecord.details.otherAdjustmentsMinor !== -300
+) {
+  throw new Error('platform income detail or net value was incorrect');
+}
+const contractBody = {
+  incomeType: 'CONTRACT',
+  businessActivityId: activityId,
+  clientId,
+  invoiceNumber: 'P10-INV-1',
+  invoiceDate: '2026-09-01',
+  subtotal: '1000.00',
+  gstAmount: '150.00',
+  total: '1150.00',
+  dueDate: '2026-09-20',
+  paymentStatus: 'ISSUED',
+  currency: 'NZD',
+};
+const contractIncome = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(contractBody),
+  },
+  ownerCookie,
+);
+expectStatus(contractIncome, 201, 'contract income create');
+const contractId = contractIncome.body.incomeRecord.id;
+const duplicateInvoice = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(contractBody),
+  },
+  ownerCookie,
+);
+expectStatus(duplicateInvoice, 409, 'duplicate client invoice denial');
+const contractPayment = await request(
+  '/api/income-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: contractId,
+      paymentStatus: 'PARTIALLY_PAID',
+      paymentReceivedDate: '2026-09-08',
+      amountReceived: '575.00',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(contractPayment, 200, 'contract payment update');
+if (
+  contractPayment.body.incomeRecord.details.amountReceivedMinor !== 57500 ||
+  contractPayment.body.incomeRecord.details.outstandingAmountMinor !== 57500
+) {
+  throw new Error('contract received or outstanding amount was incorrect');
+}
+const subscriptionIncome = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      incomeType: 'SUBSCRIPTION',
+      businessActivityId: activityId,
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      grossSubscriptionRevenue: '500.00',
+      refunds: '20.00',
+      platformFees: '30.00',
+      paymentProcessingFees: '10.00',
+      netPaymentReceived: '440.00',
+      subscriberCount: 42,
+      newSubscribers: 5,
+      cancelledSubscribers: 2,
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(subscriptionIncome, 201, 'subscription income create');
+if (
+  subscriptionIncome.body.incomeRecord.totalAmountMinor !== 44000 ||
+  subscriptionIncome.body.incomeRecord.details.subscriberCount !== 42
+) {
+  throw new Error('subscription summary was incorrect');
+}
+const generalIncome = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      incomeType: 'GENERAL',
+      businessActivityId: activityId,
+      receivedFrom: 'Section 23 payer',
+      transactionDate: '2026-09-08',
+      totalAmount: '100.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(generalIncome, 201, 'general income create');
+const deniedIncomeEdit = await request(
+  '/api/income-records',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      id: platformIncome.body.incomeRecord.id,
+      netPaymentReceived: '1.00',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedIncomeEdit, 403, 'accountant income source edit denial');
+const reconciliation = await request(
+  '/api/income-reconciliations',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      incomeId: platformIncome.body.incomeRecord.id,
+      expectedAmount: '94.00',
+      actualAmount: '93.00',
+      notes: 'Manual statement comparison',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(reconciliation, 200, 'accountant income reconciliation');
+if (
+  reconciliation.body.incomeRecord.reconciliation.differenceAmountMinor !==
+    -100 ||
+  reconciliation.body.incomeRecord.reconciliation.matched !== false ||
+  reconciliation.body.incomeRecord.reconciliation.reconcilerEmail !==
+    'accountant@local.test'
+) {
+  throw new Error('income reconciliation or attribution was incorrect');
+}
+const finalIncomeList = await request('/api/income-records', {}, ownerCookie);
+expectStatus(finalIncomeList, 200, 'final income list');
+const nzdIncome = finalIncomeList.body.summary.totalsByCurrency.find(
+  (item) => item.currency === 'NZD',
+);
+if (!nzdIncome || nzdIncome.totalAmountMinor !== 178400) {
+  throw new Error('income summary did not preserve per-type recorded values');
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -1107,5 +1338,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, roles, reference data, mileage, fuel, parking, general expenses, insurance allocations, accountant adjustment, revocation, and R2.',
+  'Local smoke passed: authentication, roles, reference data, mileage, fuel, parking, expenses, insurance, all income types, reconciliation, revocation, and R2.',
 );

@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 9 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, mileage, fuel, parking, general expenses, and insurance allocation. Owners retain the full policy premium separately from estimated business use, while accountants can make attributed allocation adjustments without editing source policies. Local development still needs no Cloudflare account or email provider.
+Phase 10 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, reusable reference data, mileage, expenses, insurance allocation, and first-class income tracking. Platform payouts, contract invoices, subscription summaries, and general income retain their distinct evidence while sharing activity, currency, retention, audit, and reconciliation controls. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -88,7 +88,7 @@ Run the complete local flow against a running development server with:
 pnpm test:local
 ```
 
-This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, mileage and fuel analytics, parking/general expenses, insurance premium/allocation separation, accountant adjustment attribution, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
+This checks owner bootstrap idempotency, login-link replay protection, role denial, reference-data lifecycle changes, mileage and fuel analytics, expenses, insurance premium/allocation separation, all income families, manual reconciliation, invitation acceptance/expiry/replay, account disabling, immediate session revocation, and R2 persistence.
 
 ## Business activities and vehicles
 
@@ -121,6 +121,12 @@ The **Setup** screen lists built-in and custom expense categories. Owners can cr
 The **Insurance** screen records professional/liability, vehicle, and other policies. The full premium remains the common expense amount. A separate allocation records the estimated business amount and method: 100% business, manual percentage, business kilometres over total kilometres, accountant adjustment, or undetermined. Percentage-based amounts are derived by the Worker; kilometres-based allocations require a dated calculation period.
 
 Professional liability cover requires an activity, and vehicle cover requires a vehicle. Owners create and edit source policies. Accountants can review all insurance and use only the allocation-adjustment endpoint, which records their identity and a before/after audit summary without changing the full premium. The UI consistently describes allocations as record-keeping estimates, not final tax or accounting treatment.
+
+## Income and reconciliation
+
+The **Income** screen treats revenue as four first-class record families. Platform income stores a configurable provider and payout period with gross earnings, tips, promotions, flat-rate credit, fees, signed adjustments, and net payment. Contract income links a reusable client and unique invoice number to invoice/service dates, subtotal, GST, total, due date, payment status, received amount, and outstanding amount. Subscription income is deliberately period-summary only: gross revenue, refunds, fees, net payment, and optional aggregate counts. General income covers other section 23 records without forcing specialised detail.
+
+The common displayed value is net payment for platform and subscription records, invoice total for contracts, and the entered total for general income. Those values are not silently combined into cash-flow or profit conclusions. Owners control source records and client lifecycle. Both owners and accountants can append a manual expected-versus-actual reconciliation; the Worker derives the minor-unit difference and match status and records the reviewer. No bank connection or operational subscriber database is implied.
 
 ## Production authentication setup
 
@@ -213,7 +219,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, mileage, fuel, parking, general expenses, insurance, mixed-use allocation, and configurable categories are available. Income, attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
+Authentication, reference data, mileage, expenses, insurance allocation, all four income families, clients, and manual reconciliation are available. Attachments, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

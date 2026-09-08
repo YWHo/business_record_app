@@ -1,6 +1,7 @@
 import { ActivityManager } from '../features/setup/ActivityManager';
 import { VehicleManager } from '../features/setup/VehicleManager';
 import { CategoryManager } from '../features/setup/CategoryManager';
+import { ClientManager } from '../features/setup/ClientManager';
 import { useAuth } from '../features/auth/AuthContext';
 
 export function SetupPage() {
@@ -12,7 +13,9 @@ export function SetupPage() {
       <div className="page-heading">
         <div>
           <span className="eyebrow">Reference data</span>
-          <h1 id="setup-heading">Activities, vehicles, and categories</h1>
+          <h1 id="setup-heading">
+            Activities, vehicles, categories, and clients
+          </h1>
           <p>
             Keep reusable business context current without removing historical
             links.
@@ -28,6 +31,7 @@ export function SetupPage() {
         <ActivityManager canManage={canManage} />
         <VehicleManager canManage={canManage} />
         <CategoryManager canManage={canManage} />
+        <ClientManager canManage={canManage} />
       </div>
     </section>
   );

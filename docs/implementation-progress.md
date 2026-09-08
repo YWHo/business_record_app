@@ -180,3 +180,24 @@ Acceptance criteria completed:
 - Added calculation and component tests and extended the clean local acceptance suite through policy requirements, full/manual allocation, premium recalculation, accountant adjustment, reviewer attribution, audit history, retention, and role denial.
 
 Notes: The Phase 3 schema already provided insurance detail and allocation tables, so no migration was required. Specialised insurance categories now remain active alongside Fuel and Parking. Phase 10 adds income tracking.
+
+## Phase 10: Income
+
+Status: Complete
+
+Commit: recorded after implementation
+
+Acceptance criteria completed:
+
+- Added one authenticated income collection API with owner-only source mutation and accountant read access across platform, contract, subscription, and general income.
+- Kept platform providers configurable and retained payout periods, gross earnings, tips, promotions, flat-rate credit, fees, signed adjustments, net payment, currency, activity, and notes.
+- Added reusable lifecycle-managed clients plus unique per-client contract invoices with invoice/service dates, subtotal, GST, total, due date, received amount, payment status, and derived outstanding value.
+- Kept subscription records at period-summary level with gross revenue, refunds, platform/payment fees, net payment, and optional aggregate subscriber counts; no subscriber database was introduced.
+- Supported general section 23 income through the common model without requiring a specialised detail table.
+- Added append-only manual expected-versus-actual reconciliation for both roles with D1-derived difference, match status, reviewer attribution, and audit history; no bank API was introduced.
+- Preserved each family's reporting meaning in the common value: net payout for platform/subscription, invoice value for contracts, and entered value for general income.
+- Added an Income workspace with dynamic owner entry/editing, contract payment visibility, summaries, and reconciliation controls; accountants receive an explicitly read-only source view.
+- Added client management to Setup while preserving inactive historical references and exposing no hard-delete path.
+- Added validation/component tests and extended the clean local acceptance suite across all income types, duplicate invoice/client protection, contract part-payment, reconciliation, summaries, and role denial.
+
+Notes: The Phase 3 schema already included income, typed detail, client, reconciliation, retention, and audit structures, so no migration was required. Phase 11 adds private versioned attachments.

@@ -62,6 +62,13 @@ import {
   listInsuranceRecords,
   updateInsuranceRecord,
 } from './routes/insuranceRecords';
+import { createClient, listClients, updateClient } from './routes/clients';
+import {
+  createIncomeRecord,
+  listIncomeRecords,
+  reconcileIncome,
+  updateIncomeRecord,
+} from './routes/incomeRecords';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -187,6 +194,29 @@ const routes: Route[] = [
     method: 'PATCH',
     pathname: '/api/insurance-allocations',
     handler: adjustInsuranceAllocation,
+  },
+  { method: 'GET', pathname: '/api/clients', handler: listClients },
+  { method: 'POST', pathname: '/api/clients', handler: createClient },
+  { method: 'PATCH', pathname: '/api/clients', handler: updateClient },
+  {
+    method: 'GET',
+    pathname: '/api/income-records',
+    handler: listIncomeRecords,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/income-records',
+    handler: createIncomeRecord,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/income-records',
+    handler: updateIncomeRecord,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/income-reconciliations',
+    handler: reconcileIncome,
   },
   {
     method: 'POST',
