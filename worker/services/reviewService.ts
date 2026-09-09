@@ -56,8 +56,8 @@ export function ensureStatusPermission(
 export function savedFilterType(value: unknown) {
   if (
     typeof value !== 'string' ||
-    !['TRANSACTIONS', 'RECEIPTS'].includes(value)
+    !['TRANSACTIONS', 'RECEIPTS', 'AUDIT'].includes(value)
   )
     throw new HttpError(400, 'Saved filter type is invalid.');
-  return value as 'TRANSACTIONS' | 'RECEIPTS';
+  return value as 'TRANSACTIONS' | 'RECEIPTS' | 'AUDIT';
 }

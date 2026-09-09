@@ -597,6 +597,15 @@ th {
   text-decoration: underline;
 }
 
+.danger-button {
+  background: #8b2535;
+}
+
+.danger-button:disabled {
+  background: #aab3b8;
+  cursor: not-allowed;
+}
+
 .saved-filter-form,
 .saved-filter-list,
 .review-panel {

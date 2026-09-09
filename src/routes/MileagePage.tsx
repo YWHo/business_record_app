@@ -242,6 +242,33 @@ export function MileagePage() {
     }
   }
 
+  async function moveToTrash(session: WorkSession) {
+    if (
+      !window.confirm(
+        'Move this work session to trash? It can be restored during retention.',
+      )
+    )
+      return;
+    setError('');
+    try {
+      await apiRequest('/api/trash', {
+        method: 'POST',
+        body: JSON.stringify({
+          recordType: 'WORK_SESSION',
+          recordId: session.id,
+        }),
+      });
+      setMessage('Work session moved to trash.');
+      await load();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Unable to move work session to trash.',
+      );
+    }
+  }
+
   const summaryCurrency = summary.currency ?? 'NZD';
 
   return (
@@ -450,6 +477,13 @@ export function MileagePage() {
                           }
                         >
                           Fuel workflow
+                        </button>
+                        <button
+                          type="button"
+                          className="link-button"
+                          onClick={() => void moveToTrash(session)}
+                        >
+                          Move to trash
                         </button>
                       </div>
                     ) : null}

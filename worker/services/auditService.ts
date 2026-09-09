@@ -8,11 +8,12 @@ export async function writeAudit(
   entityId: string,
   summary: string,
   businessActivityId: string | null = null,
+  changedFields: Record<string, unknown> | null = null,
 ): Promise<void> {
   await env.DB.prepare(
     `INSERT INTO audit_log
-      (id, user_id, action, entity_type, entity_id, business_activity_id, summary, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, user_id, action, entity_type, entity_id, business_activity_id, summary, changed_fields_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       crypto.randomUUID(),
@@ -22,6 +23,7 @@ export async function writeAudit(
       entityId,
       businessActivityId,
       summary,
+      changedFields ? JSON.stringify(changedFields) : null,
       new Date().toISOString(),
     )
     .run();

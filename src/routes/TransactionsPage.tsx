@@ -351,6 +351,32 @@ export function TransactionsPage() {
     setFilters({ ...emptyFilters, ...item.criteria });
     await search({ ...emptyFilters, ...item.criteria }, mode);
   }
+  async function moveToTrash(record: Transaction) {
+    if (
+      !window.confirm(
+        'Move this record to trash? It can be restored during retention.',
+      )
+    )
+      return;
+    setError('');
+    try {
+      await apiRequest('/api/trash', {
+        method: 'POST',
+        body: JSON.stringify({
+          recordType: record.recordType,
+          recordId: record.id,
+        }),
+      });
+      setMessage('Record moved to trash.');
+      await search(filters, mode);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Unable to move record to trash.',
+      );
+    }
+  }
   return (
     <section aria-labelledby="transactions-heading">
       <div className="page-heading">
@@ -670,6 +696,15 @@ export function TransactionsPage() {
                 role={user?.role ?? 'ACCOUNTANT'}
                 onChanged={() => search(filters, mode)}
               />
+              {user?.role === 'OWNER' ? (
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => void moveToTrash(record)}
+                >
+                  Move to trash
+                </button>
+              ) : null}
               {mode === 'RECEIPTS' ? (
                 <AttachmentPanel
                   recordType={record.recordType}

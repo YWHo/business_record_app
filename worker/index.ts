@@ -84,6 +84,15 @@ import {
   updateRecordStatus,
   updateSavedFilter,
 } from './routes/review';
+import {
+  getRetentionSettings,
+  listAuditLog,
+  listTrash,
+  moveToTrash,
+  purgeFromTrash,
+  restoreFromTrash,
+  updateRetentionSettings,
+} from './routes/governance';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -284,6 +293,21 @@ const routes: Route[] = [
     method: 'DELETE',
     pathname: '/api/saved-filters',
     handler: deleteSavedFilter,
+  },
+  { method: 'GET', pathname: '/api/audit-log', handler: listAuditLog },
+  { method: 'GET', pathname: '/api/trash', handler: listTrash },
+  { method: 'POST', pathname: '/api/trash', handler: moveToTrash },
+  { method: 'POST', pathname: '/api/trash/restore', handler: restoreFromTrash },
+  { method: 'DELETE', pathname: '/api/trash', handler: purgeFromTrash },
+  {
+    method: 'GET',
+    pathname: '/api/retention-settings',
+    handler: getRetentionSettings,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/retention-settings',
+    handler: updateRetentionSettings,
   },
   {
     method: 'POST',

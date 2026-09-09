@@ -89,3 +89,11 @@ The transaction and receipt APIs query a fixed `UNION ALL` projection over commo
 Saved filter criteria are allow-listed string maps stored per user and per log type. Names remain unique within that scope. No saved filter can inject SQL or expose another user's views.
 
 The record-status endpoint owns workflow transitions. Owners prepare, reopen, or void records, while accountants review and process them. `REVIEWED` requires `READY_FOR_REVIEW`, and `PROCESSED` requires `REVIEWED`; `VOIDED` is terminal. Financial review identity/timestamps change atomically with status, and every source-data update returns the record to `NEW` and clears prior review attribution. Comments are append-only rows joined to immutable user identity, with no update or delete route.
+
+## Retention and deletion boundary
+
+Normal deletion is a reversible owner-only transition: the Worker records the prior workflow status in the audit event, sets `TRASHED` plus `deleted_at`, and excludes the record from live source and transaction queries. Restore recovers that prior status. Both roles may inspect trash and immutable audit history, but accountants cannot trash, restore, change retention policy, or purge.
+
+Permanent purge requires all three server-side conditions: the record is already trashed, its stored `purge_eligible_at` boundary has passed, and the owner supplied the exact explicit confirmation. The current policy never shortens retention dates already assigned to records; changes affect future calculations only. A referenced fuel expense remains protected until its work-session references are removed.
+
+Purge first marks D1 record and attachment metadata as pending, then removes private R2 objects and relational detail rows. This makes interrupted R2/database work visible and retryable instead of restoring a partially purged record. On completion the source row is deleted, while the actor-attributed `RECORD_PURGED` audit event remains. There is no automatic purge route or writable audit-log route.

@@ -1658,6 +1658,174 @@ const deletedSavedFilter = await request(
 );
 expectStatus(deletedSavedFilter, 200, 'saved filter deletion');
 
+const retentionSettings = await request(
+  '/api/retention-settings',
+  {},
+  accountantCookie,
+);
+expectStatus(retentionSettings, 200, 'accountant retention settings read');
+if (
+  retentionSettings.body.retentionSettings.retentionTaxYears !== 10 ||
+  retentionSettings.body.retentionSettings.taxYearEndMonth !== 3 ||
+  retentionSettings.body.retentionSettings.taxYearEndDay !== 31
+) {
+  throw new Error('default retention settings were incorrect');
+}
+const deniedRetentionChange = await request(
+  '/api/retention-settings',
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      retentionTaxYears: 10,
+      taxYearEndMonth: 3,
+      taxYearEndDay: 31,
+      backupReminderDays: 30,
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedRetentionChange, 403, 'accountant retention change denial');
+const deniedTrash = await request(
+  '/api/trash',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'EXPENSE',
+      recordId: createdGeneral.body.generalExpense.id,
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedTrash, 403, 'accountant trash denial');
+const trashedGeneral = await request(
+  '/api/trash',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'EXPENSE',
+      recordId: createdGeneral.body.generalExpense.id,
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(trashedGeneral, 200, 'owner move to trash');
+const trashList = await request('/api/trash', {}, accountantCookie);
+expectStatus(trashList, 200, 'accountant trash read');
+const protectedTrash = trashList.body.trash.find(
+  (item) => item.id === createdGeneral.body.generalExpense.id,
+);
+if (!protectedTrash || protectedTrash.purgeEligible !== false) {
+  throw new Error('retained trash did not expose its protected state');
+}
+const deniedEarlyPurge = await request(
+  '/api/trash',
+  {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'EXPENSE',
+      recordId: createdGeneral.body.generalExpense.id,
+      confirmation: 'PERMANENTLY DELETE',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(deniedEarlyPurge, 409, 'retention-protected purge denial');
+const restoredGeneral = await request(
+  '/api/trash/restore',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'EXPENSE',
+      recordId: createdGeneral.body.generalExpense.id,
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(restoredGeneral, 200, 'owner restore from trash');
+if (restoredGeneral.body.record.status !== 'NEW') {
+  throw new Error('restore did not recover the pre-trash status');
+}
+const oldGeneral = await request(
+  '/api/general-expenses',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: activityId,
+      expenseCategoryId: categoryId,
+      merchantName: 'Phase 13 expired synthetic record',
+      purchaseDatetime: '2010-02-01T00:00:00.000Z',
+      totalAmount: '1.00',
+      recurrenceType: 'ONE_OFF',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(oldGeneral, 201, 'expired-retention record create');
+const oldRecordId = oldGeneral.body.generalExpense.id;
+expectStatus(
+  await request(
+    '/api/trash',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ recordType: 'EXPENSE', recordId: oldRecordId }),
+    },
+    ownerCookie,
+  ),
+  200,
+  'expired-retention move to trash',
+);
+const missingPurgeConfirmation = await request(
+  '/api/trash',
+  {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ recordType: 'EXPENSE', recordId: oldRecordId }),
+  },
+  ownerCookie,
+);
+expectStatus(missingPurgeConfirmation, 400, 'explicit purge confirmation');
+const purgedOldRecord = await request(
+  '/api/trash',
+  {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      recordType: 'EXPENSE',
+      recordId: oldRecordId,
+      confirmation: 'PERMANENTLY DELETE',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(purgedOldRecord, 200, 'retention-approved purge');
+const purgedLookup = await request(`/api/general-expenses`, {}, ownerCookie);
+expectStatus(purgedLookup, 200, 'post-purge source read');
+if (purgedLookup.body.generalExpenses.some((item) => item.id === oldRecordId)) {
+  throw new Error('permanently purged record remained in source results');
+}
+const governanceAudit = await request(
+  '/api/audit-log?action=RECORD_RESTORED&entityType=EXPENSE',
+  {},
+  accountantCookie,
+);
+expectStatus(governanceAudit, 200, 'filtered accountant audit read');
+if (
+  !governanceAudit.body.auditEvents.some(
+    (item) =>
+      item.entityId === createdGeneral.body.generalExpense.id &&
+      item.userEmail === 'owner@local.test',
+  )
+) {
+  throw new Error('trash restore audit history was missing');
+}
+
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
@@ -1760,5 +1928,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, records, attachments, transaction and receipt filters, saved views, review status, comments, revocation, and R2.',
+  'Local smoke passed: authentication, records, attachments, review, audit, retention-protected trash/restore/purge, revocation, and R2.',
 );

@@ -49,6 +49,7 @@ describe('review workflow validation', () => {
   it('rejects unsupported record, status, and saved-filter types', () => {
     expect(() => reviewRecordType('CLIENT')).toThrow('Record type');
     expect(() => reviewStatus('TRASHED')).toThrow('Status');
-    expect(() => savedFilterType('AUDIT')).toThrow('Saved filter type');
+    expect(savedFilterType('AUDIT')).toBe('AUDIT');
+    expect(() => savedFilterType('EXPORT')).toThrow('Saved filter type');
   });
 });

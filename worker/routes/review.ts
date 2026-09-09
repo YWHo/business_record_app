@@ -383,7 +383,7 @@ export async function createComment(request: Request, env: Env) {
 interface FilterRow {
   id: string;
   name: string;
-  filter_type: 'TRANSACTIONS' | 'RECEIPTS';
+  filter_type: 'TRANSACTIONS' | 'RECEIPTS' | 'AUDIT';
   criteria_json: string;
   created_at: string;
   updated_at: string;
@@ -414,6 +414,9 @@ function criteria(value: unknown) {
     'amountMax',
     'attachment',
     'review',
+    'userId',
+    'action',
+    'entityType',
   ]);
   for (const [key, item] of Object.entries(value))
     if (!allowed.has(key) || typeof item !== 'string' || item.length > 500)

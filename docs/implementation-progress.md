@@ -243,3 +243,24 @@ Acceptance criteria completed:
 - Added workflow/component tests and extended the clean local acceptance suite through combined search, evidence counts, tax-year/amount filtering, saved-view isolation, role denial, accountant attribution, comment history, and source-edit review reset.
 
 Notes: The Phase 3 schema already included statuses, reviewer fields, comments, saved filters, and audit structures, so no migration was required. Phase 13 adds the audit log interface, trash/restore, and retention-enforced purge controls.
+
+## Phase 13: Audit, trash, and retention
+
+Status: Complete
+
+Commit: Pending
+
+Acceptance criteria completed:
+
+- Added an authenticated, read-only audit-log API and workspace with user, action, entity, date, and activity filtering plus per-user saved audit views.
+- Exposed actor identity, business activity, summary, entity reference, timestamp, and safe structured changed-field metadata without adding any audit mutation route.
+- Added owner-only move-to-trash controls that retain typed detail, comments, documents, review attribution, retention dates, and the previous workflow status.
+- Added owner-only restore that clears deletion state and recovers the pre-trash status from immutable audit history; purge-pending records cannot be restored.
+- Added a shared trash view for expenses, income, and work sessions with stored retention dates, calculated purge eligibility, and interrupted-purge state; accountants retain read-only access.
+- Enforced permanent deletion at the Worker boundary: only the owner, only a trashed record, only after its stored tax-year boundary, and only with an explicit irreversible confirmation.
+- Removed eligible records' private R2 objects, polymorphic metadata/comments, specialised child rows, and source rows while retaining a permanent actor-attributed purge audit event.
+- Protected fuel evidence still referenced by a work session and made cross-store purge interruption visible and safely retryable.
+- Added authenticated retention-policy read access and owner-only validated settings changes with a seven-tax-year minimum and valid tax-year calendar boundary; existing evidence dates are never shortened retroactively.
+- Added retention/service and governance component tests and extended the clean local acceptance suite through role denial, trash visibility, early-purge prevention, restore, explicit confirmation, eligible purge, audit filtering, and D1 integrity.
+
+Notes: The stable Phase 3 schema already contained deletion, retention, purge, audit, saved-filter, and policy fields, so no migration was required. Automatic purge remains deliberately out of scope. Phase 14 adds portable exports and the backup-reminder workflow.

@@ -15,6 +15,7 @@ interface ParentRow {
   business_activity_id: string | null;
   retention_until: string;
   purge_eligible_at: string;
+  deleted_at: string | null;
 }
 interface AttachmentRow {
   id: string;
@@ -64,7 +65,7 @@ async function parent(
     WORK_SESSION: 'work_sessions',
   } as const;
   const row = await env.DB.prepare(
-    `SELECT id, business_activity_id, retention_until, purge_eligible_at FROM ${sources[recordType]} WHERE id = ? AND purged_at IS NULL`,
+    `SELECT id, business_activity_id, retention_until, purge_eligible_at, deleted_at FROM ${sources[recordType]} WHERE id = ? AND purged_at IS NULL`,
   )
     .bind(recordId)
     .first<ParentRow>();
@@ -114,6 +115,8 @@ export async function uploadAttachment(request: Request, env: Env) {
     throw new HttpError(400, 'Record ID is required.');
   const recordId = recordIdValue.trim();
   const target = await parent(env, recordType, recordId);
+  if (target.deleted_at)
+    throw new HttpError(409, 'Restore the record before adding documents.');
   const file = form.get('file');
   if (!(file instanceof File))
     throw new HttpError(400, 'Select a file to upload.');
