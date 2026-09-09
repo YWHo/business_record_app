@@ -107,3 +107,11 @@ Before returning an archive, the Worker resolves the exact included record IDs, 
 The ZIP writer uses stored entries and serves a `ReadableStream`, loading at most one attachment body at a time. Export generation is repeatable and does not mutate business records or attachments. D1 stores only completion metadata—not a redundant archive—and the dashboard reminder compares the latest successful generation with the configurable interval.
 
 Version 1 deliberately has no importer. A future restore must validate `format` and `schemaVersion`, verify every manifest digest and count, import reference records before financial parents and typed children, restore attachment metadata/object bytes, then reconcile audit and final counts in an isolated environment. This ordering is documented in the export-format ADR and can be implemented without changing the archive shape.
+
+## Dashboard analytics boundary
+
+The dashboard API applies the configured tax-year boundary and optional business-activity filter to live, non-voided records. D1 selects authoritative source amounts and generated mileage; the Worker groups only within a single currency and derives rates from those persisted values. It never accepts caller-provided totals or combines currencies.
+
+Recorded revenue uses each income family's established reporting value. Net cash movement is intentionally separate: contract income contributes only its recorded received amount, while other income contributes its received/net common value. Expenses are then deducted as recorded. The UI labels invoice-value revenue less expenses as “Income less recorded expenses” and explicitly avoids taxable-profit language.
+
+Delivery and ride-hailing analytics use work-session gross revenue for per-session, per-hour, and per-kilometre rates. Direct operating cost contains only fuel and parking assigned to the same platform activity and currency; allocated insurance appears separately. Missing session revenue suppresses revenue-derived rates and contribution rather than silently treating missing values as zero. These indicators are operational estimates, not accounting or tax conclusions.

@@ -96,4 +96,8 @@ Trash sets the parent record's `status` to `TRASHED` and records `deleted_at`; c
 
 `export_history` is an immutable completion ledger, not archive storage. It references the requesting user and stores scope, optional month/tax-year key, expected record and attachment counts, verified exported attachment count, manifest SHA-256, and completion time. A check constraint requires expected and exported attachment counts to match. User references preserve attribution, while repeat exports create separate history rows and never change source records.
 
+## Derived dashboard views
+
+Dashboard values are query-time projections and introduce no denormalized totals. Recorded income comes from `income_records`; contract cash received and outstanding amounts come from `contract_income_details`; recorded cost comes from `expenses`; fuel litres come from `fuel_expense_details`; insurance estimates come from `expense_allocations`; and session duration, distance, and revenue come from `work_sessions`. Status, deletion, purge, date, activity, and currency boundaries are applied before aggregation.
+
 `expenses` and `income_records` carry the shared review status plus nullable reviewer identity/time. Owner source edits reset these fields to `NEW`/null so review never survives changed evidence. Work sessions carry the same status vocabulary without financial reviewer columns. `comments` provides an append-only polymorphic thread over expense, income, and work-session IDs; Worker validation supplies the referential check that a polymorphic foreign key cannot express. `saved_filters` stores an allow-listed JSON criteria object scoped by user and log type.

@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 14 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, and portable local backups. Monthly, tax-year, and complete archives contain readable CSVs, all matching attachment versions, an HTML summary, and a SHA-256 manifest. Local development still needs no Cloudflare account or email provider.
+Phase 15 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Tax-year and activity views keep recorded revenue, received cash, expenses, review work, invoices, and direct platform operating indicators distinct. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -243,7 +243,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, and portable exports are available. Dashboard analytics, Storybook, broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, and operating analytics are available. Mobile capture completion, Storybook, broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

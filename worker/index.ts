@@ -94,6 +94,7 @@ import {
   updateRetentionSettings,
 } from './routes/governance';
 import { downloadExport, exportStatus } from './routes/exports';
+import { dashboard } from './routes/dashboard';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -113,6 +114,7 @@ const routes: Route[] = [
     pathname: '/api/health',
     handler: (_request, env) => health(env),
   },
+  { method: 'GET', pathname: '/api/dashboard', handler: dashboard },
   { method: 'GET', pathname: '/api/auth/me', handler: currentUser },
   { method: 'GET', pathname: '/api/auth/config', handler: authConfiguration },
   { method: 'POST', pathname: '/api/auth/login', handler: requestLogin },

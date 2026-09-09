@@ -285,3 +285,24 @@ Acceptance criteria completed:
 - Added export range, CSV, path, CRC/ZIP, and reminder tests and extended clean local acceptance through manifest file/hash validation, monthly/tax-year/full/repeated exports, attachment inclusion, reminder completion, non-destructive behavior, and D1 integrity.
 
 Notes: Migration 0004 adds only export completion history; generated archives remain client downloads and are not duplicated in cloud storage. Phase 15 adds dashboard and profitability analytics.
+
+## Phase 15: Dashboard and analytics
+
+Status: Complete
+
+Commit: Pending
+
+Acceptance criteria completed:
+
+- Replaced the placeholder dashboard with authenticated, server-derived tax-year metrics and optional business-activity filtering.
+- Kept recorded revenue, received cash, recorded expenses, net cash movement, and income less recorded expenses as distinct values grouped by currency.
+- Used actual received amounts for contract cash movement while retaining full invoice values in recorded revenue and open balances in outstanding-invoice indicators.
+- Added fuel spending, recorded litres, parking spending, total/open review indicators, and direct links into the review workflow.
+- Added delivery and ride-hailing analytics by activity and currency using authoritative session duration, generated distance, session revenue, fuel, and parking records.
+- Derived revenue per session/hour/km, fuel cost/km, direct operating cost, and direct operating contribution without mixing currencies or presenting final profit.
+- Kept allocated insurance visible but separate from direct fuel/parking cost and suppressed revenue-derived results whenever session revenue evidence is incomplete or absent.
+- Excluded trashed, purged, and voided records from current operating metrics while retaining source and audit history elsewhere.
+- Added responsive dashboard filters, metric cards, review/cost/invoice panels, platform activity summaries, careful unavailable states, and explicit non-tax wording.
+- Added financial separation and operating calculation tests and extended clean local acceptance through owner/accountant access, tax-year/activity filters, exact platform rates, cost/contribution, outstanding invoices, validation, and D1 integrity.
+
+Notes: Phase 15 requires no migration because every result is derived from the normalized source tables at request time. Phase 16 completes PWA and mobile capture workflows.

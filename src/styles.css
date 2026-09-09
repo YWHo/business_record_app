@@ -641,6 +641,45 @@ th {
   margin: 0.25rem 0 0;
 }
 
+.dashboard-filters {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.dashboard-filters button {
+  width: fit-content;
+}
+
+.dashboard-columns {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+
+.dashboard-list > div {
+  align-items: baseline;
+  border-bottom: 1px solid #e4e9ed;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-bottom: 0.45rem;
+}
+
+.dashboard-list dt {
+  color: #52636d;
+}
+
+.dashboard-list dd {
+  font-weight: 750;
+  margin: 0;
+  text-align: right;
+}
+
 .saved-filter-form,
 .saved-filter-list,
 .review-panel {
@@ -708,6 +747,14 @@ th {
   }
 
   .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dashboard-columns {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 

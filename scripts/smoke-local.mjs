@@ -1969,6 +1969,145 @@ expectStatus(recordsAfterExports, 200, 'records after repeated exports');
 if (!recordsAfterExports.body.transactions.length) {
   throw new Error('export unexpectedly removed cloud records');
 }
+const dashboardSession = await request(
+  '/api/work-sessions',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: 'activity-delivery',
+      vehicleId,
+      startedAt: '2026-09-09T01:00:00.000Z',
+      endedAt: '2026-09-09T03:00:00.000Z',
+      odometerStartKm: 2000,
+      odometerEndKm: 2050,
+      grossRevenue: '100.00',
+      currency: 'NZD',
+      notes: 'Synthetic Phase 15 delivery session',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(dashboardSession, 201, 'dashboard platform session');
+const dashboardFuel = await request(
+  '/api/fuel-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: 'activity-delivery',
+      vehicleId,
+      merchantName: 'Phase 15 Fuel',
+      purchaseDatetime: '2026-09-09T03:05:00.000Z',
+      totalAmount: '20.00',
+      fuelPricePerLitre: '2.500000',
+      fuelLitres: 8,
+      odometerKm: 2050,
+      fillType: 'FULL',
+      currency: 'NZD',
+      gstStatus: 'UNKNOWN',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(dashboardFuel, 201, 'dashboard fuel cost');
+const dashboardParking = await request(
+  '/api/parking-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: 'activity-delivery',
+      vehicleId,
+      parkingLocation: 'Phase 15 delivery parking',
+      purchaseDatetime: '2026-09-09T02:00:00.000Z',
+      totalAmount: '5.00',
+      currency: 'NZD',
+      gstStatus: 'UNKNOWN',
+      recurrenceType: 'ONE_OFF',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(dashboardParking, 201, 'dashboard parking cost');
+const dashboardIncome = await request(
+  '/api/income-records',
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      incomeType: 'PLATFORM',
+      businessActivityId: 'activity-delivery',
+      providerName: 'Phase 15 Delivery Platform',
+      periodStart: '2026-09-09',
+      periodEnd: '2026-09-09',
+      paymentDate: '2026-09-09',
+      grossEarnings: '100.00',
+      netPaymentReceived: '100.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(dashboardIncome, 201, 'dashboard platform income');
+const deliveryDashboard = await request(
+  '/api/dashboard?taxYear=2027&activityId=activity-delivery',
+  {},
+  accountantCookie,
+);
+expectStatus(deliveryDashboard, 200, 'accountant filtered dashboard');
+const deliveryFinancial = deliveryDashboard.body.financialTotals.find(
+  (item) => item.currency === 'NZD',
+);
+const deliveryOperating = deliveryDashboard.body.platformActivities.find(
+  (item) => item.activityId === 'activity-delivery' && item.currency === 'NZD',
+);
+if (
+  deliveryFinancial?.recordedRevenueMinor !== 10000 ||
+  deliveryFinancial?.recordedExpensesMinor !== 2500 ||
+  deliveryFinancial?.netCashMovementMinor !== 7500 ||
+  deliveryDashboard.body.spending[0]?.fuelSpendingMinor !== 2000 ||
+  deliveryDashboard.body.spending[0]?.parkingSpendingMinor !== 500 ||
+  deliveryDashboard.body.review.totalRecords !== 4 ||
+  deliveryDashboard.body.review.unreviewedCount !== 4 ||
+  deliveryOperating?.sessionCount !== 1 ||
+  deliveryOperating?.revenuePerHourMinor !== 5000 ||
+  deliveryOperating?.revenuePerKmMinor !== 200 ||
+  deliveryOperating?.fuelCostPerKmMinor !== 40 ||
+  deliveryOperating?.directOperatingCostMinor !== 2500 ||
+  deliveryOperating?.directOperatingContributionMinor !== 7500 ||
+  deliveryOperating?.recordedPlatformIncomeMinor !== 10000
+) {
+  throw new Error(
+    `dashboard totals or platform analytics were incorrect: ${JSON.stringify(deliveryDashboard.body)}`,
+  );
+}
+if (deliveryDashboard.body.outstandingInvoices.length !== 0) {
+  throw new Error('activity-filtered dashboard included unrelated invoices');
+}
+const completeDashboard = await request(
+  '/api/dashboard?taxYear=2027',
+  {},
+  ownerCookie,
+);
+expectStatus(completeDashboard, 200, 'owner complete dashboard');
+if (
+  !completeDashboard.body.outstandingInvoices.some(
+    (item) => item.outstandingMinor === 57500,
+  ) ||
+  !completeDashboard.body.platformActivities.some(
+    (item) => item.activityId === 'activity-delivery',
+  )
+) {
+  throw new Error(
+    'dashboard omitted outstanding invoice or platform indicators',
+  );
+}
+expectStatus(
+  await request('/api/dashboard?taxYear=bad', {}, ownerCookie),
+  400,
+  'invalid dashboard tax year',
+);
 
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
@@ -2072,5 +2211,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, records, attachments, review, retention, hashed portable exports, backup reminders, revocation, and R2.',
+  'Local smoke passed: authentication, records, review, retention, exports, backup reminders, dashboard operating analytics, revocation, and R2.',
 );
