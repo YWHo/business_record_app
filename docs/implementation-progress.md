@@ -269,7 +269,7 @@ Notes: The stable Phase 3 schema already contained deletion, retention, purge, a
 
 Status: Complete
 
-Commit: Pending
+Commit: `a57c56c`
 
 Acceptance criteria completed:
 
