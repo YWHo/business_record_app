@@ -570,6 +570,123 @@ th {
   margin-top: 0.75rem;
 }
 
+.capture-options {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.capture-options legend,
+.capture-options label {
+  font-weight: 650;
+}
+
+.capture-button {
+  align-items: center;
+  border-radius: 0.55rem;
+  color: #fff;
+  background: #1f4e78;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  width: fit-content;
+}
+
+.capture-button:focus-within {
+  outline: 3px solid #b7791f;
+  outline-offset: 3px;
+}
+
+.attachment-preview {
+  border: 1px solid #cbd5dc;
+  border-radius: 0.7rem;
+  display: grid;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding: 0.8rem;
+}
+
+.preview-heading,
+.rotation-controls {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.preview-heading small {
+  color: #66788a;
+  display: block;
+}
+
+.image-preview-frame {
+  align-items: center;
+  background: #edf0f2;
+  display: flex;
+  height: min(65vw, 22rem);
+  justify-content: center;
+  overflow: hidden;
+}
+
+.image-preview-frame img {
+  max-height: 85%;
+  max-width: 85%;
+  object-fit: contain;
+  transition: transform 160ms ease-out;
+}
+
+.pdf-preview {
+  border: 0;
+  height: min(70vh, 30rem);
+  width: 100%;
+}
+
+.preview-note {
+  font-size: 0.82rem;
+}
+
+.pwa-status {
+  align-items: center;
+  background: #e9f2f5;
+  border-bottom: 1px solid #9bb9c5;
+  color: #173f51;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  justify-content: space-between;
+  padding: 0.75rem clamp(1rem, 5vw, 4rem);
+}
+
+.pwa-status.offline {
+  background: #fff4df;
+  border-color: #c68d25;
+  color: #6b4810;
+}
+
+.pwa-status.error {
+  background: #fff1f1;
+  border-color: #c62828;
+  color: #8c1d1d;
+}
+
+.pwa-status strong,
+.pwa-status span {
+  display: block;
+}
+
+.pwa-status span {
+  margin-top: 0.15rem;
+}
+
+.pwa-status-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .attachment-row {
   align-items: center;
   display: flex;
@@ -781,6 +898,29 @@ th {
 }
 
 @media (max-width: 32rem) {
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+
+  button,
+  .button-link,
+  .capture-button,
+  .primary-nav a {
+    min-height: 2.75rem;
+  }
+
+  .primary-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .page-content {
+    padding: 1.25rem 0.75rem 3rem;
+  }
+
   .page-heading {
     align-items: stretch;
     flex-direction: column;
@@ -792,6 +932,24 @@ th {
   }
 
   .account-summary {
+    flex-direction: column;
+  }
+
+  .capture-button,
+  .attachment-form > button,
+  .rotation-controls button {
+    width: 100%;
+  }
+
+  .rotation-controls {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .pwa-status,
+  .pwa-status-actions {
+    align-items: stretch;
     flex-direction: column;
   }
 }

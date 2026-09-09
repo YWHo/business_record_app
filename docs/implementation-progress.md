@@ -306,3 +306,24 @@ Acceptance criteria completed:
 - Added financial separation and operating calculation tests and extended clean local acceptance through owner/accountant access, tax-year/activity filters, exact platform rates, cost/contribution, outstanding invoices, validation, and D1 integrity.
 
 Notes: Phase 15 requires no migration because every result is derived from the normalized source tables at request time. Phase 16 completes PWA and mobile capture workflows.
+
+## Phase 16: PWA and mobile capture
+
+Status: Complete
+
+Commit: `pending`
+
+Acceptance criteria completed:
+
+- Completed the installable manifest metadata and generated Workbox service worker with a versioned offline application shell and an explicit `/api` fallback exclusion.
+- Added clear online/offline messaging that states records and uploads require connectivity and that version 1 does not queue changes offline.
+- Added user-controlled service-worker update prompts, focus-time update checks, offline-ready feedback, registration-error feedback, and browser-provided installation prompting.
+- Added a dedicated mobile rear-camera picker alongside existing image and PDF selection without narrowing the established server-side upload validation.
+- Added local image and PDF previews, accessible quarter-turn image controls, file size/name review, and removal before upload.
+- Stored validated 0/90/180/270-degree presentation metadata separately from immutable R2 source bytes and included it in attachment APIs and portable export indexes.
+- Retained selected files after offline, network, and server failures with explicit retry controls while deliberately avoiding an offline/background upload queue.
+- Improved mobile navigation, touch target sizing, input sizing, capture layout, preview controls, page spacing, and PWA status layout at narrow widths.
+- Preserved semantic fieldsets, labels, live status/error regions, keyboard focus visibility, descriptive preview alternatives, and non-colour status wording.
+- Added service, component, PWA-status, schema, and local acceptance coverage for rotation validation, mobile picker semantics, preview rotation, failed-upload retry, immutable bytes, export metadata, and D1 integrity.
+
+Notes: Migration 0005 adds non-destructive attachment display rotation and advances local schema metadata to Phase 16. The static shell contains no private API data; OCR and a full offline upload queue remain intentionally out of scope. Phase 17 adds Storybook and reusable-component coverage.

@@ -2,6 +2,7 @@ import { requireRole, requireUser } from '../auth/authorization';
 import { HttpError, json } from '../lib/http';
 import {
   attachmentRecordType,
+  attachmentRotation,
   safeDownloadFilename,
   sha256Hex,
   validateAttachmentFile,
@@ -30,13 +31,15 @@ interface AttachmentRow {
   created_at: string;
   version_number: number;
   is_current: number;
+  display_rotation_degrees: number;
   creator_email: string;
 }
 const attachmentSelect = `SELECT attachments.id, attachments.record_type,
   attachments.record_id, attachments.version_group_id, attachments.object_key,
   attachments.original_filename, attachments.mime_type, attachments.file_size,
   attachments.sha256, attachments.created_at, attachments.version_number,
-  attachments.is_current, users.email AS creator_email
+  attachments.is_current, attachments.display_rotation_degrees,
+  users.email AS creator_email
   FROM attachments JOIN users ON users.id = attachments.created_by`;
 const serialize = (row: AttachmentRow) => ({
   id: row.id,
@@ -51,6 +54,7 @@ const serialize = (row: AttachmentRow) => ({
   createdByEmail: row.creator_email,
   versionNumber: row.version_number,
   isCurrent: row.is_current === 1,
+  displayRotationDegrees: row.display_rotation_degrees,
   downloadUrl: `/api/attachments/file?id=${encodeURIComponent(row.id)}`,
 });
 
@@ -114,6 +118,9 @@ export async function uploadAttachment(request: Request, env: Env) {
   if (typeof recordIdValue !== 'string' || !recordIdValue.trim())
     throw new HttpError(400, 'Record ID is required.');
   const recordId = recordIdValue.trim();
+  const displayRotationDegrees = attachmentRotation(
+    form.get('displayRotationDegrees'),
+  );
   const target = await parent(env, recordType, recordId);
   if (target.deleted_at)
     throw new HttpError(409, 'Restore the record before adding documents.');
@@ -200,7 +207,7 @@ export async function uploadAttachment(request: Request, env: Env) {
           ]
         : []),
       env.DB.prepare(
-        `INSERT INTO attachments (id, record_type, record_id, version_group_id, object_key, original_filename, mime_type, file_size, sha256, created_by, created_at, version_number, is_current, retention_until, purge_eligible_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+        `INSERT INTO attachments (id, record_type, record_id, version_group_id, object_key, original_filename, mime_type, file_size, sha256, created_by, created_at, version_number, is_current, display_rotation_degrees, retention_until, purge_eligible_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       ).bind(
         id,
         recordType,
@@ -214,6 +221,7 @@ export async function uploadAttachment(request: Request, env: Env) {
         actor.id,
         now,
         versionNumber,
+        displayRotationDegrees,
         target.retention_until,
         target.purge_eligible_at,
       ),

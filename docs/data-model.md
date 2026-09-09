@@ -82,7 +82,7 @@ The separate `expense_allocations` row stores the chosen method, optional percen
 
 ## Attachments and comments
 
-Attachments and comments refer to several record families, so `record_type` plus `record_id` is intentionally polymorphic and cannot use one SQL foreign key. The Worker must validate the target transaction before any insert. Attachments enforce supported MIME types, the 25 MB limit, SHA-256 presence, ordered versions, and at most one current item in each version group.
+Attachments and comments refer to several record families, so `record_type` plus `record_id` is intentionally polymorphic and cannot use one SQL foreign key. The Worker must validate the target transaction before any insert. Attachments enforce supported MIME types, the 25 MB limit, SHA-256 presence, ordered versions, at most one current item in each version group, and display rotation restricted to 0, 90, 180, or 270 degrees. Rotation is metadata only: the hashed R2 evidence bytes remain unchanged.
 
 ## Retention
 

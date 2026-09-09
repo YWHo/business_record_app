@@ -15,6 +15,7 @@ import { TransactionsPage } from './routes/TransactionsPage';
 import { GovernancePage } from './routes/GovernancePage';
 import { ExportsPage } from './routes/ExportsPage';
 import { VerifyLoginPage } from './routes/VerifyLoginPage';
+import { PwaStatus } from './features/pwa/PwaStatus';
 
 function WorkspaceLayout() {
   const { loading, logout, user } = useAuth();
@@ -86,24 +87,27 @@ function WorkspaceLayout() {
 
 export function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/verify-login" element={<VerifyLoginPage />} />
-      <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
-      <Route element={<WorkspaceLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/records" element={<RecordsPage />} />
-        <Route path="/mileage" element={<MileagePage />} />
-        <Route path="/fuel" element={<FuelPage />} />
-        <Route path="/insurance" element={<InsurancePage />} />
-        <Route path="/income" element={<IncomePage />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-        <Route path="/governance" element={<GovernancePage />} />
-        <Route path="/exports" element={<ExportsPage />} />
-        <Route path="/setup" element={<SetupPage />} />
-        <Route path="/settings/users" element={<UserManagementPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+    <>
+      <PwaStatus />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify-login" element={<VerifyLoginPage />} />
+        <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+        <Route element={<WorkspaceLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/records" element={<RecordsPage />} />
+          <Route path="/mileage" element={<MileagePage />} />
+          <Route path="/fuel" element={<FuelPage />} />
+          <Route path="/insurance" element={<InsurancePage />} />
+          <Route path="/income" element={<IncomePage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/governance" element={<GovernancePage />} />
+          <Route path="/exports" element={<ExportsPage />} />
+          <Route path="/setup" element={<SetupPage />} />
+          <Route path="/settings/users" element={<UserManagementPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </>
   );
 }

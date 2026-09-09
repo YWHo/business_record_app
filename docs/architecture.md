@@ -82,6 +82,14 @@ Exact hashes and repeated current filenames are advisory duplicate signals. An o
 
 Both authenticated roles can list metadata and download current or historical versions through controlled Worker routes. Only owners can upload or replace. Download responses force attachment disposition, disable content sniffing, and prevent caching. Attachment retention and purge-eligibility dates are copied from the authoritative parent record, and meaningful upload/version events are audited without filenames or document contents in the audit summary.
 
+Mobile capture remains a progressive enhancement over the same attachment endpoint. Camera and file pickers create a local object-URL preview; no preview is sent elsewhere. Quarter-turn orientation is validated at the Worker and stored in D1 separately from the R2 object, preserving the exact hashed evidence bytes while allowing display correction. Failed requests keep the browser-selected file available for manual retry, but there is deliberately no background or offline upload queue. A future OCR process can key results to the immutable attachment ID and SHA-256 without changing this storage contract.
+
+## PWA and offline boundary
+
+Vite generates the web manifest and Workbox service worker from the same production build. The service worker precaches only the versioned static application shell and uses the SPA fallback for navigations; `/api` is excluded from navigation fallback and no runtime cache stores authenticated records or private document responses. The browser advertises installation only when its own PWA criteria are satisfied.
+
+Service-worker updates remain user-controlled: a new worker raises an in-app prompt and activates only after **Update now**. Registration checks again when the window regains focus. Online/offline events drive a persistent, text-labelled status that explains the shell limitation and does not imply that record edits or uploads are queued. Consequently, offline startup can render application assets, while all authoritative data and writes still require the Worker boundary.
+
 ## Search and review projection
 
 The transaction and receipt APIs query a fixed `UNION ALL` projection over common expense and income fields. Type-specific joins add category, vehicle, and counterparty labels without making the projection an alternative source of truth. Every user filter becomes either a validated enum/date/amount or a bound SQL parameter; record-type-to-table mappings remain fixed in Worker code. Current attachment counts are correlated from D1 metadata so records with missing evidence remain searchable.

@@ -30,6 +30,7 @@ interface AttachmentExportRow {
   file_size: number;
   sha256: string;
   created_at: string;
+  display_rotation_degrees: number;
 }
 
 const encoder = new TextEncoder();
@@ -324,7 +325,8 @@ export async function downloadExport(request: Request, env: Env) {
   );
   const attachmentRows = await env.DB.prepare(
     `SELECT id,record_type,record_id,version_group_id,version_number,original_filename,
-      object_key,mime_type,file_size,sha256,created_at FROM attachments
+      object_key,mime_type,file_size,sha256,created_at,display_rotation_degrees
+      FROM attachments
      WHERE purged_at IS NULL ORDER BY record_type,record_id,version_group_id,version_number`,
   ).all<AttachmentExportRow>();
   const attachments = attachmentRows.results.filter((row) =>
@@ -376,6 +378,7 @@ export async function downloadExport(request: Request, env: Env) {
       file_size: attachment.file_size,
       sha256: attachment.sha256,
       created_at: attachment.created_at,
+      display_rotation_degrees: attachment.display_rotation_degrees,
       archive_path: path,
     });
   }
@@ -654,6 +657,7 @@ export async function downloadExport(request: Request, env: Env) {
         'file_size',
         'sha256',
         'created_at',
+        'display_rotation_degrees',
         'archive_path',
       ],
     ],

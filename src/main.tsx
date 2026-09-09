@@ -6,7 +6,29 @@ import { App } from './App';
 import { AuthProvider } from './features/auth/AuthContext';
 import './styles.css';
 
-registerSW({ immediate: false });
+const publishPwaStatus = (
+  detail: 'offline-ready' | 'update-available' | 'error',
+) =>
+  window.dispatchEvent(
+    new CustomEvent('business-records:pwa-status', { detail }),
+  );
+
+const updateServiceWorker = registerSW({
+  immediate: true,
+  onOfflineReady: () => publishPwaStatus('offline-ready'),
+  onNeedRefresh: () => publishPwaStatus('update-available'),
+  onRegisterError: () => publishPwaStatus('error'),
+  onRegisteredSW: (_serviceWorkerUrl, registration) => {
+    if (!registration) return;
+    window.addEventListener('focus', () => {
+      void registration.update().catch(() => publishPwaStatus('error'));
+    });
+  },
+});
+
+window.addEventListener('business-records:apply-pwa-update', () => {
+  void updateServiceWorker(true);
+});
 
 const root = document.getElementById('root');
 

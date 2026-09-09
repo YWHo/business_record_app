@@ -1318,6 +1318,7 @@ const originalDocument = '%PDF-1.7\nSynthetic Phase 11 statement';
 const uploadForm = new FormData();
 uploadForm.set('recordType', 'INCOME');
 uploadForm.set('recordId', attachmentRecordId);
+uploadForm.set('displayRotationDegrees', '90');
 uploadForm.set(
   'file',
   new Blob([originalDocument], { type: 'application/pdf' }),
@@ -1333,6 +1334,7 @@ const attachmentV1 = uploadedAttachment.body.attachment;
 if (
   attachmentV1.versionNumber !== 1 ||
   attachmentV1.isCurrent !== true ||
+  attachmentV1.displayRotationDegrees !== 90 ||
   attachmentV1.sha256.length !== 64
 ) {
   throw new Error('initial attachment metadata was incorrect');
@@ -1923,6 +1925,9 @@ if (
   !new TextDecoder()
     .decode(exportFiles.get('data/transactions.csv'))
     .includes('Configurable Delivery Platform') ||
+  !new TextDecoder()
+    .decode(exportFiles.get('data/attachment-index.csv'))
+    .includes('display_rotation_degrees') ||
   ![...exportFiles.keys()].some((path) => path.startsWith('documents/income/'))
 ) {
   throw new Error(
@@ -2211,5 +2216,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, records, review, retention, exports, backup reminders, dashboard operating analytics, revocation, and R2.',
+  'Local smoke passed: authentication, records, review, retention, exports, backup reminders, dashboard analytics, mobile capture metadata, revocation, and R2.',
 );

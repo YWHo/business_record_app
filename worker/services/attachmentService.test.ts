@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  attachmentRotation,
   detectedMimeType,
   safeDownloadFilename,
   sha256Hex,
@@ -60,5 +61,12 @@ describe('attachment validation', () => {
     expect(safeDownloadFilename('receipt"\\name.pdf')).toBe(
       'receipt__name.pdf',
     );
+  });
+
+  it('accepts only quarter-turn display rotation metadata', () => {
+    expect(attachmentRotation(null)).toBe(0);
+    expect(attachmentRotation('90')).toBe(90);
+    expect(attachmentRotation('270')).toBe(270);
+    expect(() => attachmentRotation('45')).toThrow('rotation is invalid');
   });
 });

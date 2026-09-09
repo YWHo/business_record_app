@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 15 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Tax-year and activity views keep recorded revenue, received cash, expenses, review work, invoices, and direct platform operating indicators distinct. Local development still needs no Cloudflare account or email provider.
+Phase 16 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. The offline application shell clearly distinguishes unavailable network data, while mobile receipt capture supports camera selection, existing images and PDFs, previews, display rotation, and upload retry. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -179,6 +179,8 @@ Expense, income, and work-session cards include reusable supporting-document con
 
 Each file receives a SHA-256 hash. Matching content or a repeated current filename returns a visible possible-duplicate warning; the owner may deliberately continue because a warning is not proof of duplication. Replacing a current document writes a new uniquely keyed R2 object and increments its version group. Earlier bytes and metadata remain downloadable, while only the newest version is marked current.
 
+On mobile, **Take a photo** requests the rear-facing camera when the browser supports it; the adjacent picker accepts an existing JPEG, PNG, WebP, or PDF. A local preview appears before upload. Quarter-turn orientation is stored as separate display metadata and included in exports, so rotating a preview never rewrites the immutable source bytes. A failed or offline upload retains the selected file for an explicit retry. OCR is intentionally absent from version 1; the stable attachment ID, content hash, MIME metadata, and separate presentation metadata allow a future extraction job to reference the original version safely.
+
 R2 has no public URL. Downloads pass through an authenticated endpoint and use `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, and private no-store caching. Attachment retention dates inherit the parent record's configured tax-year dates.
 
 ## Transaction search and review
@@ -220,7 +222,7 @@ pnpm db:reset:local      Reset, migrate, and seed local D1/R2 state
 
 ## Database schema
 
-Migrations are ordered SQL files under `migrations/` and must never be edited after deployment. Phase 3 adds the normalized business-record schema, Phase 4 authentication, and Phase 14 export completion history.
+Migrations are ordered SQL files under `migrations/` and must never be edited after deployment. Phase 3 adds the normalized business-record schema, Phase 4 authentication, Phase 14 export completion history, and Phase 16 non-destructive attachment display orientation.
 
 Money is stored in integer minor units with an explicit currency. Mileage distance is generated from odometer readings. See [the data model](docs/data-model.md) for relationships and invariants.
 
@@ -243,7 +245,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, and operating analytics are available. Mobile capture completion, Storybook, broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, and mobile capture are available. Storybook, broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

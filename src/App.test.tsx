@@ -583,7 +583,9 @@ describe('App', () => {
     expect(
       await screen.findByRole('button', { name: /reconcile/i }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/add document/i)).toHaveAttribute(
+    expect(
+      screen.getByLabelText(/choose existing photo or pdf/i),
+    ).toHaveAttribute(
       'accept',
       'image/jpeg,image/png,image/webp,application/pdf',
     );

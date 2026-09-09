@@ -9,6 +9,14 @@ export const supportedMimeTypes = [
   'application/pdf',
 ] as const;
 export type SupportedMimeType = (typeof supportedMimeTypes)[number];
+export type AttachmentRotation = 0 | 90 | 180 | 270;
+
+export function attachmentRotation(value: FormDataEntryValue | null) {
+  const rotation = typeof value === 'string' ? Number(value) : 0;
+  if (![0, 90, 180, 270].includes(rotation))
+    throw new HttpError(400, 'Attachment rotation is invalid.');
+  return rotation as AttachmentRotation;
+}
 
 export function attachmentRecordType(value: FormDataEntryValue | null) {
   if (
