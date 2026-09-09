@@ -8,6 +8,7 @@ SELECT
   (SELECT COUNT(*) FROM expense_categories) AS expense_categories,
   (SELECT COUNT(*) FROM clients) AS clients,
   (SELECT COUNT(*) FROM retention_settings) AS retention_settings,
+  (SELECT COUNT(*) FROM export_history) AS export_history,
   (SELECT value FROM runtime_metadata WHERE key = 'schema_phase') AS schema_phase;
 
 SELECT

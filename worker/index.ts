@@ -93,6 +93,7 @@ import {
   restoreFromTrash,
   updateRetentionSettings,
 } from './routes/governance';
+import { downloadExport, exportStatus } from './routes/exports';
 import type { Env } from './types';
 
 type RouteHandler = (
@@ -309,6 +310,8 @@ const routes: Route[] = [
     pathname: '/api/retention-settings',
     handler: updateRetentionSettings,
   },
+  { method: 'GET', pathname: '/api/exports/status', handler: exportStatus },
+  { method: 'GET', pathname: '/api/exports/archive', handler: downloadExport },
   {
     method: 'POST',
     pathname: '/api/admin/bootstrap-owner',

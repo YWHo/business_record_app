@@ -34,6 +34,37 @@ function expectStatus(result, expected, label) {
   }
 }
 
+function storedZipFiles(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const files = new Map();
+  let offset = 0;
+  while (offset + 4 <= bytes.length) {
+    const signature = view.getUint32(offset, true);
+    if (signature === 0x02014b50 || signature === 0x06054b50) break;
+    if (signature !== 0x04034b50)
+      throw new Error(`export ZIP has invalid signature at ${offset}`);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const path = new TextDecoder().decode(
+      bytes.subarray(nameStart, nameStart + nameLength),
+    );
+    files.set(path, bytes.slice(dataStart, dataStart + compressedSize));
+    offset = dataStart + compressedSize;
+  }
+  return files;
+}
+
+async function sha256(bytes) {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 async function login(email) {
   const result = await request('/api/dev/auth/login', {
     method: 'POST',
@@ -1825,6 +1856,119 @@ if (
 ) {
   throw new Error('trash restore audit history was missing');
 }
+const initialExportStatus = await request(
+  '/api/exports/status',
+  {},
+  ownerCookie,
+);
+expectStatus(initialExportStatus, 200, 'initial backup status');
+if (!initialExportStatus.body.backup.due) {
+  throw new Error('backup reminder was not due before the first export');
+}
+const invalidMonthExport = await request(
+  '/api/exports/archive?scope=MONTH&month=2026-13',
+  {},
+  ownerCookie,
+);
+expectStatus(invalidMonthExport, 400, 'invalid export month');
+const monthlyExport = await request(
+  '/api/exports/archive?scope=MONTH&month=2026-09',
+  {},
+  ownerCookie,
+);
+expectStatus(monthlyExport, 200, 'monthly portable export');
+if (
+  monthlyExport.response.headers.get('content-type') !== 'application/zip' ||
+  !monthlyExport.response.headers.get('content-disposition')?.includes('.zip')
+) {
+  throw new Error('monthly export did not return a downloadable ZIP');
+}
+const exportFiles = storedZipFiles(monthlyExport.body);
+for (const required of [
+  'data/transactions.csv',
+  'data/fuel.csv',
+  'data/parking.csv',
+  'data/income.csv',
+  'data/work-sessions.csv',
+  'data/audit-log.csv',
+  'data/attachment-index.csv',
+  'summary/summary.html',
+  'manifest.json',
+]) {
+  if (!exportFiles.has(required))
+    throw new Error(`portable export was missing ${required}`);
+}
+const exportManifest = JSON.parse(
+  new TextDecoder().decode(exportFiles.get('manifest.json')),
+);
+if (
+  exportManifest.schemaVersion !== 1 ||
+  exportManifest.scope !== 'MONTH' ||
+  exportManifest.periodKey !== '2026-09' ||
+  exportManifest.counts.expectedAttachmentCount !==
+    exportManifest.counts.exportedAttachmentCount
+) {
+  throw new Error('portable export manifest metadata was incorrect');
+}
+for (const file of exportManifest.files) {
+  const contents = exportFiles.get(file.path);
+  if (!contents || contents.byteLength !== file.size) {
+    throw new Error(`manifest file count/size failed for ${file.path}`);
+  }
+  if ((await sha256(contents)) !== file.sha256) {
+    throw new Error(`manifest hash failed for ${file.path}`);
+  }
+}
+if (
+  !new TextDecoder()
+    .decode(exportFiles.get('data/transactions.csv'))
+    .includes('Configurable Delivery Platform') ||
+  ![...exportFiles.keys()].some((path) => path.startsWith('documents/income/'))
+) {
+  throw new Error(
+    'monthly export omitted expected records or source documents',
+  );
+}
+const taxYearExport = await request(
+  '/api/exports/archive?scope=TAX_YEAR&taxYear=2027',
+  {},
+  accountantCookie,
+);
+expectStatus(taxYearExport, 200, 'accountant tax-year export');
+const firstFullExport = await request(
+  '/api/exports/archive?scope=FULL',
+  {},
+  ownerCookie,
+);
+expectStatus(firstFullExport, 200, 'complete archive export');
+const repeatedFullExport = await request(
+  '/api/exports/archive?scope=FULL',
+  {},
+  ownerCookie,
+);
+expectStatus(repeatedFullExport, 200, 'repeat complete archive export');
+const completedExportStatus = await request(
+  '/api/exports/status',
+  {},
+  accountantCookie,
+);
+expectStatus(completedExportStatus, 200, 'completed backup status');
+if (
+  completedExportStatus.body.backup.due ||
+  !completedExportStatus.body.backup.lastSuccessfulExportAt ||
+  completedExportStatus.body.exports.length !== 4
+) {
+  throw new Error('successful export history or backup reminder was incorrect');
+}
+const recordsAfterExports = await request(
+  '/api/transactions?',
+  {},
+  ownerCookie,
+);
+expectStatus(recordsAfterExports, 200, 'records after repeated exports');
+if (!recordsAfterExports.body.transactions.length) {
+  throw new Error('export unexpectedly removed cloud records');
+}
 
 const disabledLogin = await request('/api/dev/auth/login', {
   method: 'POST',
@@ -1928,5 +2072,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, records, attachments, review, audit, retention-protected trash/restore/purge, revocation, and R2.',
+  'Local smoke passed: authentication, records, attachments, review, retention, hashed portable exports, backup reminders, revocation, and R2.',
 );

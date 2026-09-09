@@ -606,6 +606,41 @@ th {
   cursor: not-allowed;
 }
 
+.button-link {
+  align-items: center;
+  background: #315b6f;
+  border-radius: 0.45rem;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 700;
+  justify-content: center;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.backup-reminder {
+  align-items: center;
+  background: #e9f2f5;
+  border: 1px solid #bfd2da;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 1.25rem 0;
+  padding: 1rem;
+}
+
+.backup-reminder.due {
+  background: #fff4df;
+  border-color: #e5c583;
+}
+
+.backup-reminder p {
+  margin: 0.25rem 0 0;
+}
+
 .saved-filter-form,
 .saved-filter-list,
 .review-panel {

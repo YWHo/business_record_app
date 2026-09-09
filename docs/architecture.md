@@ -97,3 +97,13 @@ Normal deletion is a reversible owner-only transition: the Worker records the pr
 Permanent purge requires all three server-side conditions: the record is already trashed, its stored `purge_eligible_at` boundary has passed, and the owner supplied the exact explicit confirmation. The current policy never shortens retention dates already assigned to records; changes affect future calculations only. A referenced fuel expense remains protected until its work-session references are removed.
 
 Purge first marks D1 record and attachment metadata as pending, then removes private R2 objects and relational detail rows. This makes interrupted R2/database work visible and retryable instead of restoring a partially purged record. On completion the source row is deleted, while the actor-attributed `RECORD_PURGED` audit event remains. There is no automatic purge route or writable audit-log route.
+
+## Portable export boundary
+
+The Worker builds monthly, configured tax-year, and full retained-record snapshots directly from D1 plus private R2. Exports include live and trashed records but never already-purged sources. A fixed set of CSV projections covers common transactions, typed income, mileage, fuel, parking, insurance/allocation, reconciliation, comments, audit events, attachment metadata, reference data, and the retention policy. This makes the archive understandable without executing application code.
+
+Before returning an archive, the Worker resolves the exact included record IDs, selects every matching attachment version, and preflights its R2 size and stored SHA-256 metadata. Generated files are hashed from their actual bytes. The versioned JSON manifest lists paths, sizes, digests, scope, dates, units, and expected/exported counts. The manifest's own hash is retained in D1 with the export completion; it is excluded from its own non-recursive file list.
+
+The ZIP writer uses stored entries and serves a `ReadableStream`, loading at most one attachment body at a time. Export generation is repeatable and does not mutate business records or attachments. D1 stores only completion metadata—not a redundant archive—and the dashboard reminder compares the latest successful generation with the configurable interval.
+
+Version 1 deliberately has no importer. A future restore must validate `format` and `schemaVersion`, verify every manifest digest and count, import reference records before financial parents and typed children, restore attachment metadata/object bytes, then reconcile audit and final counts in an isolated environment. This ordering is documented in the export-format ADR and can be implemented without changing the archive shape.

@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 12 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, and a unified review workspace. Income and expenses can be searched together, supporting evidence can be filtered separately, users can save personal views, and owner/accountant review responsibilities remain backend-enforced. Local development still needs no Cloudflare account or email provider.
+Phase 14 provides an invitation-only React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, and portable local backups. Monthly, tax-year, and complete archives contain readable CSVs, all matching attachment versions, an HTML summary, and a SHA-256 manifest. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -189,6 +189,14 @@ Authenticated users can save named transaction or receipt filter sets. Saved vie
 
 Owners may mark a record new, missing information, ready for review, or voided. Accountants may request information, return a record to the queue, review a ready record, and process a reviewed record; they cannot void source records. Voided records retain their terminal history. Review identity and time are stored on financial records, meaningful transitions are audited, and any later owner edit to source data resets status to **New** and clears stale review attribution. Both roles can append attributed, timestamped comments; prior comments cannot be edited away through the API.
 
+## Exports and local backups
+
+Open **Exports** to download a monthly period, a configured tax year, or every retained record. An export is a repeatable read: it never moves or deletes cloud data. The ZIP uses ordinary uncompressed entries and includes structured CSV files, source attachment versions, `summary/summary.html`, and `manifest.json` with SHA-256 hashes and verified record/attachment counts.
+
+The dashboard shows a reminder when no export has completed or the configured interval has elapsed. Generation history records the scope, actor, completion time, counts, and manifest digest; it does not store a second archive in the cloud. Keep downloaded ZIPs in storage you control and retain more than one local copy where practical.
+
+There is no archive-import UI in version 1. For future recovery, first verify every file against `manifest.json`, select the importer for its `schemaVersion`, restore reference CSVs before record CSVs, recreate attachment metadata from `attachment-index.csv`, then upload each listed document and confirm the final counts. Preserve original IDs and audit timestamps in a quarantined restore environment before promoting restored data.
+
 ## Commands
 
 ```text
@@ -212,7 +220,7 @@ pnpm db:reset:local      Reset, migrate, and seed local D1/R2 state
 
 ## Database schema
 
-Migrations are ordered SQL files under `migrations/` and must never be edited after deployment. Phase 3 adds normalized activities, vehicles, expense categories, expenses and specialised details, allocations, work sessions, income and specialised details, clients, reconciliation, attachments, comments, audit history, saved filters, and retention settings.
+Migrations are ordered SQL files under `migrations/` and must never be edited after deployment. Phase 3 adds the normalized business-record schema, Phase 4 authentication, and Phase 14 export completion history.
 
 Money is stored in integer minor units with an explicit currency. Mileage distance is generated from odometer readings. See [the data model](docs/data-model.md) for relationships and invariants.
 
@@ -235,7 +243,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, mileage, expenses, insurance allocation, income, clients, reconciliation, private versioned attachments, unified search, saved filters, comments, and review workflow are available. Audit/trash/retention controls, exports, Storybook, broader end-to-end coverage, demo data, and deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, and portable exports are available. Dashboard analytics, Storybook, broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

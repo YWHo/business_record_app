@@ -26,6 +26,8 @@ export function DashboardPage() {
         ))}
       </div>
 
+      <BackupReminder />
+
       <section
         className="empty-state"
         aria-labelledby="getting-started-heading"
@@ -44,3 +46,4 @@ export function DashboardPage() {
     </section>
   );
 }
+import { BackupReminder } from '../features/exports/BackupReminder';

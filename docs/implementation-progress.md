@@ -264,3 +264,24 @@ Acceptance criteria completed:
 - Added retention/service and governance component tests and extended the clean local acceptance suite through role denial, trash visibility, early-purge prevention, restore, explicit confirmation, eligible purge, audit filtering, and D1 integrity.
 
 Notes: The stable Phase 3 schema already contained deletion, retention, purge, audit, saved-filter, and policy fields, so no migration was required. Automatic purge remains deliberately out of scope. Phase 14 adds portable exports and the backup-reminder workflow.
+
+## Phase 14: Exports and local backup
+
+Status: Complete
+
+Commit: Pending
+
+Acceptance criteria completed:
+
+- Added authenticated monthly, configurable tax-year, and complete retained-record ZIP exports that are repeatable and never mutate or archive cloud source data.
+- Exported UTF-8 CSV projections for transactions, typed income, work sessions, fuel, parking, insurance/allocation, reconciliation, comments, audit history, attachment metadata, reference data, and retention policy.
+- Included every matching immutable source-attachment version under stable record/version paths while sanitizing only the human filename component.
+- Added a standalone HTML completion summary plus a versioned JSON manifest describing scope, dates, units, expected/exported counts, and every included file's byte size and SHA-256 digest.
+- Preflighted each expected R2 object's size and stored hash metadata, verified generated-file hashes from actual bytes, and refused incomplete or inconsistent archives.
+- Added a stored-entry streaming ZIP writer that loads one bounded attachment at a time instead of buffering the whole archive.
+- Added immutable D1 export completion history with actor, scope, period, counts, manifest digest, and timestamp, plus corresponding audit events.
+- Added the dashboard backup reminder using the configurable interval and latest successful export, along with an Exports workspace and completion history.
+- Documented the versioned restore path, archive ordering, integrity verification, and isolated recovery expectations without claiming a version 1 importer.
+- Added export range, CSV, path, CRC/ZIP, and reminder tests and extended clean local acceptance through manifest file/hash validation, monthly/tax-year/full/repeated exports, attachment inclusion, reminder completion, non-destructive behavior, and D1 integrity.
+
+Notes: Migration 0004 adds only export completion history; generated archives remain client downloads and are not duplicated in cloud storage. Phase 15 adds dashboard and profitability analytics.
