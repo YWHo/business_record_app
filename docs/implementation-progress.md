@@ -290,7 +290,7 @@ Notes: Migration 0004 adds only export completion history; generated archives re
 
 Status: Complete
 
-Commit: Pending
+Commit: `aa80f9f`
 
 Acceptance criteria completed:
 
