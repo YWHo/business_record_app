@@ -248,7 +248,7 @@ Notes: The Phase 3 schema already included statuses, reviewer fields, comments, 
 
 Status: Complete
 
-Commit: Pending
+Commit: `a55b5ae`
 
 Acceptance criteria completed:
 
