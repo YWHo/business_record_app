@@ -332,7 +332,7 @@ Notes: Migration 0005 adds non-destructive attachment display rotation and advan
 
 Status: Complete
 
-Commit: `pending`
+Commit: `a383b65`
 
 Acceptance criteria completed:
 
