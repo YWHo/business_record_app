@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
+import { StatusBadge } from '../../components/StatusBadge';
 
 export interface Vehicle {
   id: string;
@@ -308,11 +309,9 @@ export function VehicleManager({ canManage }: { canManage: boolean }) {
                     <h3>{vehicle.registration}</h3>
                     <p>{vehicle.description}</p>
                   </div>
-                  <span
-                    className={`status-badge ${vehicle.active ? 'active' : 'inactive'}`}
-                  >
-                    {vehicle.active ? 'Active' : 'Inactive'}
-                  </span>
+                  <StatusBadge
+                    status={vehicle.active ? 'ACTIVE' : 'INACTIVE'}
+                  />
                 </div>
                 <p className="record-dates">
                   {vehicle.acquiredAt

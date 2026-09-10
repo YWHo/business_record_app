@@ -327,3 +327,24 @@ Acceptance criteria completed:
 - Added service, component, PWA-status, schema, and local acceptance coverage for rotation validation, mobile picker semantics, preview rotation, failed-upload retry, immutable bytes, export metadata, and D1 integrity.
 
 Notes: Migration 0005 adds non-destructive attachment display rotation and advances local schema metadata to Phase 16. The static shell contains no private API data; OCR and a full offline upload queue remain intentionally out of scope. Phase 17 adds Storybook and reusable-component coverage.
+
+## Phase 17: Storybook and component coverage
+
+Status: Complete
+
+Commit: `pending`
+
+Acceptance criteria completed:
+
+- Added Storybook 10 with the official React/Vite framework, generated component documentation, global application styling, an in-memory router, and the accessibility addon configured to fail flagged stories.
+- Added development and static-build commands and excluded generated Storybook output from lint and source control.
+- Isolated Storybook from the application's Cloudflare/PWA deployment behavior so component builds never produce or register an unrelated service worker.
+- Extracted reusable, typed status-badge and dashboard-metric components and adopted them in live dashboard and reference-management views.
+- Split backup-reminder data loading from its reusable visual component so due, current, never-backed-up, and mobile states can be rendered deterministically.
+- Added status stories for active, inactive, new, missing-information, ready, reviewed, processed, voided, trashed, and long-label states.
+- Added metric stories for ordinary, unavailable, and long-content values without weakening careful financial wording.
+- Added supporting-document stories for empty, read-only accountant, load-error, selected-image, rotated-image, selected-PDF, and narrow mobile states using deterministic API boundaries.
+- Added Testing Library coverage for status semantics and variants, labelled metric structure, and backup due/current actions while retaining the Phase 16 capture/retry tests.
+- Verified the full Storybook static build, TypeScript story definitions, application lint, production build, and 81 unit/component tests.
+
+Notes: This phase adds no database migration or runtime dependency. Storybook packages are development-only, and generated `storybook-static/` files remain untracked. Phase 18 adds critical Playwright end-to-end workflows.

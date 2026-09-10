@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
+import { StatusBadge } from '../../components/StatusBadge';
 
 interface Client {
   id: string;
@@ -158,11 +159,9 @@ export function ClientManager({ canManage }: { canManage: boolean }) {
                 <div className="section-heading">
                   <div>
                     <h3>{client.name}</h3>
-                    <span
-                      className={`status-badge ${client.active ? 'active' : 'inactive'}`}
-                    >
-                      {client.active ? 'Active' : 'Inactive'}
-                    </span>
+                    <StatusBadge
+                      status={client.active ? 'ACTIVE' : 'INACTIVE'}
+                    />
                   </div>
                 </div>
                 {client.notes ? <p>{client.notes}</p> : null}

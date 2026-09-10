@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../auth/AuthContext';
 
-interface BackupStatus {
+export interface BackupStatus {
   reminderDays: number;
   lastSuccessfulExportAt: string | null;
   due: boolean;
@@ -16,6 +16,10 @@ export function BackupReminder() {
       .catch(() => setBackup(null));
   }, []);
   if (!backup) return null;
+  return <BackupReminderView backup={backup} />;
+}
+
+export function BackupReminderView({ backup }: { backup: BackupStatus }) {
   return (
     <aside className={`backup-reminder ${backup.due ? 'due' : ''}`}>
       <div>

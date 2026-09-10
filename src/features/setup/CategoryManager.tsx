@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
+import { StatusBadge } from '../../components/StatusBadge';
 
 interface Category {
   id: string;
@@ -143,11 +144,9 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
                 <div className="section-heading">
                   <div>
                     <h3>{category.name}</h3>
-                    <span
-                      className={`status-badge ${category.active ? 'active' : 'inactive'}`}
-                    >
-                      {category.active ? 'Active' : 'Inactive'}
-                    </span>
+                    <StatusBadge
+                      status={category.active ? 'ACTIVE' : 'INACTIVE'}
+                    />
                   </div>
                   {category.systemKey ? (
                     <small>Built-in · {category.systemKey}</small>

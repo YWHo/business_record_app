@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../features/auth/AuthContext';
 import { BackupReminder } from '../features/exports/BackupReminder';
+import { DashboardMetricCard } from '../components/DashboardMetricCard';
 
 interface FinancialTotal {
   currency: string;
@@ -189,42 +190,33 @@ export function DashboardPage() {
         <>
           <div className="metric-grid dashboard-metrics">
             {financial.flatMap((total) => [
-              <article
-                className="metric-card"
+              <DashboardMetricCard
                 key={`revenue-${total.currency}`}
-              >
-                <span>Recorded revenue</span>
-                <strong>
-                  {money(total.recordedRevenueMinor, total.currency)}
-                </strong>
-                <small>
-                  {total.currency} invoice and received income values
-                </small>
-              </article>,
-              <article
-                className="metric-card"
+                label="Recorded revenue"
+                value={money(total.recordedRevenueMinor, total.currency)}
+                note={`${total.currency} invoice and received income values`}
+              />,
+              <DashboardMetricCard
                 key={`expenses-${total.currency}`}
-              >
-                <span>Recorded expenses</span>
-                <strong>
-                  {money(total.recordedExpensesMinor, total.currency)}
-                </strong>
-                <small>{total.currency} retained active records</small>
-              </article>,
-              <article className="metric-card" key={`cash-${total.currency}`}>
-                <span>Net cash movement</span>
-                <strong>
-                  {money(total.netCashMovementMinor, total.currency)}
-                </strong>
-                <small>Cash received less recorded expenses</small>
-              </article>,
-              <article className="metric-card" key={`result-${total.currency}`}>
-                <span>Income less recorded expenses</span>
-                <strong>
-                  {money(total.incomeLessRecordedExpensesMinor, total.currency)}
-                </strong>
-                <small>Not taxable or final accounting profit</small>
-              </article>,
+                label="Recorded expenses"
+                value={money(total.recordedExpensesMinor, total.currency)}
+                note={`${total.currency} retained active records`}
+              />,
+              <DashboardMetricCard
+                key={`cash-${total.currency}`}
+                label="Net cash movement"
+                value={money(total.netCashMovementMinor, total.currency)}
+                note="Cash received less recorded expenses"
+              />,
+              <DashboardMetricCard
+                key={`result-${total.currency}`}
+                label="Income less recorded expenses"
+                value={money(
+                  total.incomeLessRecordedExpensesMinor,
+                  total.currency,
+                )}
+                note="Not taxable or final accounting profit"
+              />,
             ])}
           </div>
           <BackupReminder />

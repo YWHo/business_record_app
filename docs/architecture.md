@@ -90,6 +90,12 @@ Vite generates the web manifest and Workbox service worker from the same product
 
 Service-worker updates remain user-controlled: a new worker raises an in-app prompt and activates only after **Update now**. Registration checks again when the window regains focus. Online/offline events drive a persistent, text-labelled status that explains the shell limitation and does not imply that record edits or uploads are queued. Consequently, offline startup can render application assets, while all authoritative data and writes still require the Worker boundary.
 
+## Component development boundary
+
+Storybook uses the React/Vite framework with the application stylesheet, an in-memory router, generated prop documentation, and accessibility checks configured as errors. Its static build deliberately removes the deployment-only PWA plugins: component documentation must not generate or register a second service worker, and Storybook's large manager assets do not belong in the production app-shell cache.
+
+Stories exercise presentation boundaries rather than duplicating complete routed pages. Status badges, dashboard metrics, backup reminders, and the reusable supporting-document panel cover workflow variants, unavailable and error states, read-only access, long content, narrow viewports, and interactive image/PDF selection. Network behavior in attachment stories is deterministic and isolated from D1/R2; authoritative API behavior remains covered by Worker service tests and the local acceptance suite.
+
 ## Search and review projection
 
 The transaction and receipt APIs query a fixed `UNION ALL` projection over common expense and income fields. Type-specific joins add category, vehicle, and counterparty labels without making the projection an alternative source of truth. Every user filter becomes either a validated enum/date/amount or a bound SQL parameter; record-type-to-table mappings remain fixed in Worker code. Current attachment counts are correlated from D1 metadata so records with missing evidence remain searchable.

@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
+import { StatusBadge } from '../../components/StatusBadge';
 
 export interface BusinessActivity {
   id: string;
@@ -283,11 +284,9 @@ export function ActivityManager({ canManage }: { canManage: boolean }) {
                     <h3>{activity.name}</h3>
                     <p>{activity.activityType.replaceAll('_', ' ')}</p>
                   </div>
-                  <span
-                    className={`status-badge ${activity.active ? 'active' : 'inactive'}`}
-                  >
-                    {activity.active ? 'Active' : 'Inactive'}
-                  </span>
+                  <StatusBadge
+                    status={activity.active ? 'ACTIVE' : 'INACTIVE'}
+                  />
                 </div>
                 <p className="record-dates">
                   {activity.startedAt

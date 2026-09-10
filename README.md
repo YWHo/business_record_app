@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 16 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. The offline application shell clearly distinguishes unavailable network data, while mobile receipt capture supports camera selection, existing images and PDFs, previews, display rotation, and upload retry. Local development still needs no Cloudflare account or email provider.
+Phase 17 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Reusable status, metric, backup, and mobile-document components now have isolated Storybook states, accessibility checks, and behavioral component coverage. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -211,6 +211,8 @@ pnpm format:check        Check formatting
 pnpm typecheck           Check client and Worker TypeScript projects
 pnpm test                Run unit and component tests
 pnpm test:watch          Run tests interactively
+pnpm storybook           Run isolated component stories on port 6006
+pnpm storybook:build     Build the static Storybook and validate all stories
 pnpm test:local          Smoke-test a running local Worker (optional URL argument)
 pnpm cf-typegen          Regenerate binding types when configuration changes
 pnpm db:migrate:local    Apply pending migrations to local D1
@@ -245,7 +247,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, and mobile capture are available. Storybook, broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, and Storybook component coverage are available. Broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 
