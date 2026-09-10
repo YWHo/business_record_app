@@ -206,7 +206,14 @@ p {
 .metric-card {
   display: grid;
   gap: 0.35rem;
+  min-width: 0;
   padding: 1.25rem;
+}
+
+.metric-card span,
+.metric-card strong,
+.metric-card small {
+  overflow-wrap: anywhere;
 }
 
 .metric-card span,
@@ -216,6 +223,7 @@ p {
 
 .metric-card strong {
   font-size: 1.65rem;
+  line-height: 1.15;
 }
 
 .empty-state {
@@ -877,7 +885,10 @@ th {
 }
 
 .story-metric-grid {
-  max-width: 24rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  width: min(24rem, 100%);
 }
 
 .story-record-card {

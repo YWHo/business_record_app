@@ -6,7 +6,7 @@ const meta = {
   component: DashboardMetricCard,
   decorators: [
     (Story) => (
-      <div className="metric-grid story-metric-grid">
+      <div className="story-metric-grid">
         <Story />
       </div>
     ),
