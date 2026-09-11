@@ -17,6 +17,15 @@ import {
 } from '../services/securityService';
 import type { AuthenticatedUser, Env } from '../types';
 
+function requireAccountAdministration(env: Env): void {
+  if (env.APP_ENV === 'demo') {
+    throw new HttpError(
+      403,
+      'Account administration is unavailable in the public demo.',
+    );
+  }
+}
+
 export async function bootstrapOwner(
   request: Request,
   env: Env,
@@ -107,6 +116,7 @@ export async function disableUser(
 ): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
+  requireAccountAdministration(env);
   const body = await readJsonObject(request);
   const userId = getRequiredString(body, 'userId');
   const target = await env.DB.prepare(
@@ -172,6 +182,7 @@ export async function inviteAccountant(
 ): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
+  requireAccountAdministration(env);
   await enforceRateLimit(request, env.INVITE_RATE_LIMITER, 'invite', owner.id);
   const body = await readJsonObject(request);
   const invitation = await createAccountantInvitation(

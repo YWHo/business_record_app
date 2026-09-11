@@ -19,7 +19,7 @@ The Vite plugin runs this topology locally in the Workers runtime and builds the
 | Environment | D1                                            | R2                              | Authentication                                    |
 | ----------- | --------------------------------------------- | ------------------------------- | ------------------------------------------------- |
 | Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root      | Email outbox plus loopback-only seeded helper     |
-| Demo        | Dedicated synthetic-data database             | Dedicated synthetic-data bucket | Synthetic identities only; local helper disabled  |
+| Demo        | Dedicated synthetic-data database             | Dedicated synthetic-data bucket | Public seeded role switch; local helper disabled  |
 | Production  | Dedicated private database                    | Dedicated private bucket        | Email links, Turnstile, and local helper disabled |
 
 Bindings are deliberately non-inheritable in `wrangler.jsonc`, so every named environment declares its own resources and variables. Remote resource IDs remain placeholders until an operator creates each environment.
@@ -33,6 +33,10 @@ Production login is rejected through a route-specific Cloudflare rate limiter be
 Owner bootstrap requires the configured email and an administrative secret. It creates no session, is idempotent only for the same owner, and refuses silent ownership transfer. Further accounts originate only from owner-created accountant invitations. Disabling an accountant retains its database identity and audit references while deleting every active session.
 
 The local login helper selects only configured seeded identities and requires both `APP_ENV=local` and a loopback request hostname. It never bypasses normal route authorization.
+
+The public demo has a separate, deliberately narrow authentication route. It is available only when the Worker is configured as `APP_ENV=demo` with the demo helper enabled, accepts only an owner/accountant role rather than an email, maps that role to a configured synthetic identity, and creates the same ordinary session used by other authentication paths. Production and local environments return 404. Demo access is rate-limited, and every subsequent permission remains enforced by the normal Worker authorization boundary.
+
+Demo D1 is restored from a deterministic synthetic seed through an operator-only command that requires the exact remote demo target and always supplies both `--remote` and `--env demo`. The reset deletes active demo sessions along with visitor changes. Demo R2 is independently bound; discarded D1 attachment metadata makes prior visitor uploads unreachable, while a short bucket lifecycle policy should remove the orphaned bytes.
 
 ## Reference data lifecycle
 

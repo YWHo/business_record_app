@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:demo": "tsc -b && vite build --mode demo",
+    "build:production": "tsc -b && vite build --mode cloudflare-production",
     "preview": "vite preview",
-    "deploy:demo": "CLOUDFLARE_ENV=demo pnpm build && wrangler deploy --env demo",
-    "deploy:production": "CLOUDFLARE_ENV=production pnpm build && wrangler deploy --env production",
+    "deploy:demo": "pnpm build:demo && wrangler deploy --env demo",
+    "deploy:production": "pnpm build:production && wrangler deploy --env production",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -25,7 +27,11 @@
     "db:seed:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/seed-local.sql",
     "db:inspect:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --command \"SELECT key, value, updated_at FROM runtime_metadata ORDER BY key\"",
     "db:verify:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/verify-schema.sql",
-    "db:reset:local": "node ./scripts/reset-local.mjs"
+    "db:reset:local": "node ./scripts/reset-local.mjs",
+    "db:migrate:demo": "wrangler d1 migrations apply DB --remote --env demo",
+    "db:seed:demo": "node ./scripts/manage-demo.mjs seed",
+    "db:reset:demo": "node ./scripts/manage-demo.mjs reset",
+    "db:verify:demo": "wrangler d1 execute DB --remote --env demo --file ./scripts/verify-demo.sql"
   },
   "dependencies": {
     "react": "^19.2.8",

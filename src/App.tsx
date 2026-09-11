@@ -18,7 +18,7 @@ import { VerifyLoginPage } from './routes/VerifyLoginPage';
 import { PwaStatus } from './features/pwa/PwaStatus';
 
 function WorkspaceLayout() {
-  const { loading, logout, user } = useAuth();
+  const { configuration, loading, logout, user } = useAuth();
 
   if (loading) {
     return (
@@ -41,7 +41,7 @@ function WorkspaceLayout() {
     { to: '/governance', label: 'Governance', end: false },
     { to: '/exports', label: 'Exports', end: false },
     { to: '/setup', label: 'Setup', end: false },
-    ...(user.role === 'OWNER'
+    ...(user.role === 'OWNER' && !configuration?.demoHelper
       ? [{ to: '/settings/users', label: 'Users', end: false }]
       : []),
   ];
@@ -50,7 +50,11 @@ function WorkspaceLayout() {
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <span className="eyebrow">Private workspace</span>
+          <span className="eyebrow">
+            {configuration?.demoHelper
+              ? 'Public demo · synthetic data'
+              : 'Private workspace'}
+          </span>
           <strong>Business Records</strong>
         </div>
         <div className="account-summary">

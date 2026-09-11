@@ -19,6 +19,7 @@ export interface AuthUser {
 export interface AuthConfiguration {
   environment: 'local' | 'demo' | 'production';
   localHelper: boolean;
+  demoHelper: boolean;
   turnstileRequired: boolean;
   turnstileSiteKey: string | null;
 }
@@ -29,6 +30,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   refresh: () => Promise<void>;
   localLogin: (email: string) => Promise<void>;
+  demoLogin: (role: 'OWNER' | 'ACCOUNTANT') => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -115,6 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           '/api/dev/auth/login',
           { method: 'POST', body: JSON.stringify({ email }) },
         );
+        setUser(result.user);
+      },
+      demoLogin: async (role) => {
+        const result = await apiRequest<{ user: AuthUser }>('/api/auth/demo', {
+          method: 'POST',
+          body: JSON.stringify({ role }),
+        });
         setUser(result.user);
       },
       logout: async () => {

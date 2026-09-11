@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 18 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Reusable components have isolated Storybook coverage, while critical owner/accountant lifecycles run through Chromium with Playwright. Local development still needs no Cloudflare account or email provider.
+Phase 19 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated public demo offers synthetic New Zealand owner/accountant scenarios without signup. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -137,6 +137,34 @@ The **Income** screen treats revenue as four first-class record families. Platfo
 
 The common displayed value is net payment for platform and subscription records, invoice total for contracts, and the entered total for general income. Those values are not silently combined into cash-flow or profit conclusions. Owners control source records and client lifecycle. Both owners and accountants can append a manual expected-versus-actual reconciliation; the Worker derives the minor-unit difference and match status and records the reviewer. No bank connection or operational subscriber database is implied.
 
+## Public demo setup
+
+The demo is a separate named Cloudflare environment for portfolio visitors. It uses only fictional identities and records, its own Worker, D1 database, R2 bucket, and rate-limit namespaces, and never reads production bindings. Visitors choose **Continue as Demo Owner** or **Continue as Demo Accountant**; the Worker maps that role to a fixed synthetic account and creates a normal rate-limited session. Email login and the loopback development helper are not exposed in demo mode. Account invitations and disabling are also unavailable so one visitor cannot disrupt the shared identities; normal owner/accountant business-record permissions remain active.
+
+Provision the remote demo resources once:
+
+```bash
+pnpm exec wrangler d1 create business-records-demo
+pnpm exec wrangler r2 bucket create business-records-demo-documents
+```
+
+Replace the demo D1 placeholder ID and `APP_ORIGIN` in `wrangler.jsonc` with the created resource ID and final demo Worker URL. Do not copy production identifiers or secrets into the demo environment. Apply migrations, load the synthetic dataset, and deploy:
+
+```bash
+pnpm db:reset:demo
+pnpm deploy:demo
+```
+
+The reset command always targets remote D1 with `--env demo --remote`. Because it deletes all demo rows and sessions before reseeding, it requires typing `business-records-demo`. For a deliberately authorized scheduled CI reset, provide the same confirmation non-interactively:
+
+```bash
+pnpm db:reset:demo -- --confirm business-records-demo
+```
+
+`pnpm db:seed:demo` replaces records without applying migrations first and has the same confirmation guard. The seed provides two synthetic accounts, four business activities, two vehicles, fictional clients/providers, work sessions, weekly platform payments, paid and outstanding IT invoices, SaaS summaries, fuel, parking, software, cloud hosting, insurance allocations, reconciliations, comments, audit history, saved filters, and mixed review statuses.
+
+The SQL seed intentionally contains no attachment metadata because there are no matching committed R2 objects. A reset makes documents uploaded by prior visitors unreachable by deleting their D1 metadata; configure a short object lifecycle policy on the dedicated demo bucket to remove those orphaned bytes. Never apply that lifecycle policy to production evidence.
+
 ## Production authentication setup
 
 Before the first production deployment:
@@ -213,6 +241,8 @@ There is no archive-import UI in version 1. For future recovery, first verify ev
 ```text
 pnpm dev                 Run the client and Worker locally
 pnpm build               Type-check and build deployable Worker assets
+pnpm build:demo          Build with the dedicated demo Cloudflare bindings
+pnpm build:production    Build with the dedicated production bindings
 pnpm preview             Preview the production-format Worker build locally
 pnpm lint                Run ESLint
 pnpm format              Format tracked project files
@@ -231,6 +261,10 @@ pnpm db:seed:local       Replace deterministic synthetic local seed data
 pnpm db:inspect:local    Inspect local runtime metadata
 pnpm db:verify:local     Check D1 integrity, foreign keys, and seed counts
 pnpm db:reset:local      Reset, migrate, and seed local D1/R2 state
+pnpm db:migrate:demo     Apply migrations to explicitly selected remote demo D1
+pnpm db:seed:demo        Replace remote demo rows after guarded confirmation
+pnpm db:reset:demo       Migrate and restore guarded remote demo data
+pnpm db:verify:demo      Check the explicitly selected remote demo dataset
 ```
 
 ## Database schema
@@ -243,7 +277,7 @@ Money is stored in integer minor units with an explicit currency. Mileage distan
 
 `wrangler.jsonc` declares independent local, demo, and production D1/R2 bindings. The committed demo and production UUIDs are intentional placeholders, not credentials. Before deployment, create resources in the target Cloudflare account and replace only that environment's placeholders.
 
-Select demo or production at build time with `CLOUDFLARE_ENV`; the provided deployment scripts do this explicitly. Never run remote database commands without reviewing the target and including `--remote` intentionally.
+The deployment scripts select a committed, selector-only Vite mode file for the build and pass the matching explicit `--env` to Wrangler for upload. The mode files contain no secrets. Never run remote database commands without reviewing the target and including `--remote` intentionally.
 
 ## Security notes
 
@@ -258,7 +292,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, and critical Playwright workflows are available. Demo data and final deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, critical Playwright workflows, and an isolated synthetic public demo are available. Security review and final deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 

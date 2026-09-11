@@ -32,6 +32,7 @@ describe('App', () => {
           ? {
               environment: 'local',
               localHelper: true,
+              demoHelper: false,
               turnstileRequired: false,
               turnstileSiteKey: null,
             }

@@ -14,7 +14,7 @@ interface Invitation {
 }
 
 export function UserManagementPage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [email, setEmail] = useState('');
@@ -31,7 +31,7 @@ export function UserManagementPage() {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'OWNER') {
+    if (user?.role === 'OWNER' && !configuration?.demoHelper) {
       // Loading remote state is the synchronization performed by this effect.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       void load().catch((caught: unknown) =>
@@ -40,9 +40,10 @@ export function UserManagementPage() {
         ),
       );
     }
-  }, [load, user?.role]);
+  }, [configuration?.demoHelper, load, user?.role]);
 
-  if (user?.role !== 'OWNER') return <Navigate to="/" replace />;
+  if (user?.role !== 'OWNER' || configuration?.demoHelper)
+    return <Navigate to="/" replace />;
 
   async function invite(event: FormEvent) {
     event.preventDefault();

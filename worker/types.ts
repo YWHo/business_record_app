@@ -8,6 +8,9 @@ export interface Env {
   DEV_OWNER_EMAIL: string;
   DEV_ACCOUNTANT_EMAIL: string;
   DEV_BOOTSTRAP_KEY: string;
+  DEMO_AUTH_ENABLED: string;
+  DEMO_OWNER_EMAIL: string;
+  DEMO_ACCOUNTANT_EMAIL: string;
   APP_ORIGIN: string;
   TURNSTILE_REQUIRED: string;
   TURNSTILE_SITE_KEY: string;

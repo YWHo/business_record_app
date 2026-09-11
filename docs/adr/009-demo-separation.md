@@ -1,0 +1,27 @@
+# ADR 009: Public demo isolation and synthetic role switching
+
+Status: Accepted
+
+## Context
+
+Portfolio visitors need to explore realistic owner and accountant workflows without supplying an email address. A public demonstration must not expose production authentication, identities, financial records, D1 data, or R2 documents. Visitors can mutate demo data, so operators also need a repeatable way to restore a known presentation state.
+
+## Decision
+
+Deploy the demo as a named Cloudflare environment with its own Worker, D1 database, R2 bucket, variables, and rate-limit namespaces. Production and demo bindings are declared independently and use different resource identifiers.
+
+Select named bindings twice in the deployment workflow: a committed selector-only Vite mode file chooses the environment during the Cloudflare Vite build, and Wrangler receives an explicit matching `--env` during upload. These files contain only `CLOUDFLARE_ENV`, never credentials or application secrets.
+
+Expose `POST /api/auth/demo` only when both `APP_ENV=demo` and `DEMO_AUTH_ENABLED=true`. The request accepts only `OWNER` or `ACCOUNTANT`; the Worker maps that role to one configured synthetic email, verifies the seeded account and role in demo D1, applies the authentication rate limiter, and creates an ordinary eight-hour session. It never accepts a caller-supplied identity. Local and production environments return 404 from this route. The loopback development helper remains separately guarded and is never enabled by demo mode.
+
+Keep the seeded identities stable between resets. Hide account administration from the demo UI and reject invitation/account-disabling mutations at the Worker boundary so one visitor cannot remove the shared accountant or create unusable public accounts. All ordinary business-record role permissions remain unchanged.
+
+Store a deterministic, fictional New Zealand-oriented dataset in `scripts/seed-demo.sql`. A guarded operator script always passes `--remote --env demo`, requires the exact target name as confirmation, optionally applies migrations, then replaces all demo D1 rows. Resetting removes all sessions, so existing visitors must select a demo role again. The seed contains no attachment metadata because committed SQL cannot safely contain corresponding R2 evidence objects.
+
+## Consequences
+
+- Demo visitors receive realistic authorization behavior without signup, email delivery, or production secrets.
+- Demo writes are intentionally temporary and cannot cross the binding boundary into production.
+- Reset is destructive only to the explicitly selected demo D1 database and is suitable for a scheduled CI job when its exact confirmation argument is supplied.
+- Resetting D1 makes visitor-uploaded R2 objects unreachable but does not enumerate and delete those bytes. Operators should configure a short lifecycle policy on the dedicated demo bucket; production retention remains independent.
+- Placeholder remote resource IDs and origins must be replaced during environment provisioning. No Cloudflare credentials or real identities belong in source control.

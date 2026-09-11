@@ -2,6 +2,7 @@ import { HttpError, json, methodNotAllowed } from './lib/http';
 import {
   authConfiguration,
   currentUser,
+  loginToDemo,
   loginLocally,
   logout,
   requestLogin,
@@ -120,6 +121,7 @@ const routes: Route[] = [
   { method: 'POST', pathname: '/api/auth/login', handler: requestLogin },
   { method: 'POST', pathname: '/api/auth/verify', handler: verifyLogin },
   { method: 'POST', pathname: '/api/auth/logout', handler: logout },
+  { method: 'POST', pathname: '/api/auth/demo', handler: loginToDemo },
   {
     method: 'GET',
     pathname: '/api/business-activities',
