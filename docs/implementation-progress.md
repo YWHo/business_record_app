@@ -348,3 +348,27 @@ Acceptance criteria completed:
 - Verified the full Storybook static build, TypeScript story definitions, application lint, production build, and 81 unit/component tests.
 
 Notes: This phase adds no database migration or runtime dependency. Storybook packages are development-only, and generated `storybook-static/` files remain untracked. Phase 18 adds critical Playwright end-to-end workflows.
+
+## Phase 18: Playwright workflows
+
+Status: Complete
+
+Commit: `2f22dd1`
+
+Acceptance criteria completed:
+
+- Added Playwright 1.63 with a deterministic Chromium project, local Worker lifecycle management, CI retries, failure screenshots/video, first-retry traces, and an unopened HTML report.
+- Added reset-first headed and headless commands so browser scenarios always begin from the migrated synthetic local D1/R2 seed.
+- Kept the stateful business lifecycle serial and single-worker while preserving a clean boundary between Playwright discovery and the existing Vitest unit/component suite.
+- Covered unauthenticated redirects plus successful local owner and accountant login paths.
+- Verified owner-only navigation and mutations in both the interface and Worker API, including a direct accountant create denial.
+- Exercised owner creation of a business activity, vehicle, calculated work session, complete fuel receipt, parking expense, and private PDF evidence upload.
+- Exercised platform payout, IT contract invoice, and SaaS subscription income through the browser interface.
+- Exercised owner preparation for review, accountant comments/review attribution, permitted income reconciliation, and absence of owner-only income controls.
+- Verified transaction text search and combined direction/type/status filters against user-visible results.
+- Verified a real complete portable ZIP browser download, local accountant invitation creation/acceptance, and expired-invitation rejection.
+- Verified trash confirmation, retention-disabled permanent purge, restore, and restored transaction visibility.
+- Documented initial Chromium installation, destructive local reset behavior, headed debugging, and covered workflow scope.
+- Verified all 5 critical browser groups, 81 unit/component tests, lint, formatting, TypeScript, the production application build, and the static Storybook build.
+
+Notes: This phase adds no schema migration or production runtime dependency. Playwright and Node types are development-only; browser binaries and generated reports remain outside source control. Phase 19 adds the isolated public demo environment.
