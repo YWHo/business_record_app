@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 17 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Reusable status, metric, backup, and mobile-document components now have isolated Storybook states, accessibility checks, and behavioral component coverage. Local development still needs no Cloudflare account or email provider.
+Phase 18 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Reusable components have isolated Storybook coverage, while critical owner/accountant lifecycles run through Chromium with Playwright. Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -89,6 +89,15 @@ pnpm test:local
 ```
 
 This checks authentication and role controls, business records, private versioned documents, transaction and receipt filters, saved-view isolation, review transitions and attribution, append-only comments, source-edit review reset, invitation controls, session revocation, and R2 persistence.
+
+Run the critical browser workflows with:
+
+```bash
+pnpm exec playwright install chromium # first run only
+pnpm test:e2e
+```
+
+The end-to-end command resets local D1 and R2 state before launching the app. It covers owner/accountant login and authorization, reference and record creation, receipt upload, all primary income types, review and reconciliation, search and filters, ZIP export, invitations, and retention-protected trash/restore.
 
 ## Business activities and vehicles
 
@@ -211,6 +220,8 @@ pnpm format:check        Check formatting
 pnpm typecheck           Check client and Worker TypeScript projects
 pnpm test                Run unit and component tests
 pnpm test:watch          Run tests interactively
+pnpm test:e2e            Reset local data and run critical Chromium workflows
+pnpm test:e2e:headed     Reset local data and run Chromium with a visible browser
 pnpm storybook           Run isolated component stories on port 6006
 pnpm storybook:build     Build the static Storybook and validate all stories
 pnpm test:local          Smoke-test a running local Worker (optional URL argument)
@@ -247,7 +258,7 @@ Select demo or production at build time with `CLOUDFLARE_ENV`; the provided depl
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, and Storybook component coverage are available. Broader browser automation, demo data, and final deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, and critical Playwright workflows are available. Demo data and final deployment/recovery work follow their numbered phases.
 
 ## Source-visible notice
 
