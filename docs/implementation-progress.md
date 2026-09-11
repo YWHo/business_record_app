@@ -372,3 +372,24 @@ Acceptance criteria completed:
 - Verified all 5 critical browser groups, 81 unit/component tests, lint, formatting, TypeScript, the production application build, and the static Storybook build.
 
 Notes: This phase adds no schema migration or production runtime dependency. Playwright and Node types are development-only; browser binaries and generated reports remain outside source control. Phase 19 adds the isolated public demo environment.
+
+## Phase 19: Demo environment
+
+Status: Complete
+
+Commit: `776d232`
+
+Acceptance criteria completed:
+
+- Added an isolated named Cloudflare demo environment with dedicated Worker, D1, R2, and rate-limit bindings that cannot resolve production resources.
+- Added selector-only Vite mode files and explicit demo/production build and deployment commands so the compiled Worker and uploaded Wrangler environment agree.
+- Added public owner and accountant demo modes that map role choices to fixed fictional identities, issue normal rate-limited sessions, and never accept a visitor-supplied account identity.
+- Disabled email login, local-development authentication, invitations, account disabling, and user-management navigation in the public demo while retaining normal business-record role authorization.
+- Added a deterministic synthetic New Zealand dataset covering activities, vehicles, providers, clients, work sessions, platform payments, contract invoices, SaaS summaries, operating expenses, insurance, review, reconciliation, comments, audit history, and saved filters.
+- Added guarded remote demo migration, seed, reset, and verification commands that always name the demo environment and require the exact `business-records-demo` confirmation before replacing data.
+- Kept attachment metadata out of the SQL seed when matching R2 bytes do not exist and documented a demo-only object lifecycle policy for unreachable uploads left by resets.
+- Documented the demo security boundary, provisioning and deployment workflow, reset behavior, synthetic-data guarantee, and production-separation decisions.
+- Added Worker and component tests for environment gating, role-to-identity mapping, demo session creation, and the role-selection login experience.
+- Verified formatting, lint, TypeScript, 87 unit/component tests, application builds, demo and production deployment dry runs, the static Storybook build, fresh-seed integrity, and all 5 critical Playwright workflow groups.
+
+Notes: The demo reuses the stable schema and therefore needs no migration. The committed resource identifiers and origins are deliberate placeholders to replace during provisioning. Phase 20 performs the security and reliability review.
