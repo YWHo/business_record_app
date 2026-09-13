@@ -97,6 +97,10 @@ import {
 import { downloadExport, exportStatus } from './routes/exports';
 import { dashboard } from './routes/dashboard';
 import type { Env } from './types';
+import {
+  requireSameOrigin,
+  secureApiResponse,
+} from './services/securityService';
 
 type RouteHandler = (
   request: Request,
@@ -393,27 +397,36 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
 export default {
   async fetch(request, env): Promise<Response> {
+    const requestId = crypto.randomUUID();
+    let response: Response;
     try {
       const url = new URL(request.url);
       if (env.APP_ENV !== 'local' && url.protocol !== 'https:') {
         url.protocol = 'https:';
-        return new Response(null, {
+        response = new Response(null, {
           status: 308,
           headers: { location: url.toString(), 'cache-control': 'no-store' },
         });
+      } else {
+        requireSameOrigin(request, env);
+        response = await handleRequest(request, env);
       }
-
-      return await handleRequest(request, env);
     } catch (error) {
       if (error instanceof HttpError) {
-        return json({ error: error.message }, { status: error.status });
+        response = json({ error: error.message }, { status: error.status });
+      } else {
+        console.error('Unhandled API error', {
+          requestId,
+          environment: env.APP_ENV,
+          method: request.method,
+          pathname: new URL(request.url).pathname,
+        });
+        response = json(
+          { error: 'An unexpected error occurred.' },
+          { status: 500 },
+        );
       }
-
-      console.error('Unhandled API error', {
-        method: request.method,
-        pathname: new URL(request.url).pathname,
-      });
-      return json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
+    return secureApiResponse(response, env, requestId);
   },
 } satisfies ExportedHandler<Env>;

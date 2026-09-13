@@ -19,7 +19,11 @@ import {
   createSession,
   requestLoginLink,
 } from '../services/authService';
-import { enforceRateLimit, verifyTurnstile } from '../services/securityService';
+import {
+  enforceRateLimit,
+  isTurnstileRequired,
+  verifyTurnstile,
+} from '../services/securityService';
 import type { Env } from '../types';
 
 export async function loginLocally(
@@ -89,13 +93,13 @@ export function authConfiguration(request: Request, env: Env): Response {
     env.LOCAL_AUTH_ENABLED === 'true' &&
     ['localhost', '127.0.0.1', '[::1]'].includes(new URL(request.url).hostname);
 
+  const turnstileRequired = isTurnstileRequired(env);
   return json({
     environment: env.APP_ENV,
     localHelper,
     demoHelper: isDemoAuthEnabled(env),
-    turnstileRequired: env.TURNSTILE_REQUIRED === 'true',
-    turnstileSiteKey:
-      env.TURNSTILE_REQUIRED === 'true' ? env.TURNSTILE_SITE_KEY : null,
+    turnstileRequired,
+    turnstileSiteKey: turnstileRequired ? env.TURNSTILE_SITE_KEY : null,
   });
 }
 
@@ -103,6 +107,7 @@ export async function requestLogin(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  if (env.APP_ENV === 'demo') throw new HttpError(404, 'Not found.');
   const body = await readJsonObject(request);
   const email = normalizeEmail(getRequiredString(body, 'email'));
   await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'login', email);
@@ -122,6 +127,7 @@ export async function verifyLogin(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  if (env.APP_ENV === 'demo') throw new HttpError(404, 'Not found.');
   const body = await readJsonObject(request);
   const token = getRequiredString(body, 'token');
   await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'verify');

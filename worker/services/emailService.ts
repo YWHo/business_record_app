@@ -33,19 +33,35 @@ export async function deliverEmail(
     throw new HttpError(503, 'Email delivery is not configured.');
   }
 
-  const response = await fetch(env.EMAIL_DELIVERY_URL, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${env.EMAIL_DELIVERY_BEARER_TOKEN}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.EMAIL_FROM,
-      to: message.to,
-      subject: message.subject,
-      text: message.text,
-    }),
-  });
+  let deliveryUrl: URL;
+  try {
+    deliveryUrl = new URL(env.EMAIL_DELIVERY_URL);
+  } catch {
+    throw new HttpError(503, 'Email delivery is not configured.');
+  }
+  if (deliveryUrl.protocol !== 'https:') {
+    throw new HttpError(503, 'Email delivery is not configured securely.');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(deliveryUrl, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${env.EMAIL_DELIVERY_BEARER_TOKEN}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: env.EMAIL_FROM,
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    throw new HttpError(503, 'Email delivery is temporarily unavailable.');
+  }
 
   if (!response.ok) {
     throw new HttpError(503, 'Email delivery is temporarily unavailable.');

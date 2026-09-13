@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 19 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated public demo offers synthetic New Zealand owner/accountant scenarios without signup. Local development still needs no Cloudflare account or email provider.
+Phase 20 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated public demo offers synthetic New Zealand owner/accountant scenarios without signup. The security and reliability review is recorded in [`docs/security-review.md`](docs/security-review.md). Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 
@@ -188,6 +188,7 @@ pnpm exec wrangler d1 migrations apply business-records-production --env product
 pnpm deploy:production
 
 curl -X POST \
+  -H 'Origin: https://<production-host>' \
   -H 'x-bootstrap-key: <BOOTSTRAP_ADMIN_KEY>' \
   https://<production-host>/api/admin/bootstrap-owner
 ```
@@ -249,6 +250,7 @@ pnpm format              Format tracked project files
 pnpm format:check        Check formatting
 pnpm typecheck           Check client and Worker TypeScript projects
 pnpm test                Run unit and component tests
+pnpm security:audit      Check the resolved dependency graph for advisories
 pnpm test:watch          Run tests interactively
 pnpm test:e2e            Reset local data and run critical Chromium workflows
 pnpm test:e2e:headed     Reset local data and run Chromium with a visible browser
@@ -285,14 +287,16 @@ The deployment scripts select a committed, selector-only Vite mode file for the 
 - Backend routes enforce roles; frontend checks are never authoritative.
 - Session, login-link, and invitation tokens are random and stored only as SHA-256 hashes.
 - Production login uses server-verified Turnstile and route-specific Cloudflare rate limiting.
+- Deployed state-changing API requests require the exact configured application origin; uploads and exports have dedicated per-client and per-account limits.
 - Cookies are HTTP-only, same-site strict, and secure over HTTPS; disabled accounts lose active sessions immediately.
-- API responses are non-cacheable and do not expose internal errors.
+- Static and API responses set restrictive content, framing, referrer, permissions, and transport headers. API responses are non-cacheable and do not expose internal errors.
+- Uploads are private, size/type/signature checked, and forced to download without sniffing. Export files are hashed, counted, and neutralize spreadsheet formula prefixes in textual CSV cells.
 - `.dev.vars*`, `.env*`, local Wrangler state, and generated builds are ignored.
 - Do not commit real financial data, identities, resource IDs, or secrets.
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, critical Playwright workflows, and an isolated synthetic public demo are available. Security review and final deployment/recovery work follow their numbered phases.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, critical Playwright workflows, an isolated synthetic public demo, and the security/reliability hardening review are complete. Final deployment and recovery work follows in Phase 21.
 
 ## Source-visible notice
 

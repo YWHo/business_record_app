@@ -9,6 +9,7 @@ import {
   type AttachmentRecordType,
 } from '../services/attachmentService';
 import { writeAudit } from '../services/auditService';
+import { enforceRateLimit } from '../services/securityService';
 import type { Env } from '../types';
 
 interface ParentRow {
@@ -83,6 +84,25 @@ function queryValue(url: URL, name: string) {
   return value;
 }
 
+async function discardRequestBody(request: Request) {
+  const reader = request.body?.getReader();
+  if (!reader) return;
+  let received = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) return;
+      received += chunk.value.byteLength;
+      if (received > 27 * 1024 * 1024) {
+        await reader.cancel();
+        return;
+      }
+    }
+  } catch {
+    await reader.cancel().catch(() => undefined);
+  }
+}
+
 export async function listAttachments(request: Request, env: Env) {
   await requireUser(request, env);
   const url = new URL(request.url);
@@ -102,11 +122,17 @@ export async function uploadAttachment(request: Request, env: Env) {
   try {
     actor = await requireUser(request, env);
   } catch (error) {
-    await request.arrayBuffer();
+    await discardRequestBody(request);
     throw error;
   }
-  if (actor.role !== 'OWNER') await request.arrayBuffer();
+  if (actor.role !== 'OWNER') await discardRequestBody(request);
   requireRole(actor, ['OWNER']);
+  await enforceRateLimit(
+    request,
+    env.EXPENSIVE_RATE_LIMITER,
+    'attachment-upload',
+    actor.id,
+  );
   const contentLength = Number(request.headers.get('content-length') ?? 0);
   if (contentLength > 27 * 1024 * 1024)
     throw new HttpError(413, 'Upload request is too large.');

@@ -30,6 +30,9 @@ export async function bootstrapOwner(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  if (env.APP_ENV === 'demo') {
+    throw new HttpError(404, 'Not found.');
+  }
   await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'bootstrap');
   const expectedEmail =
     env.APP_ENV === 'local' ? env.DEV_OWNER_EMAIL : env.BOOTSTRAP_OWNER_EMAIL;
@@ -218,6 +221,7 @@ export async function acceptInvitation(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  if (env.APP_ENV === 'demo') throw new HttpError(404, 'Not found.');
   await enforceRateLimit(request, env.INVITE_RATE_LIMITER, 'accept');
   const body = await readJsonObject(request);
   const user = await acceptAccountantInvitation(

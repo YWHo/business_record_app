@@ -1,17 +1,28 @@
-import { type FormEvent, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { type FormEvent, useEffect, useState } from 'react';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { apiRequest } from '../features/auth/AuthContext';
 
 export function AcceptInvitationPage() {
   const [params] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [token] = useState(() => params.get('token'));
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (token) void navigate(location.pathname, { replace: true });
+  }, [location.pathname, navigate, token]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
-    const token = params.get('token');
     if (!token) {
       setError('This invitation link is invalid or incomplete.');
       return;

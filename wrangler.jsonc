@@ -47,6 +47,11 @@
       "namespace_id": "1002",
       "simple": { "limit": 10, "period": 60 },
     },
+    {
+      "name": "EXPENSIVE_RATE_LIMITER",
+      "namespace_id": "1003",
+      "simple": { "limit": 6, "period": 60 },
+    },
   ],
   "env": {
     "demo": {
@@ -91,6 +96,11 @@
           "namespace_id": "2002",
           "simple": { "limit": 10, "period": 60 },
         },
+        {
+          "name": "EXPENSIVE_RATE_LIMITER",
+          "namespace_id": "2003",
+          "simple": { "limit": 6, "period": 60 },
+        },
       ],
     },
     "production": {
@@ -134,6 +144,11 @@
           "name": "INVITE_RATE_LIMITER",
           "namespace_id": "3002",
           "simple": { "limit": 10, "period": 60 },
+        },
+        {
+          "name": "EXPENSIVE_RATE_LIMITER",
+          "namespace_id": "3003",
+          "simple": { "limit": 6, "period": 60 },
         },
       ],
     },

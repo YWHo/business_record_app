@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { authConfiguration, loginToDemo } from '../routes/auth';
+import {
+  authConfiguration,
+  loginToDemo,
+  requestLogin,
+  verifyLogin,
+} from '../routes/auth';
+import { acceptInvitation, bootstrapOwner } from '../routes/accounts';
 import type { Env } from '../types';
 import { isDemoAuthEnabled, requireDemoAuth } from './demoOnly';
 
@@ -21,6 +27,7 @@ function environment(overrides: Partial<Env> = {}): Env {
     EMAIL_FROM: 'no-reply@demo.invalid',
     AUTH_RATE_LIMITER: limiter,
     INVITE_RATE_LIMITER: limiter,
+    EXPENSIVE_RATE_LIMITER: limiter,
     DB: {} as D1Database,
     DOCUMENTS: {} as R2Bucket,
     ...overrides,
@@ -56,6 +63,36 @@ describe('demo authentication boundary', () => {
 
     expect(demo.demoHelper).toBe(true);
     expect(production.demoHelper).toBe(false);
+  });
+
+  it('does not expose owner bootstrap even if demo secrets are misconfigured', async () => {
+    await expect(
+      bootstrapOwner(
+        new Request('https://demo.example.invalid/api/admin/bootstrap-owner', {
+          method: 'POST',
+          headers: { 'x-bootstrap-key': 'accidental-secret' },
+        }),
+        environment({
+          BOOTSTRAP_OWNER_EMAIL: 'demo-owner@example.invalid',
+          BOOTSTRAP_ADMIN_KEY: 'accidental-secret',
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it.each([
+    ['/api/auth/login', requestLogin],
+    ['/api/auth/verify', verifyLogin],
+    ['/api/invitations/accept', acceptInvitation],
+  ] as const)('does not expose the deployed %s flow', async (path, handler) => {
+    await expect(
+      handler(
+        new Request(`https://demo.example.invalid${path}`, {
+          method: 'POST',
+        }),
+        environment(),
+      ),
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it('maps a public role selection to its configured synthetic identity', async () => {

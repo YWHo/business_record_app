@@ -20,6 +20,7 @@ function environment(overrides: Partial<Env> = {}): Env {
     EMAIL_FROM: 'no-reply@local.test',
     AUTH_RATE_LIMITER: limiter,
     INVITE_RATE_LIMITER: limiter,
+    EXPENSIVE_RATE_LIMITER: limiter,
     DB: {} as D1Database,
     DOCUMENTS: {} as R2Bucket,
     ...overrides,

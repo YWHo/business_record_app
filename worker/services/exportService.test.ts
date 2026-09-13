@@ -21,9 +21,15 @@ describe('portable export service', () => {
   });
 
   it('escapes CSV and unsafe archive names', () => {
-    expect(csvDocument([{ note: 'one,"two"' }], [{ key: 'note' }])).toContain(
-      '"one,""two"""',
+    const csv = csvDocument(
+      [
+        { note: 'one,"two"' },
+        { note: '=HYPERLINK("https://example.invalid")' },
+      ],
+      [{ key: 'note' }],
     );
+    expect(csv).toContain('"one,""two"""');
+    expect(csv).toContain("'=HYPERLINK");
     expect(safeArchiveName('../../invoice:1.pdf')).toBe('_.._invoice_1.pdf');
   });
 

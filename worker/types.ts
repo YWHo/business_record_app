@@ -22,6 +22,7 @@ export interface Env {
   BOOTSTRAP_ADMIN_KEY?: string;
   AUTH_RATE_LIMITER: RateLimiter;
   INVITE_RATE_LIMITER: RateLimiter;
+  EXPENSIVE_RATE_LIMITER: RateLimiter;
   DB: D1Database;
   DOCUMENTS: R2Bucket;
 }

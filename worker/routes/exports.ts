@@ -3,6 +3,10 @@ import { HttpError, json } from '../lib/http';
 import { sha256Hex } from '../services/attachmentService';
 import { writeAudit } from '../services/auditService';
 import {
+  enforceRateLimit,
+  requireSameOriginFetch,
+} from '../services/securityService';
+import {
   backupDue,
   csvDocument,
   exportPeriod,
@@ -111,6 +115,13 @@ export async function exportStatus(request: Request, env: Env) {
 
 export async function downloadExport(request: Request, env: Env) {
   const actor = await requireUser(request, env);
+  requireSameOriginFetch(request, env);
+  await enforceRateLimit(
+    request,
+    env.EXPENSIVE_RATE_LIMITER,
+    'archive-export',
+    actor.id,
+  );
   const settings = await env.DB.prepare(
     `SELECT retention_tax_years,tax_year_end_month,tax_year_end_day,backup_reminder_days
      FROM retention_settings WHERE singleton_id=1`,

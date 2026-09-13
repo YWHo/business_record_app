@@ -1,17 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 
 export function VerifyLoginPage() {
   const [params] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { refresh } = useAuth();
-  const token = params.get('token');
+  const [token] = useState(() => params.get('token'));
   const attemptedToken = useRef<string | null>(null);
   const [status, setStatus] = useState(
     token
       ? 'Verifying your sign-in link…'
       : 'This sign-in link is invalid or incomplete.',
   );
+
+  useEffect(() => {
+    if (token) void navigate(location.pathname, { replace: true });
+  }, [location.pathname, navigate, token]);
 
   useEffect(() => {
     if (!token || attemptedToken.current === token) return;
