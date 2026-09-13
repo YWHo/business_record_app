@@ -4,7 +4,7 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 20 provides an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated public demo offers synthetic New Zealand owner/accountant scenarios without signup. The security and reliability review is recorded in [`docs/security-review.md`](docs/security-review.md). Local development still needs no Cloudflare account or email provider.
+Phase 20 plus the version 2 public-demo protection addendum provide an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated, cost-bounded public demo offers synthetic New Zealand owner/accountant scenarios without signup. The security and reliability review is recorded in [`docs/security-review.md`](docs/security-review.md). Local development still needs no Cloudflare account or email provider.
 
 ## Local setup — no Cloudflare account required
 

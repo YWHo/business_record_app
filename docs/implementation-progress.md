@@ -416,3 +416,25 @@ Acceptance criteria completed:
 - Verified formatting, lint, TypeScript, 105 unit/component tests, application and Storybook builds, local schema integrity, the complete local API smoke suite, all 5 Playwright workflow groups, and isolated demo/production deployment dry runs.
 
 Notes: This phase changes no database schema. Application-level throttles supplement Cloudflare account-level DDoS/WAF controls, and signature validation is not represented as malware scanning. Phase 21 completes deployment, recovery, and final operator documentation.
+
+## Version 2 addendum: Public demo cost and abuse protection
+
+Status: Complete
+
+Commit: `4596a13`
+
+Acceptance criteria completed:
+
+- Adopted the version 2 specification as the current source of truth and documented the demo's Free-plan, fail-closed, read-mostly, synthetic-data, and no-automatic-upgrade policy.
+- Added separate demo-wide read and write Cloudflare rate-limit bindings, applied them before route handling with client/session dimensions, and made a missing binding a fail-closed service error.
+- Disabled binary upload, dynamic archive generation, and permanent purge in the public demo at the Worker boundary before D1, R2, hashing, or archive work; aligned the owner interface and Storybook state with those restrictions.
+- Kept email, invitations, bootstrap, identity administration, and production demo-role switching closed while retaining lightweight synthetic metadata/comment workflows.
+- Added validated transaction and audit pagination with a 50-row default, 100-row maximum, bounded page depth, and accessible previous/next controls; capped all other user-facing collection responses.
+- Retained the existing filtered-field indexes, date-bounded analytics, private on-demand R2 downloads, signature/size validation, bounded JSON bodies, fixed outbound destinations, and no OCR/image transformations.
+- Added immutable caching for hashed static assets while keeping the application shell outside D1/R2 and API/private responses non-cacheable.
+- Added clear demo-capacity UI behavior and operator monitoring guidance for Workers, D1, R2, rate-limit/errors, synthetic-data resets, plan review, and notification-only budget alerts.
+- Recorded ADR 010 and expanded durable agent/security documentation with the new demo cost boundary and future-change review requirements.
+- Added automated tests for environment resource separation, upload/export/purge restrictions, limiter denial/fail-closed behavior, reset target rejection, production demo-auth denial, pagination caps, upload size/MIME validation, and fixed outbound fetch destinations.
+- Verified formatting, lint, TypeScript, 120 unit/component tests, application/demo/production builds, Storybook, clean local D1 integrity, the full local smoke suite, all 5 Playwright workflows, isolated deployment dry runs, and a dependency audit with no known vulnerabilities.
+
+Notes: This retrofit requires no D1 migration. Public demo uploads and dynamic archives are intentionally less capable than local/production deployments to keep shared infrastructure cost bounded. Phase 21 remains the next implementation phase.
