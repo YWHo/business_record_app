@@ -393,3 +393,26 @@ Acceptance criteria completed:
 - Verified formatting, lint, TypeScript, 87 unit/component tests, application builds, demo and production deployment dry runs, the static Storybook build, fresh-seed integrity, and all 5 critical Playwright workflow groups.
 
 Notes: The demo reuses the stable schema and therefore needs no migration. The committed resource identifiers and origins are deliberate placeholders to replace during provisioning. Phase 20 performs the security and reliability review.
+
+## Phase 20: Security and reliability review
+
+Status: Complete
+
+Commit: `6ef245e`
+
+Acceptance criteria completed:
+
+- Reviewed the complete route inventory and documented public, authenticated, owner-only, and deliberately constrained accountant boundaries in a source-visible threat model.
+- Added exact-origin enforcement for every deployed state-changing API request and same-origin Fetch Metadata enforcement for the GET-based streaming export.
+- Made Turnstile mandatory by production environment, retained server-side token verification, and validated success, action, hostname, length, remote client, and time-bounded failure behavior.
+- Expanded hashed Cloudflare throttling to separate client and stable-subject dimensions and added isolated low-volume limits for attachment uploads and portable archive generation.
+- Closed dormant demo email, verification, invitation-acceptance, and bootstrap paths so only the intentional public role selector can create demo sessions.
+- Hardened upload denial by incrementally discarding untrusted bodies without aggregate buffering, while retaining owner authorization, envelope/file limits, MIME signature validation, private R2, immutable hashes, and forced safe downloads.
+- Required an HTTPS email relay, bounded relay and Turnstile calls, and converted provider/network failures into non-sensitive service responses.
+- Added CSP, HSTS, no-sniff, anti-framing, no-referrer, and restrictive permissions policies to static assets and API responses, plus request IDs for safe operational correlation.
+- Removed login and invitation bearer tokens from browser history immediately after capture and neutralized formula-prefixed textual CSV cells without changing numeric fields.
+- Re-reviewed retention/purge retry behavior and export count, path, size, digest, stream, manifest, and CRC integrity controls; documented residual malware-scanning, WAF, logging, recovery, and operational responsibilities.
+- Updated the Cloudflare development toolchain to resolve the reported transitive `sharp` advisory and added a repeatable dependency audit command; the resolved graph reports no known vulnerabilities.
+- Verified formatting, lint, TypeScript, 105 unit/component tests, application and Storybook builds, local schema integrity, the complete local API smoke suite, all 5 Playwright workflow groups, and isolated demo/production deployment dry runs.
+
+Notes: This phase changes no database schema. Application-level throttles supplement Cloudflare account-level DDoS/WAF controls, and signature validation is not represented as malware scanning. Phase 21 completes deployment, recovery, and final operator documentation.
