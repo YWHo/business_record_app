@@ -9,6 +9,9 @@ SELECT
   (SELECT COUNT(*) FROM clients) AS clients,
   (SELECT COUNT(*) FROM retention_settings) AS retention_settings,
   (SELECT COUNT(*) FROM export_history) AS export_history,
+  (SELECT COUNT(*) FROM business_accounts) AS business_accounts,
+  (SELECT COUNT(*) FROM business_entities) AS business_entities,
+  (SELECT COUNT(*) FROM business_account_members) AS memberships,
   (SELECT value FROM runtime_metadata WHERE key = 'schema_phase') AS schema_phase;
 
 SELECT
@@ -26,3 +29,7 @@ SELECT
   dflt_value AS default_value
 FROM pragma_table_info('attachments')
 WHERE name = 'display_rotation_degrees';
+
+SELECT name, "notnull" AS required
+FROM pragma_table_info('expenses')
+WHERE name = 'business_account_id';

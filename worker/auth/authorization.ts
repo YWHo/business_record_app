@@ -30,6 +30,16 @@ export async function requireUser(
   request: Request,
   env: Env,
 ): Promise<AuthenticatedUser> {
+  if (env.APP_ENV === 'demo') {
+    return {
+      id: 'demo-readonly-principal',
+      email: 'readonly@demo.invalid',
+      role: 'ACCOUNTANT',
+      status: 'ACTIVE',
+      businessAccountId: 'business-account-primary',
+    };
+  }
+
   const token = getCookie(request, sessionCookieName);
 
   if (!token) {
@@ -38,11 +48,21 @@ export async function requireUser(
 
   const tokenHash = await hashToken(token);
   const user = await env.DB.prepare(
-    `SELECT users.id, users.email, users.role, users.status
+    `SELECT users.id, users.email, business_account_members.role,
+            business_account_members.status,
+            sessions.business_account_id AS businessAccountId
        FROM sessions
        JOIN users ON users.id = sessions.user_id
+       JOIN business_account_members
+         ON business_account_members.user_id = users.id
+        AND business_account_members.business_account_id = sessions.business_account_id
+       JOIN business_accounts
+         ON business_accounts.id = sessions.business_account_id
       WHERE sessions.token_hash = ?
-        AND sessions.expires_at > ?`,
+        AND sessions.expires_at > ?
+        AND users.status = 'ACTIVE'
+        AND business_account_members.status = 'ACTIVE'
+        AND business_accounts.status = 'ACTIVE'`,
   )
     .bind(tokenHash, new Date().toISOString())
     .first<AuthenticatedUser>();

@@ -6,7 +6,6 @@ import {
   sessionToken,
 } from '../auth/authorization';
 import { requireLocalAuth } from '../auth/localOnly';
-import { isDemoAuthEnabled, requireDemoAuth } from '../auth/demoOnly';
 import {
   getRequiredString,
   HttpError,
@@ -35,54 +34,40 @@ export async function loginLocally(
   const email = normalizeEmail(getRequiredString(body, 'email'));
 
   const user = await env.DB.prepare(
-    'SELECT id, email, role, status FROM users WHERE email = ?',
+    `SELECT users.id, users.email, users.status,
+            business_account_members.role,
+            business_account_members.business_account_id AS businessAccountId
+       FROM users
+       JOIN business_account_members ON business_account_members.user_id = users.id
+      WHERE users.email = ?
+        AND business_account_members.status = 'ACTIVE'
+      ORDER BY business_account_members.created_at
+      LIMIT 1`,
   )
     .bind(email)
-    .first<{ id: string; email: string; role: string; status: string }>();
+    .first<{
+      id: string;
+      email: string;
+      role: string;
+      status: string;
+      businessAccountId: string;
+    }>();
 
   if (!user || user.status !== 'ACTIVE') {
     throw new HttpError(401, 'Unable to sign in with those details.');
   }
 
-  const token = await createSession(env, user.id);
+  const token = await createSession(env, user.id, user.businessAccountId);
 
   return json(
-    { user: { id: user.id, email: user.email, role: user.role } },
-    { headers: { 'set-cookie': sessionCookie(token, request) } },
-  );
-}
-
-export async function loginToDemo(
-  request: Request,
-  env: Env,
-): Promise<Response> {
-  requireDemoAuth(env);
-  await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'demo-login');
-  const body = await readJsonObject(request);
-  const role = getRequiredString(body, 'role');
-
-  if (role !== 'OWNER' && role !== 'ACCOUNTANT') {
-    throw new HttpError(400, 'Select a valid demo role.');
-  }
-
-  const configuredEmail =
-    role === 'OWNER' ? env.DEMO_OWNER_EMAIL : env.DEMO_ACCOUNTANT_EMAIL;
-  const email = normalizeEmail(configuredEmail);
-  const user = await env.DB.prepare(
-    `SELECT id, email, role, status
-       FROM users
-      WHERE email = ? AND role = ?`,
-  )
-    .bind(email, role)
-    .first<{ id: string; email: string; role: string; status: string }>();
-
-  if (!user || user.status !== 'ACTIVE') {
-    throw new HttpError(503, 'The demo is being refreshed. Try again shortly.');
-  }
-
-  const token = await createSession(env, user.id);
-  return json(
-    { user: { id: user.id, email: user.email, role: user.role } },
+    {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        businessAccountId: user.businessAccountId,
+      },
+    },
     { headers: { 'set-cookie': sessionCookie(token, request) } },
   );
 }
@@ -97,7 +82,7 @@ export function authConfiguration(request: Request, env: Env): Response {
   return json({
     environment: env.APP_ENV,
     localHelper,
-    demoHelper: isDemoAuthEnabled(env),
+    demoHelper: env.APP_ENV === 'demo',
     turnstileRequired,
     turnstileSiteKey: turnstileRequired ? env.TURNSTILE_SITE_KEY : null,
   });

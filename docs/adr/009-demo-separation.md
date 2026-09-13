@@ -1,4 +1,4 @@
-# ADR 009: Public demo isolation and synthetic role switching
+# ADR 009: Public demo isolation and browser-local role switching
 
 Status: Accepted
 
@@ -12,7 +12,7 @@ Deploy the demo as a named Cloudflare environment with its own Worker, D1 databa
 
 Select named bindings twice in the deployment workflow: a committed selector-only Vite mode file chooses the environment during the Cloudflare Vite build, and Wrangler receives an explicit matching `--env` during upload. These files contain only `CLOUDFLARE_ENV`, never credentials or application secrets.
 
-Expose `POST /api/auth/demo` only when both `APP_ENV=demo` and `DEMO_AUTH_ENABLED=true`. The request accepts only `OWNER` or `ACCOUNTANT`; the Worker maps that role to one configured synthetic email, verifies the seeded account and role in demo D1, applies the authentication rate limiter, and creates an ordinary eight-hour session. It never accepts a caller-supplied identity. Local and production environments return 404 from this route. The loopback development helper remains separately guarded and is never enabled by demo mode.
+Version 2c supersedes the original server-session decision in this ADR. Demo role selection is now `sessionStorage`-local UI simulation. No demo authentication endpoint, identity lookup, session row, or cookie exists. The Worker serves bounded immutable synthetic reads and rejects every non-read demo API request before D1/R2 work. Visitor changes use a per-browser IndexedDB overlay. The loopback development helper remains separately guarded and is never enabled by demo mode.
 
 Keep the seeded identities stable between resets. Hide account administration from the demo UI and reject invitation/account-disabling mutations at the Worker boundary so one visitor cannot remove the shared accountant or create unusable public accounts. All ordinary business-record role permissions remain unchanged.
 

@@ -731,7 +731,7 @@ export function TransactionsPage() {
                   recordType={record.recordType}
                   recordId={record.id}
                   canManage={user?.role === 'OWNER'}
-                  uploadsEnabled={configuration?.environment !== 'demo'}
+                  localOnly={configuration?.environment === 'demo'}
                 />
               ) : null}
             </article>

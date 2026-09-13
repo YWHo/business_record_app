@@ -25,9 +25,12 @@ export async function createAccountantInvitation(
 }> {
   const email = normalizeEmail(rawEmail);
   const existing = await env.DB.prepare(
-    'SELECT role FROM users WHERE email = ?',
+    `SELECT business_account_members.role
+       FROM users
+       JOIN business_account_members ON business_account_members.user_id = users.id
+      WHERE users.email = ? AND business_account_members.business_account_id = ?`,
   )
-    .bind(email)
+    .bind(email, owner.businessAccountId)
     .first<{ role: string }>();
 
   if (existing) {
@@ -45,11 +48,13 @@ export async function createAccountantInvitation(
 
   await env.DB.prepare(
     `INSERT INTO invitations
-      (id, email, role, token_hash, invited_by, expires_at, accepted_at, created_at)
-     VALUES (?, ?, 'ACCOUNTANT', ?, ?, ?, NULL, ?)`,
+      (id, business_account_id, email, role, token_hash, invited_by, expires_at,
+       accepted_at, created_at)
+     VALUES (?, ?, ?, 'ACCOUNTANT', ?, ?, ?, NULL, ?)`,
   )
     .bind(
       invitationId,
+      owner.businessAccountId,
       email,
       await hashToken(token),
       owner.id,
@@ -95,7 +100,12 @@ export async function acceptAccountantInvitation(
   env: Env,
   rawEmail: string,
   token: string,
-): Promise<{ id: string; email: string; role: 'ACCOUNTANT' }> {
+): Promise<{
+  id: string;
+  email: string;
+  role: 'ACCOUNTANT';
+  businessAccountId: string;
+}> {
   const email = normalizeEmail(rawEmail);
   const now = new Date().toISOString();
   const existingUser = await env.DB.prepare(
@@ -104,10 +114,6 @@ export async function acceptAccountantInvitation(
     .bind(email)
     .first<{ id: string; role: string }>();
 
-  if (existingUser?.role === 'OWNER') {
-    throw new HttpError(409, 'Invitation cannot change the owner account.');
-  }
-
   const invitation = await env.DB.prepare(
     `UPDATE invitations
         SET accepted_at = ?
@@ -115,10 +121,10 @@ export async function acceptAccountantInvitation(
         AND email = ?
         AND accepted_at IS NULL
         AND expires_at > ?
-      RETURNING id`,
+      RETURNING id, business_account_id`,
   )
     .bind(now, await hashToken(token), email, now)
-    .first<{ id: string }>();
+    .first<{ id: string; business_account_id: string }>();
 
   if (!invitation) {
     throw new HttpError(400, 'Invitation is invalid or expired.');
@@ -129,7 +135,7 @@ export async function acceptAccountantInvitation(
   if (existingUser) {
     await env.DB.prepare(
       `UPDATE users
-          SET role = 'ACCOUNTANT', status = 'ACTIVE', updated_at = ?
+          SET status = 'ACTIVE', updated_at = ?
         WHERE id = ?`,
     )
       .bind(now, userId)
@@ -143,5 +149,20 @@ export async function acceptAccountantInvitation(
       .run();
   }
 
-  return { id: userId, email, role: 'ACCOUNTANT' };
+  await env.DB.prepare(
+    `INSERT INTO business_account_members
+      (business_account_id, user_id, role, status, created_at, updated_at)
+     VALUES (?, ?, 'ACCOUNTANT', 'ACTIVE', ?, ?)
+     ON CONFLICT(business_account_id, user_id) DO UPDATE SET
+       role = 'ACCOUNTANT', status = 'ACTIVE', updated_at = excluded.updated_at`,
+  )
+    .bind(invitation.business_account_id, userId, now, now)
+    .run();
+
+  return {
+    id: userId,
+    email,
+    role: 'ACCOUNTANT',
+    businessAccountId: invitation.business_account_id,
+  };
 }

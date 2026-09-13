@@ -23,11 +23,13 @@ export function AttachmentPanel({
   recordId,
   canManage,
   uploadsEnabled = true,
+  localOnly = false,
 }: {
   recordType: RecordType;
   recordId: string;
   canManage: boolean;
   uploadsEnabled?: boolean;
+  localOnly?: boolean;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -77,6 +79,13 @@ export function AttachmentPanel({
 
   async function upload(confirmDuplicate = false) {
     if (!file) return;
+    if (localOnly && file.size > 5 * 1024 * 1024) {
+      setError(
+        'Demo files must be 5 MB or smaller because they stay only in this browser.',
+      );
+      setUploadFailed(true);
+      return;
+    }
     if (!navigator.onLine) {
       setError(
         'You are offline. Reconnect, then retry this upload; the selected file will remain here.',
@@ -193,152 +202,160 @@ export function AttachmentPanel({
         </p>
       ) : null}
       {canManage && uploadsEnabled ? (
-        <form
-          className="attachment-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void upload();
-          }}
-        >
-          {replace ? (
-            <p>
-              Creating version {replace.versionNumber + 1} of{' '}
-              <strong>{replace.originalFilename}</strong>.{' '}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => {
-                  setReplace(null);
-                  setWarnings([]);
-                }}
-              >
-                Cancel replacement
-              </button>
+        <>
+          {localOnly ? (
+            <p className="supporting-text">
+              Demo documents stay in this browser and are never uploaded to the
+              server.
             </p>
           ) : null}
-          <fieldset className="capture-options">
-            <legend>{replace ? 'Select replacement' : 'Add document'}</legend>
-            <label className="capture-button">
-              Take a photo
-              <input
-                className="sr-only"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(event) =>
-                  selectFile(event.target.files?.[0] ?? null)
-                }
-              />
-            </label>
-            <label>
-              Choose existing photo or PDF
-              <input
-                type="file"
-                accept={acceptedDocuments}
-                onChange={(event) =>
-                  selectFile(event.target.files?.[0] ?? null)
-                }
-              />
-            </label>
-          </fieldset>
-          {file ? (
-            <div className="attachment-preview" aria-live="polite">
-              <div className="preview-heading">
-                <div>
-                  <strong>Preview: {file.name}</strong>
-                  <small>
-                    {(file.size / 1024).toLocaleString('en-NZ', {
-                      maximumFractionDigits: 1,
-                    })}{' '}
-                    KB
-                  </small>
-                </div>
+          <form
+            className="attachment-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void upload();
+            }}
+          >
+            {replace ? (
+              <p>
+                Creating version {replace.versionNumber + 1} of{' '}
+                <strong>{replace.originalFilename}</strong>.{' '}
                 <button
                   type="button"
                   className="link-button"
-                  onClick={() => selectFile(null)}
+                  onClick={() => {
+                    setReplace(null);
+                    setWarnings([]);
+                  }}
                 >
-                  Remove
+                  Cancel replacement
+                </button>
+              </p>
+            ) : null}
+            <fieldset className="capture-options">
+              <legend>{replace ? 'Select replacement' : 'Add document'}</legend>
+              <label className="capture-button">
+                Take a photo
+                <input
+                  className="sr-only"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(event) =>
+                    selectFile(event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+              <label>
+                Choose existing photo or PDF
+                <input
+                  type="file"
+                  accept={acceptedDocuments}
+                  onChange={(event) =>
+                    selectFile(event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+            </fieldset>
+            {file ? (
+              <div className="attachment-preview" aria-live="polite">
+                <div className="preview-heading">
+                  <div>
+                    <strong>Preview: {file.name}</strong>
+                    <small>
+                      {(file.size / 1024).toLocaleString('en-NZ', {
+                        maximumFractionDigits: 1,
+                      })}{' '}
+                      KB
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => selectFile(null)}
+                  >
+                    Remove
+                  </button>
+                </div>
+                {previewUrl && isImage ? (
+                  <div className="image-preview-frame">
+                    <img
+                      src={previewUrl}
+                      alt={`Preview of ${file.name}`}
+                      style={{ transform: `rotate(${rotation}deg)` }}
+                    />
+                  </div>
+                ) : null}
+                {previewUrl && file.type === 'application/pdf' ? (
+                  <object
+                    className="pdf-preview"
+                    data={previewUrl}
+                    type="application/pdf"
+                    aria-label={`Preview of ${file.name}`}
+                  >
+                    <p>PDF preview is unavailable in this browser.</p>
+                  </object>
+                ) : null}
+                {isImage ? (
+                  <div
+                    className="rotation-controls"
+                    aria-label="Preview rotation"
+                  >
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() =>
+                        setRotation(((rotation + 270) % 360) as Rotation)
+                      }
+                    >
+                      Rotate left
+                    </button>
+                    <span aria-live="polite">{rotation}°</span>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() =>
+                        setRotation(((rotation + 90) % 360) as Rotation)
+                      }
+                    >
+                      Rotate right
+                    </button>
+                  </div>
+                ) : null}
+                <p className="preview-note">
+                  Rotation changes how the document is displayed. The original
+                  evidence file is stored unchanged.
+                </p>
+              </div>
+            ) : null}
+            {warnings.length ? (
+              <div className="notice">
+                <strong>Possible duplicate</strong>
+                <p>
+                  {warnings.includes('FILE_HASH_DUPLICATE')
+                    ? 'The same file content is already stored. '
+                    : ''}
+                  {warnings.includes('FILENAME_DUPLICATE')
+                    ? 'A current document on this record has the same filename.'
+                    : ''}
+                </p>
+                <button type="button" onClick={() => void upload(true)}>
+                  Upload anyway
                 </button>
               </div>
-              {previewUrl && isImage ? (
-                <div className="image-preview-frame">
-                  <img
-                    src={previewUrl}
-                    alt={`Preview of ${file.name}`}
-                    style={{ transform: `rotate(${rotation}deg)` }}
-                  />
-                </div>
-              ) : null}
-              {previewUrl && file.type === 'application/pdf' ? (
-                <object
-                  className="pdf-preview"
-                  data={previewUrl}
-                  type="application/pdf"
-                  aria-label={`Preview of ${file.name}`}
-                >
-                  <p>PDF preview is unavailable in this browser.</p>
-                </object>
-              ) : null}
-              {isImage ? (
-                <div
-                  className="rotation-controls"
-                  aria-label="Preview rotation"
-                >
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() =>
-                      setRotation(((rotation + 270) % 360) as Rotation)
-                    }
-                  >
-                    Rotate left
-                  </button>
-                  <span aria-live="polite">{rotation}°</span>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() =>
-                      setRotation(((rotation + 90) % 360) as Rotation)
-                    }
-                  >
-                    Rotate right
-                  </button>
-                </div>
-              ) : null}
-              <p className="preview-note">
-                Rotation changes how the document is displayed. The original
-                evidence file is stored unchanged.
-              </p>
-            </div>
-          ) : null}
-          {warnings.length ? (
-            <div className="notice">
-              <strong>Possible duplicate</strong>
-              <p>
-                {warnings.includes('FILE_HASH_DUPLICATE')
-                  ? 'The same file content is already stored. '
-                  : ''}
-                {warnings.includes('FILENAME_DUPLICATE')
-                  ? 'A current document on this record has the same filename.'
-                  : ''}
-              </p>
-              <button type="button" onClick={() => void upload(true)}>
-                Upload anyway
+            ) : (
+              <button disabled={saving || !file}>
+                {saving
+                  ? 'Uploading…'
+                  : uploadFailed
+                    ? 'Retry upload'
+                    : replace
+                      ? 'Store new version'
+                      : 'Upload document'}
               </button>
-            </div>
-          ) : (
-            <button disabled={saving || !file}>
-              {saving
-                ? 'Uploading…'
-                : uploadFailed
-                  ? 'Retry upload'
-                  : replace
-                    ? 'Store new version'
-                    : 'Upload document'}
-            </button>
-          )}
-        </form>
+            )}
+          </form>
+        </>
       ) : null}
     </section>
   );

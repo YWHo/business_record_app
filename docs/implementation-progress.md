@@ -438,3 +438,21 @@ Acceptance criteria completed:
 - Verified formatting, lint, TypeScript, 120 unit/component tests, application/demo/production builds, Storybook, clean local D1 integrity, the full local smoke suite, all 5 Playwright workflows, isolated deployment dry runs, and a dependency audit with no known vulnerabilities.
 
 Notes: This retrofit requires no D1 migration. Public demo uploads and dynamic archives are intentionally less capable than local/production deployments to keep shared infrastructure cost bounded. Phase 21 remains the next implementation phase.
+
+## Version 2c architecture update
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added explicit business-account, legal-entity, and membership tables and backfilled the private workspace through migration 0006.
+- Scoped business records, typed details, retention policy, collaboration, audit, invitations, sessions, and export history by business account, with account-leading indexes and Worker authorization bindings.
+- Changed `OWNER` into a membership role representing workspace administration, independent of legal/business identity, and retained an explicit no-self-service-transfer boundary.
+- Prefixed private R2 attachment keys with the server-resolved business account.
+- Replaced public demo sessions and cookies with browser-local role simulation.
+- Made the entire demo Worker API read-only for public mutations before D1/R2 work.
+- Added an IndexedDB demo overlay for local edits, comments, status changes, temporary records, document workflow metadata, and tombstones, plus a visible current-browser reset action.
+- Updated architecture, data-model, deployment, and demo-operation documentation for future commercial readiness without implementing signup, billing, or ownership transfer.
+- Verified formatting, lint, TypeScript, 122 unit/component tests, a fresh migrated and seeded database, schema and foreign-key integrity, application/demo/production builds, Storybook, all 6 Playwright workflows, and a dependency audit with no known vulnerabilities.
+
+Notes: The source gap analysis lives beside the external v2/v2c specifications and is intentionally outside this Git repository.

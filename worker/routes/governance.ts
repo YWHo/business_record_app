@@ -45,23 +45,24 @@ interface RetainedRow {
 
 async function retainedRecord(
   env: Env,
+  businessAccountId: string,
   recordType: RetainedRecordType,
   id: string,
 ) {
   const record = await env.DB.prepare(
-    `SELECT id,status,business_activity_id,deleted_at,retention_until,purge_eligible_at,purged_at FROM ${tables[recordType]} WHERE id=?`,
+    `SELECT id,status,business_activity_id,deleted_at,retention_until,purge_eligible_at,purged_at FROM ${tables[recordType]} WHERE id=? AND business_account_id=?`,
   )
-    .bind(id)
+    .bind(id, businessAccountId)
     .first<RetainedRow>();
   if (!record) throw new HttpError(404, 'Record not found.');
   return record;
 }
 
 export async function listAuditLog(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const url = new URL(request.url),
-    where: string[] = [],
-    bindings: unknown[] = [];
+    where: string[] = ['audit_log.business_account_id=?'],
+    bindings: unknown[] = [actor.businessAccountId];
   const exact = [
     ['userId', 'audit_log.user_id'],
     ['action', 'audit_log.action'],
@@ -137,34 +138,40 @@ export async function listAuditLog(request: Request, env: Env) {
 }
 
 export async function listTrash(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const rows = await env.DB.prepare(
     `SELECT * FROM (
       SELECT id,'EXPENSE' AS record_type,expense_type AS subtype,merchant_name AS label,
         substr(purchase_datetime,1,10) AS record_date,business_activity_id,status,deleted_at,
-        retention_until,purge_eligible_at,purged_at FROM expenses WHERE deleted_at IS NOT NULL
+        retention_until,purge_eligible_at,purged_at FROM expenses WHERE business_account_id=? AND deleted_at IS NOT NULL
       UNION ALL
       SELECT id,'INCOME',income_type,COALESCE(received_from,'Income'),transaction_date,
         business_activity_id,status,deleted_at,retention_until,purge_eligible_at,purged_at
-        FROM income_records WHERE deleted_at IS NOT NULL
+        FROM income_records WHERE business_account_id=? AND deleted_at IS NOT NULL
       UNION ALL
       SELECT id,'WORK_SESSION','MILEAGE','Work session',substr(started_at,1,10),
         business_activity_id,status,deleted_at,retention_until,purge_eligible_at,purged_at
-        FROM work_sessions WHERE deleted_at IS NOT NULL
+        FROM work_sessions WHERE business_account_id=? AND deleted_at IS NOT NULL
     ) ORDER BY deleted_at DESC,id DESC LIMIT 200`,
-  ).all<{
-    id: string;
-    record_type: RetainedRecordType;
-    subtype: string;
-    label: string;
-    record_date: string;
-    business_activity_id: string | null;
-    status: string;
-    deleted_at: string;
-    retention_until: string;
-    purge_eligible_at: string;
-    purged_at: string | null;
-  }>();
+  )
+    .bind(
+      actor.businessAccountId,
+      actor.businessAccountId,
+      actor.businessAccountId,
+    )
+    .all<{
+      id: string;
+      record_type: RetainedRecordType;
+      subtype: string;
+      label: string;
+      record_date: string;
+      business_activity_id: string | null;
+      status: string;
+      deleted_at: string;
+      retention_until: string;
+      purge_eligible_at: string;
+      purged_at: string | null;
+    }>();
   const now = new Date();
   return json({
     trash: rows.results.map((row) => ({
@@ -190,15 +197,15 @@ export async function moveToTrash(request: Request, env: Env) {
   const body = await readJsonObject(request),
     recordType = retainedRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
-    record = await retainedRecord(env, recordType, id);
+    record = await retainedRecord(env, actor.businessAccountId, recordType, id);
   if (record.deleted_at || record.status === 'TRASHED')
     throw new HttpError(409, 'Record is already in trash.');
   if (record.purged_at) throw new HttpError(409, 'Record purge is pending.');
   const now = new Date().toISOString();
   await env.DB.prepare(
-    `UPDATE ${tables[recordType]} SET status='TRASHED',deleted_at=?,updated_at=? WHERE id=?`,
+    `UPDATE ${tables[recordType]} SET status='TRASHED',deleted_at=?,updated_at=? WHERE id=? AND business_account_id=?`,
   )
-    .bind(now, now, id)
+    .bind(now, now, id, actor.businessAccountId)
     .run();
   await writeAudit(
     env,
@@ -221,15 +228,15 @@ export async function restoreFromTrash(request: Request, env: Env) {
   const body = await readJsonObject(request),
     recordType = retainedRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
-    record = await retainedRecord(env, recordType, id);
+    record = await retainedRecord(env, actor.businessAccountId, recordType, id);
   if (!record.deleted_at || record.status !== 'TRASHED')
     throw new HttpError(409, 'Only trashed records can be restored.');
   if (record.purged_at)
     throw new HttpError(409, 'A pending purge cannot be restored.');
   const prior = await env.DB.prepare(
-    `SELECT changed_fields_json FROM audit_log WHERE entity_type=? AND entity_id=? AND action='RECORD_TRASHED' ORDER BY created_at DESC,id DESC LIMIT 1`,
+    `SELECT changed_fields_json FROM audit_log WHERE business_account_id=? AND entity_type=? AND entity_id=? AND action='RECORD_TRASHED' ORDER BY created_at DESC,id DESC LIMIT 1`,
   )
-    .bind(recordType, id)
+    .bind(actor.businessAccountId, recordType, id)
     .first<{ changed_fields_json: string | null }>();
   let status = 'NEW';
   try {
@@ -253,9 +260,9 @@ export async function restoreFromTrash(request: Request, env: Env) {
   }
   const now = new Date().toISOString();
   await env.DB.prepare(
-    `UPDATE ${tables[recordType]} SET status=?,deleted_at=NULL,updated_at=? WHERE id=?`,
+    `UPDATE ${tables[recordType]} SET status=?,deleted_at=NULL,updated_at=? WHERE id=? AND business_account_id=?`,
   )
-    .bind(status, now, id)
+    .bind(status, now, id, actor.businessAccountId)
     .run();
   await writeAudit(
     env,
@@ -280,7 +287,7 @@ export async function purgeFromTrash(request: Request, env: Env) {
   const body = await readJsonObject(request),
     recordType = retainedRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
-    record = await retainedRecord(env, recordType, id);
+    record = await retainedRecord(env, actor.businessAccountId, recordType, id);
   if (!record.deleted_at || record.status !== 'TRASHED')
     throw new HttpError(409, 'Only trashed records can be purged.');
   if (!isPurgeEligible(record.purge_eligible_at))
@@ -295,26 +302,26 @@ export async function purgeFromTrash(request: Request, env: Env) {
     );
   if (recordType === 'EXPENSE') {
     const linked = await env.DB.prepare(
-      'SELECT id FROM work_sessions WHERE starting_fuel_expense_id=? OR ending_fuel_expense_id=? LIMIT 1',
+      'SELECT id FROM work_sessions WHERE business_account_id=? AND (starting_fuel_expense_id=? OR ending_fuel_expense_id=?) LIMIT 1',
     )
-      .bind(id, id)
+      .bind(actor.businessAccountId, id, id)
       .first();
     if (linked)
       throw new HttpError(409, 'A work session still references this expense.');
   }
   const attachments = await env.DB.prepare(
-    'SELECT object_key FROM attachments WHERE record_type=? AND record_id=?',
+    'SELECT object_key FROM attachments WHERE business_account_id=? AND record_type=? AND record_id=?',
   )
-    .bind(recordType, id)
+    .bind(actor.businessAccountId, recordType, id)
     .all<{ object_key: string }>();
   const now = new Date().toISOString();
   await env.DB.batch([
     env.DB.prepare(
-      `UPDATE ${tables[recordType]} SET purged_at=?,updated_at=? WHERE id=?`,
-    ).bind(now, now, id),
+      `UPDATE ${tables[recordType]} SET purged_at=?,updated_at=? WHERE id=? AND business_account_id=?`,
+    ).bind(now, now, id, actor.businessAccountId),
     env.DB.prepare(
-      'UPDATE attachments SET purged_at=? WHERE record_type=? AND record_id=?',
-    ).bind(now, recordType, id),
+      'UPDATE attachments SET purged_at=? WHERE business_account_id=? AND record_type=? AND record_id=?',
+    ).bind(now, actor.businessAccountId, recordType, id),
   ]);
   await Promise.all(
     attachments.results.map(({ object_key }) =>
@@ -323,11 +330,11 @@ export async function purgeFromTrash(request: Request, env: Env) {
   );
   const statements = [
     env.DB.prepare(
-      'DELETE FROM comments WHERE record_type=? AND record_id=?',
-    ).bind(recordType, id),
+      'DELETE FROM comments WHERE business_account_id=? AND record_type=? AND record_id=?',
+    ).bind(actor.businessAccountId, recordType, id),
     env.DB.prepare(
-      'DELETE FROM attachments WHERE record_type=? AND record_id=?',
-    ).bind(recordType, id),
+      'DELETE FROM attachments WHERE business_account_id=? AND record_type=? AND record_id=?',
+    ).bind(actor.businessAccountId, recordType, id),
   ];
   if (recordType === 'EXPENSE')
     statements.push(
@@ -360,7 +367,9 @@ export async function purgeFromTrash(request: Request, env: Env) {
       ).bind(id),
     );
   statements.push(
-    env.DB.prepare(`DELETE FROM ${tables[recordType]} WHERE id=?`).bind(id),
+    env.DB.prepare(
+      `DELETE FROM ${tables[recordType]} WHERE id=? AND business_account_id=?`,
+    ).bind(id, actor.businessAccountId),
   );
   await env.DB.batch(statements);
   await writeAudit(
@@ -376,16 +385,18 @@ export async function purgeFromTrash(request: Request, env: Env) {
 }
 
 export async function getRetentionSettings(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const row = await env.DB.prepare(
-    'SELECT retention_tax_years,tax_year_end_month,tax_year_end_day,backup_reminder_days,updated_at FROM retention_settings WHERE singleton_id=1',
-  ).first<{
-    retention_tax_years: number;
-    tax_year_end_month: number;
-    tax_year_end_day: number;
-    backup_reminder_days: number;
-    updated_at: string;
-  }>();
+    'SELECT retention_tax_years,tax_year_end_month,tax_year_end_day,backup_reminder_days,updated_at FROM retention_settings WHERE business_account_id=?',
+  )
+    .bind(actor.businessAccountId)
+    .first<{
+      retention_tax_years: number;
+      tax_year_end_month: number;
+      tax_year_end_day: number;
+      backup_reminder_days: number;
+      updated_at: string;
+    }>();
   if (!row) throw new HttpError(500, 'Retention settings are unavailable.');
   return json({
     retentionSettings: {
@@ -404,7 +415,7 @@ export async function updateRetentionSettings(request: Request, env: Env) {
   const values = retentionSettingsValues(await readJsonObject(request));
   const now = new Date().toISOString();
   await env.DB.prepare(
-    `UPDATE retention_settings SET retention_tax_years=?,tax_year_end_month=?,tax_year_end_day=?,backup_reminder_days=?,updated_by=?,updated_at=? WHERE singleton_id=1`,
+    `UPDATE retention_settings SET retention_tax_years=?,tax_year_end_month=?,tax_year_end_day=?,backup_reminder_days=?,updated_by=?,updated_at=? WHERE business_account_id=?`,
   )
     .bind(
       values.retentionTaxYears,
@@ -413,6 +424,7 @@ export async function updateRetentionSettings(request: Request, env: Env) {
       values.backupReminderDays,
       actor.id,
       now,
+      actor.businessAccountId,
     )
     .run();
   await writeAudit(

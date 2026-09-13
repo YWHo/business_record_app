@@ -8,11 +8,13 @@
 - Metric measurements use explicit names and units: `odometer_km`, `distance_km`, and `fuel_litres`.
 - Historical parent records are deactivated rather than deleted. Foreign keys use restrictive deletion by default.
 - Financial records carry status, trash, retention, purge-eligibility, and purge timestamps from creation.
+- Every persistent business row carries `business_account_id`; IDs alone are never an authorization boundary.
 
 ## Relationship overview
 
 ```text
-users
+business_accounts ─ business_entities
+  ├─ business_account_members ─ users
   ├─ sessions
   ├─ authentication_challenges ─ development_auth_outbox (local only)
   ├─ invitations ─ development_outbox (local only)
@@ -30,15 +32,21 @@ users
   ├─ saved_filters
   └─ audit_log
 
-retention_settings (single configured row)
+retention_settings (one configured row per business account)
 expense_categories (configurable lookup records)
 ```
 
 ## Authentication lifecycle
 
-`authentication_challenges` stores hashed, expiring, single-use login tokens associated with an existing active user. `invitations` separately stores hashed, expiring, single-use accountant invitations and their creating owner. The two local outbox tables retain action URLs only in the simulated local database; deployed environments send those URLs through the configured relay.
+`authentication_challenges` stores hashed, expiring, single-use login tokens associated with an existing active user. `invitations` separately stores hashed, expiring, single-use accountant invitations for a business account and their creating workspace owner. The two local outbox tables retain action URLs only in the simulated local database; deployed environments send those URLs through the configured relay.
 
-A partial unique index permits at most one `OWNER`. Users are disabled rather than deleted so historical foreign keys and audit actors remain intact. Disabling deletes their sessions; authorization also checks current user status on every protected request.
+A partial unique index permits at most one active `OWNER` membership per business account. Users are disabled rather than deleted so historical foreign keys and audit actors remain intact. Disabling a membership deletes that account's sessions; authorization checks user, account, and membership status on every protected request.
+
+## Account and entity separation
+
+`business_accounts` identifies an application workspace and reserves plan/subscription fields for later commercial use. `business_entities` holds optional legal and trading names, NZBN/company identifiers, entity type, country, and lifecycle independently of the workspace. `business_account_members` owns workspace roles. Consequently, the `OWNER` role describes application administration and is not stored or displayed as legal ownership.
+
+Migration 0006 backfills the existing private dataset into `business-account-primary` and adds account-leading indexes across records, details, attachments, comments, audit history, filters, retention settings, sessions, invitations, and exports. The Worker generates tenant-prefixed R2 keys. Commercial signup/billing and ownership transfer remain future platform-admin workflows.
 
 ## Financial record bases
 

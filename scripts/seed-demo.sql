@@ -25,6 +25,7 @@ UPDATE retention_settings SET updated_by = NULL;
 DELETE FROM development_outbox;
 DELETE FROM sessions;
 DELETE FROM invitations;
+DELETE FROM business_account_members;
 DELETE FROM users;
 DELETE FROM runtime_metadata;
 
@@ -32,6 +33,17 @@ INSERT INTO users (id, email, role, status, created_at, updated_at)
 VALUES
   ('demo-owner', 'demo-owner@example.invalid', 'OWNER', 'ACTIVE', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
   ('demo-accountant', 'demo-accountant@example.invalid', 'ACCOUNTANT', 'ACTIVE', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
+
+UPDATE business_accounts
+SET display_name = 'Synthetic Demo Business', updated_at = '2026-04-01T00:00:00.000Z'
+WHERE id = 'business-account-primary';
+
+INSERT INTO business_account_members (
+  business_account_id, user_id, role, status, created_at, updated_at
+)
+VALUES
+  ('business-account-primary', 'demo-owner', 'OWNER', 'ACTIVE', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
+  ('business-account-primary', 'demo-accountant', 'ACCOUNTANT', 'ACTIVE', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
 
 INSERT INTO business_activities (id, name, activity_type, active, started_at, ended_at, created_at, updated_at)
 VALUES

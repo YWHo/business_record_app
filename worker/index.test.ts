@@ -78,6 +78,34 @@ describe('Worker security middleware', () => {
     expect(response.status).toBe(429);
   });
 
+  it('rejects every demo mutation before a database, bucket, or limiter call', async () => {
+    const response = await worker.fetch(
+      incoming(
+        new Request('https://demo.example.invalid/api/comments', {
+          method: 'POST',
+        }),
+      ),
+      {
+        ...environment,
+        APP_ENV: 'demo',
+        APP_ORIGIN: 'https://demo.example.invalid',
+        DB: new Proxy({} as D1Database, {
+          get: () => {
+            throw new Error('D1 must not be accessed');
+          },
+        }),
+        DOCUMENTS: new Proxy({} as R2Bucket, {
+          get: () => {
+            throw new Error('R2 must not be accessed');
+          },
+        }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('reports exhausted demo storage capacity without internal details', async () => {
     const allow = { limit: () => Promise.resolve({ success: true }) };
     const response = await worker.fetch(

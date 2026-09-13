@@ -61,6 +61,7 @@ const serialize = (row: AttachmentRow) => ({
 
 async function parent(
   env: Env,
+  businessAccountId: string,
   recordType: AttachmentRecordType,
   recordId: string,
 ) {
@@ -70,9 +71,11 @@ async function parent(
     WORK_SESSION: 'work_sessions',
   } as const;
   const row = await env.DB.prepare(
-    `SELECT id, business_activity_id, retention_until, purge_eligible_at, deleted_at FROM ${sources[recordType]} WHERE id = ? AND purged_at IS NULL`,
+    `SELECT id, business_activity_id, retention_until, purge_eligible_at, deleted_at
+       FROM ${sources[recordType]}
+      WHERE id = ? AND business_account_id = ? AND purged_at IS NULL`,
   )
-    .bind(recordId)
+    .bind(recordId, businessAccountId)
     .first<ParentRow>();
   if (!row) throw new HttpError(404, 'Record not found.');
   return row;
@@ -104,15 +107,15 @@ async function discardRequestBody(request: Request) {
 }
 
 export async function listAttachments(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const url = new URL(request.url);
   const recordType = attachmentRecordType(url.searchParams.get('recordType'));
   const recordId = queryValue(url, 'recordId');
-  await parent(env, recordType, recordId);
+  await parent(env, actor.businessAccountId, recordType, recordId);
   const rows = await env.DB.prepare(
-    `${attachmentSelect} WHERE attachments.record_type = ? AND attachments.record_id = ? AND attachments.purged_at IS NULL ORDER BY attachments.created_at DESC, attachments.version_number DESC LIMIT 100`,
+    `${attachmentSelect} WHERE attachments.business_account_id = ? AND attachments.record_type = ? AND attachments.record_id = ? AND attachments.purged_at IS NULL ORDER BY attachments.created_at DESC, attachments.version_number DESC LIMIT 100`,
   )
-    .bind(recordType, recordId)
+    .bind(actor.businessAccountId, recordType, recordId)
     .all<AttachmentRow>();
   return json({ attachments: rows.results.map(serialize) });
 }
@@ -154,7 +157,12 @@ export async function uploadAttachment(request: Request, env: Env) {
   const displayRotationDegrees = attachmentRotation(
     form.get('displayRotationDegrees'),
   );
-  const target = await parent(env, recordType, recordId);
+  const target = await parent(
+    env,
+    actor.businessAccountId,
+    recordType,
+    recordId,
+  );
   if (target.deleted_at)
     throw new HttpError(409, 'Restore the record before adding documents.');
   const file = form.get('file');
@@ -173,9 +181,9 @@ export async function uploadAttachment(request: Request, env: Env) {
   let prior: AttachmentRow | null = null;
   if (replaceAttachmentId) {
     prior = await env.DB.prepare(
-      `${attachmentSelect} WHERE attachments.id = ? AND attachments.record_type = ? AND attachments.record_id = ? AND attachments.is_current = 1 AND attachments.purged_at IS NULL`,
+      `${attachmentSelect} WHERE attachments.id = ? AND attachments.business_account_id = ? AND attachments.record_type = ? AND attachments.record_id = ? AND attachments.is_current = 1 AND attachments.purged_at IS NULL`,
     )
-      .bind(replaceAttachmentId, recordType, recordId)
+      .bind(replaceAttachmentId, actor.businessAccountId, recordType, recordId)
       .first<AttachmentRow>();
     if (!prior)
       throw new HttpError(404, 'Current attachment version not found.');
@@ -183,9 +191,15 @@ export async function uploadAttachment(request: Request, env: Env) {
     versionNumber = prior.version_number + 1;
   }
   const duplicates = await env.DB.prepare(
-    `${attachmentSelect} WHERE attachments.purged_at IS NULL AND (attachments.sha256 = ? OR (attachments.record_type = ? AND attachments.record_id = ? AND attachments.is_current = 1 AND attachments.original_filename = ? COLLATE NOCASE)) ORDER BY attachments.created_at DESC LIMIT 10`,
+    `${attachmentSelect} WHERE attachments.business_account_id = ? AND attachments.purged_at IS NULL AND (attachments.sha256 = ? OR (attachments.record_type = ? AND attachments.record_id = ? AND attachments.is_current = 1 AND attachments.original_filename = ? COLLATE NOCASE)) ORDER BY attachments.created_at DESC LIMIT 10`,
   )
-    .bind(sha256, recordType, recordId, validated.originalFilename)
+    .bind(
+      actor.businessAccountId,
+      sha256,
+      recordType,
+      recordId,
+      validated.originalFilename,
+    )
     .all<AttachmentRow>();
   const hashDuplicate = duplicates.results.some(
     (item) => item.sha256 === sha256,
@@ -224,7 +238,7 @@ export async function uploadAttachment(request: Request, env: Env) {
       { status: 409 },
     );
   const id = crypto.randomUUID();
-  const objectKey = `attachments/${recordType.toLowerCase()}/${recordId}/${versionGroupId}/v${versionNumber}-${id}`;
+  const objectKey = `business-accounts/${actor.businessAccountId}/attachments/${recordType.toLowerCase()}/${recordId}/${versionGroupId}/v${versionNumber}-${id}`;
   const now = new Date().toISOString();
   await env.DOCUMENTS.put(objectKey, bytes, {
     httpMetadata: { contentType: validated.mimeType },
@@ -235,14 +249,15 @@ export async function uploadAttachment(request: Request, env: Env) {
       ...(prior
         ? [
             env.DB.prepare(
-              'UPDATE attachments SET is_current = 0 WHERE id = ? AND is_current = 1',
-            ).bind(prior.id),
+              'UPDATE attachments SET is_current = 0 WHERE id = ? AND business_account_id = ? AND is_current = 1',
+            ).bind(prior.id, actor.businessAccountId),
           ]
         : []),
       env.DB.prepare(
-        `INSERT INTO attachments (id, record_type, record_id, version_group_id, object_key, original_filename, mime_type, file_size, sha256, created_by, created_at, version_number, is_current, display_rotation_degrees, retention_until, purge_eligible_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        `INSERT INTO attachments (id, business_account_id, record_type, record_id, version_group_id, object_key, original_filename, mime_type, file_size, sha256, created_by, created_at, version_number, is_current, display_rotation_degrees, retention_until, purge_eligible_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       ).bind(
         id,
+        actor.businessAccountId,
         recordType,
         recordId,
         versionGroupId,
@@ -275,9 +290,9 @@ export async function uploadAttachment(request: Request, env: Env) {
     target.business_activity_id,
   );
   const stored = await env.DB.prepare(
-    `${attachmentSelect} WHERE attachments.id = ?`,
+    `${attachmentSelect} WHERE attachments.id = ? AND attachments.business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, actor.businessAccountId)
     .first<AttachmentRow>();
   if (!stored)
     throw new HttpError(500, 'Attachment metadata could not be loaded.');
@@ -285,15 +300,15 @@ export async function uploadAttachment(request: Request, env: Env) {
 }
 
 export async function downloadAttachment(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const id = queryValue(new URL(request.url), 'id');
   const row = await env.DB.prepare(
-    `${attachmentSelect} WHERE attachments.id = ? AND attachments.purged_at IS NULL`,
+    `${attachmentSelect} WHERE attachments.id = ? AND attachments.business_account_id = ? AND attachments.purged_at IS NULL`,
   )
-    .bind(id)
+    .bind(id, actor.businessAccountId)
     .first<AttachmentRow>();
   if (!row) throw new HttpError(404, 'Attachment not found.');
-  await parent(env, row.record_type, row.record_id);
+  await parent(env, actor.businessAccountId, row.record_type, row.record_id);
   const object = await env.DOCUMENTS.get(row.object_key);
   if (!object) throw new HttpError(404, 'Attachment file is unavailable.');
   const encoded = encodeURIComponent(row.original_filename);

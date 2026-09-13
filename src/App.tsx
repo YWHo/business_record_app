@@ -18,7 +18,7 @@ import { VerifyLoginPage } from './routes/VerifyLoginPage';
 import { PwaStatus } from './features/pwa/PwaStatus';
 
 function WorkspaceLayout() {
-  const { configuration, loading, logout, user } = useAuth();
+  const { configuration, loading, logout, resetDemo, user } = useAuth();
 
   if (loading) {
     return (
@@ -59,6 +59,15 @@ function WorkspaceLayout() {
         </div>
         <div className="account-summary">
           <span>{user.email}</span>
+          {configuration?.environment === 'demo' ? (
+            <button
+              type="button"
+              className="header-button"
+              onClick={() => void resetDemo()}
+            >
+              Reset demo data
+            </button>
+          ) : null}
           <button
             type="button"
             className="header-button"
@@ -83,6 +92,12 @@ function WorkspaceLayout() {
       </nav>
 
       <main className="page-content">
+        {configuration?.environment === 'demo' ? (
+          <p className="notice">
+            Demo changes are saved only in this browser. Other visitors cannot
+            see them.
+          </p>
+        ) : null}
         <Outlet />
       </main>
     </div>

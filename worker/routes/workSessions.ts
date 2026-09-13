@@ -136,15 +136,20 @@ function currentValues(row: WorkSessionRow): WorkSessionValues {
 
 async function assertReferences(
   env: Env,
+  businessAccountId: string,
   values: WorkSessionValues,
   current?: WorkSessionRow,
 ) {
   const [activity, vehicle] = await Promise.all([
-    env.DB.prepare('SELECT active FROM business_activities WHERE id = ?')
-      .bind(values.businessActivityId)
+    env.DB.prepare(
+      'SELECT active FROM business_activities WHERE id = ? AND business_account_id = ?',
+    )
+      .bind(values.businessActivityId, businessAccountId)
       .first<{ active: number }>(),
-    env.DB.prepare('SELECT active FROM vehicles WHERE id = ?')
-      .bind(values.vehicleId)
+    env.DB.prepare(
+      'SELECT active FROM vehicles WHERE id = ? AND business_account_id = ?',
+    )
+      .bind(values.vehicleId, businessAccountId)
       .first<{ active: number }>(),
   ]);
   if (
@@ -162,10 +167,16 @@ async function assertReferences(
   }
 }
 
-async function retentionDate(env: Env, occurredAt: string): Promise<string> {
+async function retentionDate(
+  env: Env,
+  businessAccountId: string,
+  occurredAt: string,
+): Promise<string> {
   const settings = await env.DB.prepare(
-    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE singleton_id = 1',
-  ).first<RetentionSettings>();
+    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE business_account_id = ?',
+  )
+    .bind(businessAccountId)
+    .first<RetentionSettings>();
   if (!settings) {
     throw new HttpError(503, 'Retention settings are unavailable.');
   }
@@ -231,10 +242,12 @@ export async function listWorkSessions(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const result = await env.DB.prepare(
-    `${sessionSelect} ORDER BY work_sessions.started_at DESC LIMIT 200`,
-  ).all<WorkSessionRow>();
+    `${sessionSelect} WHERE work_sessions.business_account_id = ? ORDER BY work_sessions.started_at DESC LIMIT 200`,
+  )
+    .bind(actor.businessAccountId)
+    .all<WorkSessionRow>();
   return json({
     sessions: result.results.map(serialize),
     summary: summarize(result.results),
@@ -248,19 +261,24 @@ export async function createWorkSession(
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const values = workSessionValues(await readJsonObject(request));
-  await assertReferences(env, values);
-  const retentionUntil = await retentionDate(env, values.endedAt);
+  await assertReferences(env, owner.businessAccountId, values);
+  const retentionUntil = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.endedAt,
+  );
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO work_sessions
-      (id, business_activity_id, vehicle_id, started_at, ended_at,
+      (id, business_account_id, business_activity_id, vehicle_id, started_at, ended_at,
        odometer_start_km, odometer_end_km, gross_revenue_minor, currency, notes,
        status, created_by, created_at, updated_at, retention_until, purge_eligible_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
+      owner.businessAccountId,
       values.businessActivityId,
       values.vehicleId,
       values.startedAt,
@@ -287,9 +305,9 @@ export async function createWorkSession(
     values.businessActivityId,
   );
   const row = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
   if (!row) throw new HttpError(500, 'Work session could not be loaded.');
   return json({ session: serialize(row) }, { status: 201 });
@@ -304,20 +322,25 @@ export async function updateWorkSession(
   const body = await readJsonObject(request);
   const id = getRequiredString(body, 'id');
   const row = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
   if (!row) throw new HttpError(404, 'Work session not found.');
   const values = workSessionValues(body, currentValues(row));
-  await assertReferences(env, values, row);
-  const retentionUntil = await retentionDate(env, values.endedAt);
+  await assertReferences(env, owner.businessAccountId, values, row);
+  const retentionUntil = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.endedAt,
+  );
   const now = new Date().toISOString();
   await env.DB.prepare(
     `UPDATE work_sessions SET business_activity_id = ?, vehicle_id = ?, started_at = ?,
       ended_at = ?, odometer_start_km = ?, odometer_end_km = ?,
       gross_revenue_minor = ?, currency = ?, notes = ?, status = 'NEW', updated_at = ?,
-      retention_until = ?, purge_eligible_at = ? WHERE id = ?`,
+      retention_until = ?, purge_eligible_at = ?
+      WHERE id = ? AND business_account_id = ?`,
   )
     .bind(
       values.businessActivityId,
@@ -333,6 +356,7 @@ export async function updateWorkSession(
       retentionUntil,
       retentionUntil,
       id,
+      owner.businessAccountId,
     )
     .run();
   await writeAudit(
@@ -345,9 +369,9 @@ export async function updateWorkSession(
     values.businessActivityId,
   );
   const updated = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
   if (!updated) throw new HttpError(500, 'Work session could not be loaded.');
   return json({ session: serialize(updated) });
@@ -383,15 +407,17 @@ interface LinkedFuelRow {
 
 async function linkedFuel(
   env: Env,
+  businessAccountId: string,
   id: string | null,
 ): Promise<LinkedFuelRow | null> {
   if (!id) return null;
   const fuel = await env.DB.prepare(
     `SELECT expenses.id, fuel_expense_details.vehicle_id FROM expenses
      JOIN fuel_expense_details ON fuel_expense_details.expense_id = expenses.id
-     WHERE expenses.id = ? AND expenses.expense_type = 'FUEL' AND expenses.deleted_at IS NULL`,
+     WHERE expenses.id = ? AND expenses.business_account_id = ?
+       AND expenses.expense_type = 'FUEL' AND expenses.deleted_at IS NULL`,
   )
-    .bind(id)
+    .bind(id, businessAccountId)
     .first<LinkedFuelRow>();
   if (!fuel) throw new HttpError(400, 'Select a valid fuel expense.');
   return fuel;
@@ -406,9 +432,9 @@ export async function updateFuelWorkflow(
   const input = await readJsonObject(request);
   const id = getRequiredString(input, 'id');
   const row = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
   if (!row) throw new HttpError(404, 'Work session not found.');
 
@@ -428,8 +454,8 @@ export async function updateFuelWorkflow(
     );
   }
   const [startingFuel, endingFuel] = await Promise.all([
-    linkedFuel(env, startingFuelExpenseId),
-    linkedFuel(env, endingFuelExpenseId),
+    linkedFuel(env, owner.businessAccountId, startingFuelExpenseId),
+    linkedFuel(env, owner.businessAccountId, endingFuelExpenseId),
   ]);
   if (
     (startingFuel && startingFuel.vehicle_id !== row.vehicle_id) ||
@@ -445,7 +471,7 @@ export async function updateFuelWorkflow(
   await env.DB.prepare(
     `UPDATE work_sessions SET tank_full_at_start = ?, no_personal_driving = ?,
       tank_full_at_end = ?, starting_fuel_expense_id = ?, ending_fuel_expense_id = ?,
-      status = 'NEW', updated_at = ? WHERE id = ?`,
+      status = 'NEW', updated_at = ? WHERE id = ? AND business_account_id = ?`,
   )
     .bind(
       tankFullAtStart ? 1 : 0,
@@ -455,6 +481,7 @@ export async function updateFuelWorkflow(
       endingFuelExpenseId,
       now,
       id,
+      owner.businessAccountId,
     )
     .run();
   await writeAudit(
@@ -467,9 +494,9 @@ export async function updateFuelWorkflow(
     row.business_activity_id,
   );
   const updated = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
   if (!updated) throw new HttpError(500, 'Work session could not be loaded.');
   return json({ session: serialize(updated) });

@@ -12,7 +12,7 @@ Keep the demo on the Cloudflare Workers Free plan initially and accept temporary
 
 Retain the isolated Worker, D1, R2, variables, fictional identities, and guarded reset process from ADR 009. Add automated configuration checks proving that demo storage and rate-limit resource identifiers are disjoint from production.
 
-Make the public demo read-mostly. Keep bounded metadata edits and comments for role demonstrations, but reject binary uploads, dynamic ZIP exports, and permanent purge at the Worker boundary before authentication, D1, R2, hashing, or archive work. Reflect the same restrictions in the interface. Email, invitations, bootstrap, and other account administration remain unavailable.
+Version 2c strengthens the original read-mostly decision: the demo backend is strictly read-only. Reject every non-read request before authentication, D1, R2, hashing, or archive work. Keep role demonstrations, metadata edits, comments, statuses, temporary records, tombstones, and document previews in the visitor's IndexedDB overlay. Email, invitations, bootstrap, and other account administration remain unavailable.
 
 Apply dedicated demo-wide read and write rate-limit bindings before route handling, in addition to the existing stricter authentication and expensive-route limiters. Missing demo-wide bindings are a fail-closed service error. The limits use separate client and session dimensions where available; ordinary browsing does not require repeated Turnstile challenges.
 

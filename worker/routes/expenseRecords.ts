@@ -130,10 +130,16 @@ function currentParking(row: ParkingRow): ParkingValues {
     parkingReference: row.parking_reference,
   };
 }
-async function retentionDate(env: Env, occurredAt: string) {
+async function retentionDate(
+  env: Env,
+  businessAccountId: string,
+  occurredAt: string,
+) {
   const settings = await env.DB.prepare(
-    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE singleton_id = 1',
-  ).first<RetentionSettings>();
+    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE business_account_id = ?',
+  )
+    .bind(businessAccountId)
+    .first<RetentionSettings>();
   if (!settings)
     throw new HttpError(503, 'Retention settings are unavailable.');
   return calculateRetentionDate(
@@ -143,16 +149,19 @@ async function retentionDate(env: Env, occurredAt: string) {
     settings.tax_year_end_day,
   );
 }
-async function parkingCategory(env: Env) {
+async function parkingCategory(env: Env, businessAccountId: string) {
   const row = await env.DB.prepare(
-    "SELECT id FROM expense_categories WHERE system_key = 'PARKING' AND active = 1",
-  ).first<{ id: string }>();
+    "SELECT id FROM expense_categories WHERE business_account_id = ? AND system_key = 'PARKING' AND active = 1",
+  )
+    .bind(businessAccountId)
+    .first<{ id: string }>();
   if (!row)
     throw new HttpError(503, 'Parking expense category is unavailable.');
   return row.id;
 }
 async function assertReferences(
   env: Env,
+  businessAccountId: string,
   values: CommonExpenseValues,
   vehicleId: string | null,
   prior?: {
@@ -163,16 +172,22 @@ async function assertReferences(
 ) {
   const [activity, category, vehicle] = await Promise.all([
     values.businessActivityId
-      ? env.DB.prepare('SELECT active FROM business_activities WHERE id = ?')
-          .bind(values.businessActivityId)
+      ? env.DB.prepare(
+          'SELECT active FROM business_activities WHERE id = ? AND business_account_id = ?',
+        )
+          .bind(values.businessActivityId, businessAccountId)
           .first<{ active: number }>()
       : Promise.resolve(null),
-    env.DB.prepare('SELECT active FROM expense_categories WHERE id = ?')
-      .bind(values.expenseCategoryId)
+    env.DB.prepare(
+      'SELECT active FROM expense_categories WHERE id = ? AND business_account_id = ?',
+    )
+      .bind(values.expenseCategoryId, businessAccountId)
       .first<{ active: number }>(),
     vehicleId
-      ? env.DB.prepare('SELECT active FROM vehicles WHERE id = ?')
-          .bind(vehicleId)
+      ? env.DB.prepare(
+          'SELECT active FROM vehicles WHERE id = ? AND business_account_id = ?',
+        )
+          .bind(vehicleId, businessAccountId)
           .first<{ active: number }>()
       : Promise.resolve(null),
   ]);
@@ -198,6 +213,7 @@ async function assertReferences(
 function insertExpense(
   env: Env,
   id: string,
+  businessAccountId: string,
   type: 'PARKING' | 'GENERAL',
   values: CommonExpenseValues,
   ownerId: string,
@@ -206,13 +222,14 @@ function insertExpense(
 ) {
   return env.DB.prepare(
     `INSERT INTO expenses
-    (id, business_activity_id, expense_type, expense_category_id, merchant_name,
+    (id, business_account_id, business_activity_id, expense_type, expense_category_id, merchant_name,
      purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
      description, recurrence_type, status, created_by, created_at, updated_at,
      retention_until, purge_eligible_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
   ).bind(
     id,
+    businessAccountId,
     values.businessActivityId,
     type,
     values.expenseCategoryId,
@@ -234,6 +251,7 @@ function insertExpense(
 function updateExpense(
   env: Env,
   id: string,
+  businessAccountId: string,
   values: CommonExpenseValues,
   now: string,
   retention: string,
@@ -243,7 +261,8 @@ function updateExpense(
     merchant_name = ?, purchase_datetime = ?, total_amount_minor = ?, currency = ?,
     gst_amount_minor = ?, gst_status = ?, description = ?, recurrence_type = ?,
     status = 'NEW', reviewed_by = NULL, reviewed_at = NULL,
-    updated_at = ?, retention_until = ?, purge_eligible_at = ? WHERE id = ?`,
+    updated_at = ?, retention_until = ?, purge_eligible_at = ?
+    WHERE id = ? AND business_account_id = ?`,
   ).bind(
     values.businessActivityId,
     values.expenseCategoryId,
@@ -259,27 +278,35 @@ function updateExpense(
     retention,
     retention,
     id,
+    businessAccountId,
   );
 }
 
 export async function listGeneralExpenses(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${expenseSelect} WHERE expenses.expense_type = 'GENERAL' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
-  ).all<ExpenseRow>();
+    `${expenseSelect} WHERE expenses.business_account_id = ? AND expenses.expense_type = 'GENERAL' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
+  )
+    .bind(actor.businessAccountId)
+    .all<ExpenseRow>();
   return json({ generalExpenses: rows.results.map(serializeExpense) });
 }
 export async function createGeneralExpense(request: Request, env: Env) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const values = commonExpenseValues(await readJsonObject(request));
-  await assertReferences(env, values, null);
+  await assertReferences(env, owner.businessAccountId, values, null);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const retention = await retentionDate(env, values.purchaseDatetime);
+  const retention = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   await insertExpense(
     env,
     id,
+    owner.businessAccountId,
     'GENERAL',
     values,
     owner.id,
@@ -295,8 +322,10 @@ export async function createGeneralExpense(request: Request, env: Env) {
     'General expense created.',
     values.businessActivityId,
   );
-  const row = await env.DB.prepare(`${expenseSelect} WHERE expenses.id = ?`)
-    .bind(id)
+  const row = await env.DB.prepare(
+    `${expenseSelect} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<ExpenseRow>();
   if (!row) throw new HttpError(500, 'General expense could not be loaded.');
   return json({ generalExpense: serializeExpense(row) }, { status: 201 });
@@ -307,16 +336,27 @@ export async function updateGeneralExpense(request: Request, env: Env) {
   const body = await readJsonObject(request);
   const id = getRequiredString(body, 'id');
   const row = await env.DB.prepare(
-    `${expenseSelect} WHERE expenses.id = ? AND expenses.expense_type = 'GENERAL'`,
+    `${expenseSelect} WHERE expenses.id = ? AND expenses.business_account_id = ? AND expenses.expense_type = 'GENERAL'`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<ExpenseRow>();
   if (!row) throw new HttpError(404, 'General expense not found.');
   const values = commonExpenseValues(body, current(row));
-  await assertReferences(env, values, null, row);
+  await assertReferences(env, owner.businessAccountId, values, null, row);
   const now = new Date().toISOString();
-  const retention = await retentionDate(env, values.purchaseDatetime);
-  await updateExpense(env, id, values, now, retention).run();
+  const retention = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
+  await updateExpense(
+    env,
+    id,
+    owner.businessAccountId,
+    values,
+    now,
+    retention,
+  ).run();
   await writeAudit(
     env,
     owner,
@@ -326,8 +366,10 @@ export async function updateGeneralExpense(request: Request, env: Env) {
     'General expense updated.',
     values.businessActivityId,
   );
-  const updated = await env.DB.prepare(`${expenseSelect} WHERE expenses.id = ?`)
-    .bind(id)
+  const updated = await env.DB.prepare(
+    `${expenseSelect} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<ExpenseRow>();
   if (!updated)
     throw new HttpError(500, 'General expense could not be loaded.');
@@ -335,35 +377,56 @@ export async function updateGeneralExpense(request: Request, env: Env) {
 }
 
 export async function listParkingRecords(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${parkingSelect} WHERE expenses.expense_type = 'PARKING' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
-  ).all<ParkingRow>();
+    `${parkingSelect} WHERE expenses.business_account_id = ? AND expenses.expense_type = 'PARKING' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
+  )
+    .bind(actor.businessAccountId)
+    .all<ParkingRow>();
   return json({ parkingRecords: rows.results.map(serializeParking) });
 }
 export async function createParkingRecord(request: Request, env: Env) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
-  const categoryId = await parkingCategory(env);
+  const categoryId = await parkingCategory(env, owner.businessAccountId);
   const provider =
     typeof body.parkingProvider === 'string' ? body.parkingProvider.trim() : '';
   const values = parkingValues(
     { merchantName: provider || 'Parking', ...body },
     categoryId,
   );
-  await assertReferences(env, values, values.vehicleId);
+  await assertReferences(
+    env,
+    owner.businessAccountId,
+    values,
+    values.vehicleId,
+  );
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const retention = await retentionDate(env, values.purchaseDatetime);
+  const retention = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   await env.DB.batch([
-    insertExpense(env, id, 'PARKING', values, owner.id, now, retention),
+    insertExpense(
+      env,
+      id,
+      owner.businessAccountId,
+      'PARKING',
+      values,
+      owner.id,
+      now,
+      retention,
+    ),
     env.DB.prepare(
       `INSERT INTO parking_expense_details
-      (expense_id, vehicle_id, parking_provider, parking_location, parking_start_datetime, parking_end_datetime, parking_reference)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (expense_id, business_account_id, vehicle_id, parking_provider, parking_location, parking_start_datetime, parking_end_datetime, parking_reference)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       id,
+      owner.businessAccountId,
       values.vehicleId,
       values.parkingProvider,
       values.parkingLocation,
@@ -381,8 +444,10 @@ export async function createParkingRecord(request: Request, env: Env) {
     'Parking expense created.',
     values.businessActivityId,
   );
-  const row = await env.DB.prepare(`${parkingSelect} WHERE expenses.id = ?`)
-    .bind(id)
+  const row = await env.DB.prepare(
+    `${parkingSelect} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<ParkingRow>();
   if (!row) throw new HttpError(500, 'Parking expense could not be loaded.');
   return json({ parkingRecord: serializeParking(row) }, { status: 201 });
@@ -393,9 +458,9 @@ export async function updateParkingRecord(request: Request, env: Env) {
   const body = await readJsonObject(request);
   const id = getRequiredString(body, 'id');
   const row = await env.DB.prepare(
-    `${parkingSelect} WHERE expenses.id = ? AND expenses.expense_type = 'PARKING'`,
+    `${parkingSelect} WHERE expenses.id = ? AND expenses.business_account_id = ? AND expenses.expense_type = 'PARKING'`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<ParkingRow>();
   if (!row) throw new HttpError(404, 'Parking expense not found.');
   const values = parkingValues(
@@ -403,11 +468,21 @@ export async function updateParkingRecord(request: Request, env: Env) {
     row.expense_category_id,
     currentParking(row),
   );
-  await assertReferences(env, values, values.vehicleId, row);
+  await assertReferences(
+    env,
+    owner.businessAccountId,
+    values,
+    values.vehicleId,
+    row,
+  );
   const now = new Date().toISOString();
-  const retention = await retentionDate(env, values.purchaseDatetime);
+  const retention = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   await env.DB.batch([
-    updateExpense(env, id, values, now, retention),
+    updateExpense(env, id, owner.businessAccountId, values, now, retention),
     env.DB.prepare(
       `UPDATE parking_expense_details SET vehicle_id = ?, parking_provider = ?,
       parking_location = ?, parking_start_datetime = ?, parking_end_datetime = ?, parking_reference = ? WHERE expense_id = ?`,
@@ -430,8 +505,10 @@ export async function updateParkingRecord(request: Request, env: Env) {
     'Parking expense updated.',
     values.businessActivityId,
   );
-  const updated = await env.DB.prepare(`${parkingSelect} WHERE expenses.id = ?`)
-    .bind(id)
+  const updated = await env.DB.prepare(
+    `${parkingSelect} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<ParkingRow>();
   if (!updated)
     throw new HttpError(500, 'Parking expense could not be loaded.');

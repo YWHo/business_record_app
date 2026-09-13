@@ -157,7 +157,11 @@ function currentAllocationInput(row: InsuranceRow): Record<string, unknown> {
     allocationNotes: row.allocation_notes,
   };
 }
-async function categoryId(env: Env, type: InsuranceType) {
+async function categoryId(
+  env: Env,
+  businessAccountId: string,
+  type: InsuranceType,
+) {
   const key =
     type === 'VEHICLE'
       ? 'VEHICLE_INSURANCE'
@@ -165,18 +169,24 @@ async function categoryId(env: Env, type: InsuranceType) {
         ? 'PROFESSIONAL_LIABILITY_INSURANCE'
         : 'GENERAL';
   const row = await env.DB.prepare(
-    'SELECT id FROM expense_categories WHERE system_key = ? AND active = 1',
+    'SELECT id FROM expense_categories WHERE business_account_id = ? AND system_key = ? AND active = 1',
   )
-    .bind(key)
+    .bind(businessAccountId, key)
     .first<{ id: string }>();
   if (!row)
     throw new HttpError(503, 'Insurance expense category is unavailable.');
   return row.id;
 }
-async function retention(env: Env, occurredAt: string) {
+async function retention(
+  env: Env,
+  businessAccountId: string,
+  occurredAt: string,
+) {
   const row = await env.DB.prepare(
-    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE singleton_id = 1',
-  ).first<Settings>();
+    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE business_account_id = ?',
+  )
+    .bind(businessAccountId)
+    .first<Settings>();
   if (!row) throw new HttpError(503, 'Retention settings are unavailable.');
   return calculateRetentionDate(
     occurredAt,
@@ -187,18 +197,23 @@ async function retention(env: Env, occurredAt: string) {
 }
 async function assertReferences(
   env: Env,
+  businessAccountId: string,
   values: InsuranceValues,
   prior?: InsuranceRow,
 ) {
   const [activity, vehicle] = await Promise.all([
     values.businessActivityId
-      ? env.DB.prepare('SELECT active FROM business_activities WHERE id = ?')
-          .bind(values.businessActivityId)
+      ? env.DB.prepare(
+          'SELECT active FROM business_activities WHERE id = ? AND business_account_id = ?',
+        )
+          .bind(values.businessActivityId, businessAccountId)
           .first<{ active: number }>()
       : Promise.resolve(null),
     values.vehicleId
-      ? env.DB.prepare('SELECT active FROM vehicles WHERE id = ?')
-          .bind(values.vehicleId)
+      ? env.DB.prepare(
+          'SELECT active FROM vehicles WHERE id = ? AND business_account_id = ?',
+        )
+          .bind(values.vehicleId, businessAccountId)
           .first<{ active: number }>()
       : Promise.resolve(null),
   ]);
@@ -218,6 +233,7 @@ async function assertReferences(
 function expenseInsert(
   env: Env,
   id: string,
+  businessAccountId: string,
   values: InsuranceValues,
   creator: string,
   now: string,
@@ -225,13 +241,14 @@ function expenseInsert(
 ) {
   return env.DB.prepare(
     `INSERT INTO expenses
-    (id, business_activity_id, expense_type, expense_category_id, merchant_name,
+    (id, business_account_id, business_activity_id, expense_type, expense_category_id, merchant_name,
      purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
      description, recurrence_type, status, created_by, created_at, updated_at,
      retention_until, purge_eligible_at)
-    VALUES (?, ?, 'INSURANCE', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, 'INSURANCE', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
   ).bind(
     id,
+    businessAccountId,
     values.businessActivityId,
     values.expenseCategoryId,
     values.provider,
@@ -252,6 +269,7 @@ function expenseInsert(
 function allocationStatement(
   env: Env,
   id: string,
+  businessAccountId: string,
   expenseId: string,
   activityId: string | null,
   values: AllocationValues,
@@ -260,11 +278,12 @@ function allocationStatement(
 ) {
   return env.DB.prepare(
     `INSERT INTO expense_allocations
-    (id, expense_id, business_activity_id, allocation_method, percentage_basis_points,
+    (id, business_account_id, expense_id, business_activity_id, allocation_method, percentage_basis_points,
      allocated_amount_minor, calculation_period_start, calculation_period_end, notes,
-     reviewed_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     reviewed_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     id,
+    businessAccountId,
     expenseId,
     activityId,
     values.allocationMethod,
@@ -280,10 +299,12 @@ function allocationStatement(
 }
 
 export async function listInsuranceRecords(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${select} WHERE expenses.expense_type = 'INSURANCE' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
-  ).all<InsuranceRow>();
+    `${select} WHERE expenses.business_account_id = ? AND expenses.expense_type = 'INSURANCE' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
+  )
+    .bind(actor.businessAccountId)
+    .all<InsuranceRow>();
   return json({ insuranceRecords: rows.results.map(serialize) });
 }
 export async function createInsuranceRecord(request: Request, env: Env) {
@@ -304,22 +325,35 @@ export async function createInsuranceRecord(request: Request, env: Env) {
   }
   const values = insuranceValues(
     body,
-    await categoryId(env, rawType as InsuranceType),
+    await categoryId(env, owner.businessAccountId, rawType as InsuranceType),
   );
-  await assertReferences(env, values);
+  await assertReferences(env, owner.businessAccountId, values);
   const allocation = allocationValues(body, values.totalAmountMinor);
   const id = crypto.randomUUID();
   const allocationId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const until = await retention(env, values.purchaseDatetime);
+  const until = await retention(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   await env.DB.batch([
-    expenseInsert(env, id, values, owner.id, now, until),
+    expenseInsert(
+      env,
+      id,
+      owner.businessAccountId,
+      values,
+      owner.id,
+      now,
+      until,
+    ),
     env.DB.prepare(
       `INSERT INTO insurance_expense_details
-      (expense_id, insurance_type, provider, policy_number, policy_period_start, policy_period_end, vehicle_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (expense_id, business_account_id, insurance_type, provider, policy_number, policy_period_start, policy_period_end, vehicle_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       id,
+      owner.businessAccountId,
       values.insuranceType,
       values.provider,
       values.policyNumber,
@@ -330,6 +364,7 @@ export async function createInsuranceRecord(request: Request, env: Env) {
     allocationStatement(
       env,
       allocationId,
+      owner.businessAccountId,
       id,
       values.businessActivityId,
       allocation,
@@ -346,8 +381,10 @@ export async function createInsuranceRecord(request: Request, env: Env) {
     `Insurance created with allocation: ${allocationSummary(allocation)}.`,
     values.businessActivityId,
   );
-  const row = await env.DB.prepare(`${select} WHERE expenses.id = ?`)
-    .bind(id)
+  const row = await env.DB.prepare(
+    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
   if (!row) throw new HttpError(500, 'Insurance expense could not be loaded.');
   return json({ insuranceRecord: serialize(row) }, { status: 201 });
@@ -358,9 +395,9 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
   const body = await readJsonObject(request);
   const id = getRequiredString(body, 'id');
   const row = await env.DB.prepare(
-    `${select} WHERE expenses.id = ? AND expenses.expense_type = 'INSURANCE'`,
+    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ? AND expenses.expense_type = 'INSURANCE'`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
   if (!row) throw new HttpError(404, 'Insurance expense not found.');
   const nextType =
@@ -378,10 +415,10 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
   }
   const values = insuranceValues(
     body,
-    await categoryId(env, nextType),
+    await categoryId(env, owner.businessAccountId, nextType),
     current(row),
   );
-  await assertReferences(env, values, row);
+  await assertReferences(env, owner.businessAccountId, values, row);
   const allocationInput = Object.hasOwn(body, 'allocationMethod')
     ? body
     : currentAllocationInput(row);
@@ -401,10 +438,14 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
     ),
   );
   const now = new Date().toISOString();
-  const until = await retention(env, values.purchaseDatetime);
+  const until = await retention(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   await env.DB.batch([
     env.DB.prepare(
-      `UPDATE expenses SET business_activity_id = ?, expense_category_id = ?, merchant_name = ?, purchase_datetime = ?, total_amount_minor = ?, currency = ?, gst_amount_minor = ?, gst_status = ?, description = ?, recurrence_type = ?, status = 'NEW', reviewed_by = NULL, reviewed_at = NULL, updated_at = ?, retention_until = ?, purge_eligible_at = ? WHERE id = ?`,
+      `UPDATE expenses SET business_activity_id = ?, expense_category_id = ?, merchant_name = ?, purchase_datetime = ?, total_amount_minor = ?, currency = ?, gst_amount_minor = ?, gst_status = ?, description = ?, recurrence_type = ?, status = 'NEW', reviewed_by = NULL, reviewed_at = NULL, updated_at = ?, retention_until = ?, purge_eligible_at = ? WHERE id = ? AND business_account_id = ?`,
     ).bind(
       values.businessActivityId,
       values.expenseCategoryId,
@@ -420,6 +461,7 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
       until,
       until,
       id,
+      owner.businessAccountId,
     ),
     env.DB.prepare(
       `UPDATE insurance_expense_details SET insurance_type = ?, provider = ?, policy_number = ?, policy_period_start = ?, policy_period_end = ?, vehicle_id = ? WHERE expense_id = ?`,
@@ -433,7 +475,7 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
       id,
     ),
     env.DB.prepare(
-      `UPDATE expense_allocations SET business_activity_id = ?, allocation_method = ?, percentage_basis_points = ?, allocated_amount_minor = ?, calculation_period_start = ?, calculation_period_end = ?, notes = ?, reviewed_by = ?, updated_at = ? WHERE id = ?`,
+      `UPDATE expense_allocations SET business_activity_id = ?, allocation_method = ?, percentage_basis_points = ?, allocated_amount_minor = ?, calculation_period_start = ?, calculation_period_end = ?, notes = ?, reviewed_by = ?, updated_at = ? WHERE id = ? AND business_account_id = ?`,
     ).bind(
       values.businessActivityId,
       allocation.allocationMethod,
@@ -445,6 +487,7 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
       allocationReviewer,
       now,
       row.allocation_id,
+      owner.businessAccountId,
     ),
   ]);
   await writeAudit(
@@ -456,8 +499,10 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
     `Insurance allocation changed from ${oldSummary} to ${allocationSummary(allocation)}.`,
     values.businessActivityId,
   );
-  const updated = await env.DB.prepare(`${select} WHERE expenses.id = ?`)
-    .bind(id)
+  const updated = await env.DB.prepare(
+    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
   if (!updated)
     throw new HttpError(500, 'Insurance expense could not be loaded.');
@@ -470,9 +515,9 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
   const body = await readJsonObject(request);
   const expenseId = getRequiredString(body, 'expenseId');
   const row = await env.DB.prepare(
-    `${select} WHERE expenses.id = ? AND expenses.expense_type = 'INSURANCE'`,
+    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ? AND expenses.expense_type = 'INSURANCE'`,
   )
-    .bind(expenseId)
+    .bind(expenseId, actor.businessAccountId)
     .first<InsuranceRow>();
   if (!row || !row.allocation_id)
     throw new HttpError(404, 'Insurance allocation not found.');
@@ -490,7 +535,7 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
   };
   const now = new Date().toISOString();
   await env.DB.prepare(
-    `UPDATE expense_allocations SET allocation_method = 'ACCOUNTANT_ADJUSTMENT', percentage_basis_points = ?, allocated_amount_minor = ?, calculation_period_start = ?, calculation_period_end = ?, notes = ?, reviewed_by = ?, updated_at = ? WHERE id = ?`,
+    `UPDATE expense_allocations SET allocation_method = 'ACCOUNTANT_ADJUSTMENT', percentage_basis_points = ?, allocated_amount_minor = ?, calculation_period_start = ?, calculation_period_end = ?, notes = ?, reviewed_by = ?, updated_at = ? WHERE id = ? AND business_account_id = ?`,
   )
     .bind(
       allocation.percentageBasisPoints,
@@ -501,6 +546,7 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
       actor.id,
       now,
       row.allocation_id,
+      actor.businessAccountId,
     )
     .run();
   await writeAudit(
@@ -512,8 +558,10 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
     `Allocation changed from ${allocationSummary(previous)} to ${allocationSummary(allocation)}.`,
     row.business_activity_id,
   );
-  const updated = await env.DB.prepare(`${select} WHERE expenses.id = ?`)
-    .bind(expenseId)
+  const updated = await env.DB.prepare(
+    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(expenseId, actor.businessAccountId)
     .first<InsuranceRow>();
   if (!updated)
     throw new HttpError(500, 'Insurance expense could not be loaded.');

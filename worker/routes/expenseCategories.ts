@@ -29,11 +29,16 @@ const serialize = (row: CategoryRow) => ({
   updatedAt: row.updated_at,
 });
 
-async function assertUnique(env: Env, name: string, excludedId = '') {
+async function assertUnique(
+  env: Env,
+  businessAccountId: string,
+  name: string,
+  excludedId = '',
+) {
   const duplicate = await env.DB.prepare(
-    'SELECT id FROM expense_categories WHERE name = ? AND id != ?',
+    'SELECT id FROM expense_categories WHERE business_account_id = ? AND name = ? AND id != ?',
   )
-    .bind(name, excludedId)
+    .bind(businessAccountId, name, excludedId)
     .first();
   if (duplicate)
     throw new HttpError(
@@ -43,10 +48,12 @@ async function assertUnique(env: Env, name: string, excludedId = '') {
 }
 
 export async function listExpenseCategories(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const result = await env.DB.prepare(
-    `${select} ORDER BY active DESC, name COLLATE NOCASE LIMIT 200`,
-  ).all<CategoryRow>();
+    `${select} WHERE business_account_id = ? ORDER BY active DESC, name COLLATE NOCASE LIMIT 200`,
+  )
+    .bind(actor.businessAccountId)
+    .all<CategoryRow>();
   return json({ categories: result.results.map(serialize) });
 }
 
@@ -55,13 +62,13 @@ export async function createExpenseCategory(request: Request, env: Env) {
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
   const name = expenseText(body.name, 'Category name', 100, true)!;
-  await assertUnique(env, name);
+  await assertUnique(env, owner.businessAccountId, name);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await env.DB.prepare(
-    'INSERT INTO expense_categories (id, name, active, system_key, created_at, updated_at) VALUES (?, ?, 1, NULL, ?, ?)',
+    'INSERT INTO expense_categories (id, business_account_id, name, active, system_key, created_at, updated_at) VALUES (?, ?, ?, 1, NULL, ?, ?)',
   )
-    .bind(id, name, now, now)
+    .bind(id, owner.businessAccountId, name, now, now)
     .run();
   await writeAudit(
     env,
@@ -91,8 +98,10 @@ export async function updateExpenseCategory(request: Request, env: Env) {
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
   const id = getRequiredString(body, 'id');
-  const row = await env.DB.prepare(`${select} WHERE id = ?`)
-    .bind(id)
+  const row = await env.DB.prepare(
+    `${select} WHERE id = ? AND business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<CategoryRow>();
   if (!row) throw new HttpError(404, 'Expense category not found.');
   const name = Object.hasOwn(body, 'name')
@@ -115,12 +124,12 @@ export async function updateExpenseCategory(request: Request, env: Env) {
       'Specialised expense categories must remain active for their workflows.',
     );
   }
-  await assertUnique(env, name, id);
+  await assertUnique(env, owner.businessAccountId, name, id);
   const now = new Date().toISOString();
   await env.DB.prepare(
-    'UPDATE expense_categories SET name = ?, active = ?, updated_at = ? WHERE id = ?',
+    'UPDATE expense_categories SET name = ?, active = ?, updated_at = ? WHERE id = ? AND business_account_id = ?',
   )
-    .bind(name, active ? 1 : 0, now, id)
+    .bind(name, active ? 1 : 0, now, id, owner.businessAccountId)
     .run();
   const action =
     row.active !== (active ? 1 : 0)

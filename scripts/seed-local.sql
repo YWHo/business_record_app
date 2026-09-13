@@ -25,6 +25,7 @@ UPDATE retention_settings SET updated_by = NULL;
 DELETE FROM development_outbox;
 DELETE FROM sessions;
 DELETE FROM invitations;
+DELETE FROM business_account_members;
 DELETE FROM users;
 DELETE FROM runtime_metadata;
 
@@ -33,6 +34,18 @@ VALUES
   ('dev-owner', 'owner@local.test', 'OWNER', 'ACTIVE', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
   ('dev-accountant', 'accountant@local.test', 'ACCOUNTANT', 'ACTIVE', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
   ('dev-disabled-accountant', 'disabled@local.test', 'ACCOUNTANT', 'DISABLED', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
+
+UPDATE business_accounts
+SET display_name = 'Local Business Records', updated_at = '2026-01-01T00:00:00.000Z'
+WHERE id = 'business-account-primary';
+
+INSERT INTO business_account_members (
+  business_account_id, user_id, role, status, created_at, updated_at
+)
+VALUES
+  ('business-account-primary', 'dev-owner', 'OWNER', 'ACTIVE', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+  ('business-account-primary', 'dev-accountant', 'ACCOUNTANT', 'ACTIVE', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+  ('business-account-primary', 'dev-disabled-accountant', 'ACCOUNTANT', 'DISABLED', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
 
 INSERT INTO business_activities (id, name, activity_type, active, started_at, ended_at, created_at, updated_at)
 VALUES

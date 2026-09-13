@@ -4,16 +4,43 @@ import type { AuthenticatedUser, Env } from '../types';
 import { deliverEmail } from './emailService';
 import { normalizeEmail } from './invitationService';
 
-export async function createSession(env: Env, userId: string): Promise<string> {
+export async function createSession(
+  env: Env,
+  userId: string,
+  businessAccountId?: string,
+): Promise<string> {
+  const membership = await env.DB.prepare(
+    `SELECT business_account_members.business_account_id
+       FROM business_account_members
+       JOIN business_accounts
+         ON business_accounts.id=business_account_members.business_account_id
+      WHERE business_account_members.user_id=?
+        AND business_account_members.status='ACTIVE'
+        AND business_accounts.status='ACTIVE'
+        ${businessAccountId ? 'AND business_account_members.business_account_id=?' : ''}
+      ORDER BY business_account_members.created_at
+      LIMIT 1`,
+  )
+    .bind(userId, ...(businessAccountId ? [businessAccountId] : []))
+    .first<{ business_account_id: string }>();
+  if (!membership)
+    throw new HttpError(401, 'Unable to sign in with those details.');
   const token = crypto.randomUUID() + crypto.randomUUID();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString();
 
   await env.DB.prepare(
-    `INSERT INTO sessions (token_hash, user_id, expires_at, created_at)
-     VALUES (?, ?, ?, ?)`,
+    `INSERT INTO sessions
+      (token_hash, user_id, business_account_id, expires_at, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
   )
-    .bind(await hashToken(token), userId, expiresAt, now.toISOString())
+    .bind(
+      await hashToken(token),
+      userId,
+      membership.business_account_id,
+      expiresAt,
+      now.toISOString(),
+    )
     .run();
 
   return token;
@@ -25,7 +52,17 @@ export async function requestLoginLink(
 ): Promise<void> {
   const email = normalizeEmail(rawEmail);
   const user = await env.DB.prepare(
-    `SELECT id, email, role, status FROM users WHERE email = ?`,
+    `SELECT users.id, users.email, users.status,
+            business_account_members.role,
+            business_account_members.business_account_id AS businessAccountId
+       FROM users
+       JOIN business_account_members ON business_account_members.user_id = users.id
+       JOIN business_accounts ON business_accounts.id = business_account_members.business_account_id
+      WHERE users.email = ?
+        AND business_account_members.status = 'ACTIVE'
+        AND business_accounts.status = 'ACTIVE'
+      ORDER BY business_account_members.created_at
+      LIMIT 1`,
   )
     .bind(email)
     .first<AuthenticatedUser>();

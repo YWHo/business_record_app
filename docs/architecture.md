@@ -16,11 +16,11 @@ The Vite plugin runs this topology locally in the Workers runtime and builds the
 
 ## Environments
 
-| Environment | D1                                            | R2                              | Authentication                                    |
-| ----------- | --------------------------------------------- | ------------------------------- | ------------------------------------------------- |
-| Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root      | Email outbox plus loopback-only seeded helper     |
-| Demo        | Dedicated synthetic-data database             | Dedicated synthetic-data bucket | Public seeded role switch; local helper disabled  |
-| Production  | Dedicated private database                    | Dedicated private bucket        | Email links, Turnstile, and local helper disabled |
+| Environment | D1                                            | R2                                   | Authentication                                    |
+| ----------- | --------------------------------------------- | ------------------------------------ | ------------------------------------------------- |
+| Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root           | Email outbox plus loopback-only seeded helper     |
+| Demo        | Dedicated immutable synthetic-data database   | Dedicated immutable synthetic bucket | Browser-local role simulation; no server session  |
+| Production  | Dedicated private database                    | Dedicated private bucket             | Email links, Turnstile, and local helper disabled |
 
 Bindings are deliberately non-inheritable in `wrangler.jsonc`, so every named environment declares its own resources and variables. Remote resource IDs remain placeholders until an operator creates each environment.
 
@@ -36,9 +36,17 @@ Owner bootstrap requires the configured email and an administrative secret. It c
 
 The local login helper selects only configured seeded identities and requires both `APP_ENV=local` and a loopback request hostname. It never bypasses normal route authorization.
 
-The public demo has a separate, deliberately narrow authentication route. It is available only when the Worker is configured as `APP_ENV=demo` with the demo helper enabled, accepts only an owner/accountant role rather than an email, maps that role to a configured synthetic identity, and creates the same ordinary session used by other authentication paths. Production and local environments return 404. Demo access is rate-limited, and every subsequent permission remains enforced by the normal Worker authorization boundary.
+The public demo has no real authentication route, session, or cookie. Owner/accountant selection is held in the current tab's `sessionStorage` solely to simulate UI permissions. The Worker independently treats every demo request as read-only, returns immutable synthetic records for bounded GET requests, and rejects every non-read API request before D1 or R2 work.
 
-Demo D1 is restored from a deterministic synthetic seed through an operator-only command that requires the exact remote demo target and always supplies both `--remote` and `--env demo`. The reset deletes active demo sessions along with visitor changes. Demo R2 is independently bound; discarded D1 attachment metadata makes prior visitor uploads unreachable, while a short bucket lifecycle policy should remove the orphaned bytes.
+Demo D1 is restored from a deterministic synthetic seed through an operator-only command that requires the exact remote demo target and always supplies both `--remote` and `--env demo`. Visitor edits, comments, status changes, tombstones, and temporary records form an IndexedDB overlay in that visitor's browser. Resetting the visible demo clears only that overlay. Demo document selection and preview stay browser-local and never reach the Worker or R2.
+
+## Workspace tenancy and legal identity
+
+`business_accounts` is the top-level application workspace. `business_entities` separately represents the real-world legal or trading entity, while `business_account_members` joins users to workspaces with an active role. `OWNER` means primary administrative controller of a workspace; it is not a claim about shareholding, directorship, beneficial ownership, trusteeship, or other legal control.
+
+Every business, detail, policy, collaboration, audit, and export row carries `business_account_id`. A normal request resolves its account from an active session and active membership; reads, writes, reference checks, and record-ID lookups bind that account again. Private R2 keys are generated as `business-accounts/<account-id>/...`. The initial private bootstrap creates the account, legal entity, first user, and OWNER membership in that order.
+
+The split leaves room for future signup, plans, billing, additional roles, multiple memberships, and platform-administered ownership/control transfer without redesigning record ownership. Version 1 implements none of those commercial workflows and deliberately exposes no self-service ownership transfer.
 
 ## Reference data lifecycle
 

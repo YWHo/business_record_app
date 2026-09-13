@@ -310,7 +310,7 @@ export function RecordsPage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
-                  uploadsEnabled={configuration?.environment !== 'demo'}
+                  localOnly={configuration?.environment === 'demo'}
                 />
               </article>
             ))}
@@ -396,7 +396,7 @@ export function RecordsPage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
-                  uploadsEnabled={configuration?.environment !== 'demo'}
+                  localOnly={configuration?.environment === 'demo'}
                 />
               </article>
             ))}

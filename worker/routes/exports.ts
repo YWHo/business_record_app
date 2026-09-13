@@ -45,13 +45,22 @@ const html = (value: unknown) =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
-function dateClause(column: string, from: string | null, to: string | null) {
+function dateClause(
+  table: string,
+  column: string,
+  businessAccountId: string,
+  from: string | null,
+  to: string | null,
+) {
   return from && to
     ? {
-        sql: ` AND substr(${column},1,10) BETWEEN ? AND ?`,
-        bindings: [from, to],
+        sql: ` AND ${table}.business_account_id=? AND substr(${column},1,10) BETWEEN ? AND ?`,
+        bindings: [businessAccountId, from, to],
       }
-    : { sql: '', bindings: [] };
+    : {
+        sql: ` AND ${table}.business_account_id=?`,
+        bindings: [businessAccountId],
+      };
 }
 
 const columns = (keys: string[]) => keys.map((key) => ({ key }));
@@ -74,25 +83,30 @@ async function textFile(path: string, contents: string) {
 }
 
 export async function exportStatus(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const settings = await env.DB.prepare(
-    'SELECT backup_reminder_days FROM retention_settings WHERE singleton_id=1',
-  ).first<{ backup_reminder_days: number }>();
+    'SELECT backup_reminder_days FROM retention_settings WHERE business_account_id=?',
+  )
+    .bind(actor.businessAccountId)
+    .first<{ backup_reminder_days: number }>();
   const latest = await env.DB.prepare(
     `SELECT export_history.id,export_history.export_scope,export_history.period_key,
       export_history.expected_record_count,export_history.expected_attachment_count,
       export_history.completed_at,users.email AS requested_by_email
      FROM export_history JOIN users ON users.id=export_history.requested_by
+     WHERE export_history.business_account_id=?
      ORDER BY export_history.completed_at DESC LIMIT 20`,
-  ).all<{
-    id: string;
-    export_scope: string;
-    period_key: string | null;
-    expected_record_count: number;
-    expected_attachment_count: number;
-    completed_at: string;
-    requested_by_email: string;
-  }>();
+  )
+    .bind(actor.businessAccountId)
+    .all<{
+      id: string;
+      export_scope: string;
+      period_key: string | null;
+      expected_record_count: number;
+      expected_attachment_count: number;
+      completed_at: string;
+      requested_by_email: string;
+    }>();
   const last = latest.results[0]?.completed_at ?? null;
   const reminderDays = settings?.backup_reminder_days ?? 30;
   return json({
@@ -130,8 +144,10 @@ export async function downloadExport(request: Request, env: Env) {
   );
   const settings = await env.DB.prepare(
     `SELECT retention_tax_years,tax_year_end_month,tax_year_end_day,backup_reminder_days
-     FROM retention_settings WHERE singleton_id=1`,
-  ).first<RetentionSettingsRow>();
+     FROM retention_settings WHERE business_account_id=?`,
+  )
+    .bind(actor.businessAccountId)
+    .first<RetentionSettingsRow>();
   if (!settings)
     throw new HttpError(500, 'Retention settings are unavailable.');
   const url = new URL(request.url);
@@ -143,21 +159,33 @@ export async function downloadExport(request: Request, env: Env) {
     settings.tax_year_end_day,
   );
   const expenseDate = dateClause(
+    'expenses',
     'expenses.purchase_datetime',
+    actor.businessAccountId,
     period.from,
     period.to,
   );
   const incomeDate = dateClause(
+    'income_records',
     'income_records.transaction_date',
+    actor.businessAccountId,
     period.from,
     period.to,
   );
   const sessionDate = dateClause(
+    'work_sessions',
     'work_sessions.started_at',
+    actor.businessAccountId,
     period.from,
     period.to,
   );
-  const auditDate = dateClause('audit_log.created_at', period.from, period.to);
+  const auditDate = dateClause(
+    'audit_log',
+    'audit_log.created_at',
+    actor.businessAccountId,
+    period.from,
+    period.to,
+  );
   const [expenses, income, sessions, fuel, parking, insurance, audit] =
     await Promise.all([
       env.DB.prepare(
@@ -314,25 +342,39 @@ export async function downloadExport(request: Request, env: Env) {
           income_reconciliations.notes,users.email AS reconciled_by_email,
           income_reconciliations.created_at,income_reconciliations.updated_at
          FROM income_reconciliations JOIN users ON users.id=income_reconciliations.reconciled_by
+         WHERE income_reconciliations.business_account_id=?
          ORDER BY income_reconciliations.created_at,income_reconciliations.id`,
-    ).all<Record<string, unknown>>(),
+    )
+      .bind(actor.businessAccountId)
+      .all<Record<string, unknown>>(),
     env.DB.prepare(
       `SELECT comments.id,comments.record_type,comments.record_id,users.email AS author_email,
           comments.message,comments.created_at FROM comments JOIN users ON users.id=comments.author_id
+         WHERE comments.business_account_id=?
          ORDER BY comments.created_at,comments.id`,
-    ).all<Record<string, unknown>>(),
+    )
+      .bind(actor.businessAccountId)
+      .all<Record<string, unknown>>(),
     env.DB.prepare(
-      'SELECT id,name,activity_type,active,started_at,ended_at,created_at,updated_at FROM business_activities ORDER BY name',
-    ).all<Record<string, unknown>>(),
+      'SELECT id,name,activity_type,active,started_at,ended_at,created_at,updated_at FROM business_activities WHERE business_account_id=? ORDER BY name',
+    )
+      .bind(actor.businessAccountId)
+      .all<Record<string, unknown>>(),
     env.DB.prepare(
-      'SELECT id,registration,description,active,acquired_at,retired_at,notes,created_at,updated_at FROM vehicles ORDER BY registration',
-    ).all<Record<string, unknown>>(),
+      'SELECT id,registration,description,active,acquired_at,retired_at,notes,created_at,updated_at FROM vehicles WHERE business_account_id=? ORDER BY registration',
+    )
+      .bind(actor.businessAccountId)
+      .all<Record<string, unknown>>(),
     env.DB.prepare(
-      'SELECT id,name,active,system_key,created_at,updated_at FROM expense_categories ORDER BY name',
-    ).all<Record<string, unknown>>(),
+      'SELECT id,name,active,system_key,created_at,updated_at FROM expense_categories WHERE business_account_id=? ORDER BY name',
+    )
+      .bind(actor.businessAccountId)
+      .all<Record<string, unknown>>(),
     env.DB.prepare(
-      'SELECT id,name,active,notes,created_at,updated_at FROM clients ORDER BY name',
-    ).all<Record<string, unknown>>(),
+      'SELECT id,name,active,notes,created_at,updated_at FROM clients WHERE business_account_id=? ORDER BY name',
+    )
+      .bind(actor.businessAccountId)
+      .all<Record<string, unknown>>(),
   ]);
   const scopedReconciliations = reconciliations.results.filter((row) =>
     incomeIds.has(String(row.income_id)),
@@ -344,8 +386,10 @@ export async function downloadExport(request: Request, env: Env) {
     `SELECT id,record_type,record_id,version_group_id,version_number,original_filename,
       object_key,mime_type,file_size,sha256,created_at,display_rotation_degrees
       FROM attachments
-     WHERE purged_at IS NULL ORDER BY record_type,record_id,version_group_id,version_number`,
-  ).all<AttachmentExportRow>();
+     WHERE business_account_id=? AND purged_at IS NULL ORDER BY record_type,record_id,version_group_id,version_number`,
+  )
+    .bind(actor.businessAccountId)
+    .all<AttachmentExportRow>();
   const attachments = attachmentRows.results.filter((row) =>
     recordKeys.has(`${row.record_type}:${row.record_id}`),
   );
@@ -781,12 +825,13 @@ export async function downloadExport(request: Request, env: Env) {
   ];
   const archive = storedZip(archiveEntries, generatedAt);
   await env.DB.prepare(
-    `INSERT INTO export_history (id,requested_by,export_scope,period_key,expected_record_count,
+    `INSERT INTO export_history (id,business_account_id,requested_by,export_scope,period_key,expected_record_count,
       expected_attachment_count,exported_attachment_count,manifest_sha256,completed_at)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?)`,
   )
     .bind(
       exportId,
+      actor.businessAccountId,
       actor.id,
       period.scope,
       period.periodKey,

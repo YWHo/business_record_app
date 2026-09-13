@@ -16,6 +16,10 @@ import {
   enforceRateLimit,
 } from '../services/securityService';
 import type { AuthenticatedUser, Env } from '../types';
+import {
+  PRIMARY_BUSINESS_ACCOUNT_ID,
+  PRIMARY_BUSINESS_ENTITY_ID,
+} from '../services/tenantService';
 
 function requireAccountAdministration(env: Env): void {
   if (env.APP_ENV === 'demo') {
@@ -50,8 +54,16 @@ export async function bootstrapOwner(
 
   const email = normalizeEmail(expectedEmail);
   const owner = await env.DB.prepare(
-    "SELECT id, email, role, status FROM users WHERE role = 'OWNER'",
-  ).first<AuthenticatedUser>();
+    `SELECT users.id, users.email, business_account_members.role,
+            business_account_members.status,
+            business_account_members.business_account_id AS businessAccountId
+       FROM business_account_members
+       JOIN users ON users.id = business_account_members.user_id
+      WHERE business_account_members.business_account_id = ?
+        AND business_account_members.role = 'OWNER'`,
+  )
+    .bind(PRIMARY_BUSINESS_ACCOUNT_ID)
+    .first<AuthenticatedUser>();
 
   if (owner) {
     if (normalizeEmail(owner.email) !== email) {
@@ -65,6 +77,19 @@ export async function bootstrapOwner(
   }
 
   const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO business_accounts
+        (id, display_name, status, plan, subscription_status, created_at, updated_at)
+       VALUES (?, 'Business Records', 'ACTIVE', 'PRIVATE', 'ACTIVE', ?, ?)`,
+    ).bind(PRIMARY_BUSINESS_ACCOUNT_ID, now, now),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO business_entities
+        (id, business_account_id, entity_type, legal_name, trading_name, country,
+         active, created_at, updated_at)
+       VALUES (?, ?, 'SOLE_TRADER', NULL, NULL, 'NZ', 1, ?, ?)`,
+    ).bind(PRIMARY_BUSINESS_ENTITY_ID, PRIMARY_BUSINESS_ACCOUNT_ID, now, now),
+  ]);
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
     .bind(email)
     .first<{ id: string }>();
@@ -87,9 +112,19 @@ export async function bootstrapOwner(
       .run();
   }
 
+  await env.DB.prepare(
+    `INSERT INTO business_account_members
+      (business_account_id, user_id, role, status, created_at, updated_at)
+     VALUES (?, ?, 'OWNER', 'ACTIVE', ?, ?)
+     ON CONFLICT(business_account_id, user_id) DO UPDATE SET
+       role = 'OWNER', status = 'ACTIVE', updated_at = excluded.updated_at`,
+  )
+    .bind(PRIMARY_BUSINESS_ACCOUNT_ID, ownerId, now, now)
+    .run();
+
   await writeAudit(
     env,
-    { id: ownerId },
+    { id: ownerId, businessAccountId: PRIMARY_BUSINESS_ACCOUNT_ID },
     'OWNER_BOOTSTRAPPED',
     'USER',
     ownerId,
@@ -106,10 +141,15 @@ export async function listUsers(request: Request, env: Env): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const result = await env.DB.prepare(
-    `SELECT id, email, role, status, created_at, updated_at
-       FROM users
-      ORDER BY role DESC, email`,
-  ).all();
+    `SELECT users.id, users.email, business_account_members.role,
+            business_account_members.status, users.created_at, users.updated_at
+       FROM business_account_members
+       JOIN users ON users.id = business_account_members.user_id
+      WHERE business_account_members.business_account_id = ?
+      ORDER BY business_account_members.role DESC, users.email`,
+  )
+    .bind(owner.businessAccountId)
+    .all();
   return json({ users: result.results });
 }
 
@@ -123,9 +163,11 @@ export async function disableUser(
   const body = await readJsonObject(request);
   const userId = getRequiredString(body, 'userId');
   const target = await env.DB.prepare(
-    'SELECT id, role, status FROM users WHERE id = ?',
+    `SELECT user_id AS id, role, status
+       FROM business_account_members
+      WHERE user_id = ? AND business_account_id = ?`,
   )
-    .bind(userId)
+    .bind(userId, owner.businessAccountId)
     .first<{ id: string; role: string; status: string }>();
 
   if (!target) {
@@ -140,9 +182,13 @@ export async function disableUser(
     const now = new Date().toISOString();
     await env.DB.batch([
       env.DB.prepare(
-        "UPDATE users SET status = 'DISABLED', updated_at = ? WHERE id = ?",
-      ).bind(now, userId),
-      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
+        `UPDATE business_account_members
+            SET status = 'DISABLED', updated_at = ?
+          WHERE user_id = ? AND business_account_id = ?`,
+      ).bind(now, userId, owner.businessAccountId),
+      env.DB.prepare(
+        'DELETE FROM sessions WHERE user_id = ? AND business_account_id = ?',
+      ).bind(userId, owner.businessAccountId),
     ]);
     await writeAudit(
       env,
@@ -172,9 +218,10 @@ export async function listInvitations(
               ELSE 'PENDING'
             END AS status
        FROM invitations
+      WHERE business_account_id = ?
       ORDER BY created_at DESC`,
   )
-    .bind(now)
+    .bind(now, owner.businessAccountId)
     .all();
   return json({ invitations: result.results });
 }

@@ -770,7 +770,7 @@ export function InsurancePage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={isOwner}
-                  uploadsEnabled={configuration?.environment !== 'demo'}
+                  localOnly={configuration?.environment === 'demo'}
                 />
               </article>
             ))}

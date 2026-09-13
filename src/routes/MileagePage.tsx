@@ -503,7 +503,7 @@ export function MileagePage() {
                   recordType="WORK_SESSION"
                   recordId={session.id}
                   canManage={canManage}
-                  uploadsEnabled={configuration?.environment !== 'demo'}
+                  localOnly={configuration?.environment === 'demo'}
                 />
               </article>
             ))}

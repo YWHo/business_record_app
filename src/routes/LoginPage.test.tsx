@@ -32,6 +32,7 @@ describe('LoginPage demo roles', () => {
       localLogin: vi.fn(),
       demoLogin,
       logout: vi.fn(),
+      resetDemo: vi.fn(),
     });
   });
 

@@ -17,7 +17,8 @@ import {
 } from '../services/reviewService';
 import type { Env } from '../types';
 
-const transactionProjection = `SELECT expenses.id, 'EXPENSE' AS record_type,
+const transactionProjection = `SELECT expenses.id, expenses.business_account_id,
+  'EXPENSE' AS record_type,
   expenses.expense_type AS subtype, substr(expenses.purchase_datetime, 1, 10) AS transaction_date,
   expenses.business_activity_id, business_activities.name AS activity_name,
   expenses.merchant_name AS counterparty, expenses.total_amount_minor,
@@ -27,7 +28,7 @@ const transactionProjection = `SELECT expenses.id, 'EXPENSE' AS record_type,
     insurance_expense_details.vehicle_id) AS vehicle_id,
   vehicles.registration AS vehicle_registration,
   expenses.reviewed_by, reviewers.email AS reviewer_email, expenses.reviewed_at,
-  (SELECT COUNT(*) FROM attachments WHERE record_type='EXPENSE' AND record_id=expenses.id AND is_current=1 AND purged_at IS NULL) AS attachment_count
+  (SELECT COUNT(*) FROM attachments WHERE business_account_id=expenses.business_account_id AND record_type='EXPENSE' AND record_id=expenses.id AND is_current=1 AND purged_at IS NULL) AS attachment_count
   FROM expenses
   LEFT JOIN business_activities ON business_activities.id=expenses.business_activity_id
   LEFT JOIN expense_categories ON expense_categories.id=expenses.expense_category_id
@@ -39,7 +40,8 @@ const transactionProjection = `SELECT expenses.id, 'EXPENSE' AS record_type,
   LEFT JOIN users AS reviewers ON reviewers.id=expenses.reviewed_by
   WHERE expenses.deleted_at IS NULL
   UNION ALL
-  SELECT income_records.id, 'INCOME' AS record_type,
+  SELECT income_records.id, income_records.business_account_id,
+  'INCOME' AS record_type,
   income_records.income_type AS subtype, income_records.transaction_date,
   income_records.business_activity_id, business_activities.name AS activity_name,
   COALESCE(platform_income_details.provider_name, clients.name,
@@ -48,7 +50,7 @@ const transactionProjection = `SELECT expenses.id, 'EXPENSE' AS record_type,
   NULL AS category_id, NULL AS category_name, NULL AS vehicle_id,
   NULL AS vehicle_registration, income_records.reviewed_by,
   reviewers.email AS reviewer_email, income_records.reviewed_at,
-  (SELECT COUNT(*) FROM attachments WHERE record_type='INCOME' AND record_id=income_records.id AND is_current=1 AND purged_at IS NULL) AS attachment_count
+  (SELECT COUNT(*) FROM attachments WHERE business_account_id=income_records.business_account_id AND record_type='INCOME' AND record_id=income_records.id AND is_current=1 AND purged_at IS NULL) AS attachment_count
   FROM income_records
   JOIN business_activities ON business_activities.id=income_records.business_activity_id
   LEFT JOIN platform_income_details ON platform_income_details.income_id=income_records.id
@@ -59,6 +61,7 @@ const transactionProjection = `SELECT expenses.id, 'EXPENSE' AS record_type,
 
 interface TransactionRow {
   id: string;
+  business_account_id: string;
   record_type: 'EXPENSE' | 'INCOME';
   subtype: string;
   transaction_date: string;
@@ -100,10 +103,10 @@ function integerMoney(value: string | null, label: string) {
 }
 
 export async function listTransactions(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const url = new URL(request.url),
-    where: string[] = [],
-    bindings: unknown[] = [];
+    where: string[] = ['business_account_id = ?'],
+    bindings: unknown[] = [actor.businessAccountId];
   const add = (sql: string, value: unknown) => {
     where.push(sql);
     bindings.push(value);
@@ -232,6 +235,7 @@ interface ReviewParent {
 }
 async function reviewParent(
   env: Env,
+  businessAccountId: string,
   recordType: ReviewRecordType,
   id: string,
 ) {
@@ -241,9 +245,10 @@ async function reviewParent(
     WORK_SESSION: 'work_sessions',
   } as const;
   const row = await env.DB.prepare(
-    `SELECT id,status,business_activity_id FROM ${tables[recordType]} WHERE id=? AND deleted_at IS NULL`,
+    `SELECT id,status,business_activity_id FROM ${tables[recordType]}
+      WHERE id=? AND business_account_id=? AND deleted_at IS NULL`,
   )
-    .bind(id)
+    .bind(id, businessAccountId)
     .first<ReviewParent>();
   if (!row) throw new HttpError(404, 'Record not found.');
   return row;
@@ -255,7 +260,12 @@ export async function updateRecordStatus(request: Request, env: Env) {
   const recordType = reviewRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
     status = reviewStatus(body.status);
-  const current = await reviewParent(env, recordType, id);
+  const current = await reviewParent(
+    env,
+    actor.businessAccountId,
+    recordType,
+    id,
+  );
   ensureStatusPermission(actor.role, current.status, status);
   if (current.status === status)
     return json({ record: { id, recordType, status } });
@@ -266,8 +276,10 @@ export async function updateRecordStatus(request: Request, env: Env) {
   }[recordType];
   const now = new Date().toISOString();
   if (recordType === 'WORK_SESSION' || status === 'PROCESSED') {
-    await env.DB.prepare(`UPDATE ${table} SET status=?,updated_at=? WHERE id=?`)
-      .bind(status, now, id)
+    await env.DB.prepare(
+      `UPDATE ${table} SET status=?,updated_at=? WHERE id=? AND business_account_id=?`,
+    )
+      .bind(status, now, id, actor.businessAccountId)
       .run();
   } else {
     const reviewer = ['REVIEWED', 'PROCESSED'].includes(status)
@@ -275,9 +287,9 @@ export async function updateRecordStatus(request: Request, env: Env) {
       : null;
     const reviewedAt = reviewer ? now : null;
     await env.DB.prepare(
-      `UPDATE ${table} SET status=?,reviewed_by=?,reviewed_at=?,updated_at=? WHERE id=?`,
+      `UPDATE ${table} SET status=?,reviewed_by=?,reviewed_at=?,updated_at=? WHERE id=? AND business_account_id=?`,
     )
-      .bind(status, reviewer, reviewedAt, now, id)
+      .bind(status, reviewer, reviewedAt, now, id, actor.businessAccountId)
       .run();
   }
   await writeAudit(
@@ -292,9 +304,9 @@ export async function updateRecordStatus(request: Request, env: Env) {
   const retainedReview =
     status === 'PROCESSED' && recordType !== 'WORK_SESSION'
       ? await env.DB.prepare(
-          `SELECT users.email AS reviewer_email, ${table}.reviewed_at FROM ${table} LEFT JOIN users ON users.id=${table}.reviewed_by WHERE ${table}.id=?`,
+          `SELECT users.email AS reviewer_email, ${table}.reviewed_at FROM ${table} LEFT JOIN users ON users.id=${table}.reviewed_by WHERE ${table}.id=? AND ${table}.business_account_id=?`,
         )
-          .bind(id)
+          .bind(id, actor.businessAccountId)
           .first<{
             reviewer_email: string | null;
             reviewed_at: string | null;
@@ -325,7 +337,13 @@ interface CommentRow {
   author_email: string;
   author_role: string;
 }
-const commentSelect = `SELECT comments.id,comments.record_type,comments.record_id,comments.message,comments.created_at,comments.author_id,users.email AS author_email,users.role AS author_role FROM comments JOIN users ON users.id=comments.author_id`;
+const commentSelect = `SELECT comments.id,comments.record_type,comments.record_id,
+  comments.message,comments.created_at,comments.author_id,
+  users.email AS author_email,business_account_members.role AS author_role
+  FROM comments JOIN users ON users.id=comments.author_id
+  JOIN business_account_members
+    ON business_account_members.user_id=comments.author_id
+   AND business_account_members.business_account_id=comments.business_account_id`;
 const commentJson = (row: CommentRow) => ({
   id: row.id,
   recordType: row.record_type,
@@ -337,16 +355,16 @@ const commentJson = (row: CommentRow) => ({
   authorRole: row.author_role,
 });
 export async function listComments(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const url = new URL(request.url);
   const recordType = reviewRecordType(url.searchParams.get('recordType'));
   const recordId = url.searchParams.get('recordId')?.trim();
   if (!recordId) throw new HttpError(400, 'recordId is required.');
-  await reviewParent(env, recordType, recordId);
+  await reviewParent(env, actor.businessAccountId, recordType, recordId);
   const rows = await env.DB.prepare(
-    `${commentSelect} WHERE comments.record_type=? AND comments.record_id=? ORDER BY comments.created_at,comments.id LIMIT 200`,
+    `${commentSelect} WHERE comments.business_account_id=? AND comments.record_type=? AND comments.record_id=? ORDER BY comments.created_at,comments.id LIMIT 200`,
   )
-    .bind(recordType, recordId)
+    .bind(actor.businessAccountId, recordType, recordId)
     .all<CommentRow>();
   return json({ comments: rows.results.map(commentJson) });
 }
@@ -355,7 +373,12 @@ export async function createComment(request: Request, env: Env) {
     body = await readJsonObject(request);
   const recordType = reviewRecordType(body.recordType),
     recordId = getRequiredString(body, 'recordId');
-  const target = await reviewParent(env, recordType, recordId);
+  const target = await reviewParent(
+    env,
+    actor.businessAccountId,
+    recordType,
+    recordId,
+  );
   const message = expenseText(body.message, 'Comment', 4000, true)!;
   const row: CommentRow = {
     id: crypto.randomUUID(),
@@ -368,9 +391,17 @@ export async function createComment(request: Request, env: Env) {
     author_role: actor.role,
   };
   await env.DB.prepare(
-    'INSERT INTO comments (id,record_type,record_id,author_id,message,created_at) VALUES (?,?,?,?,?,?)',
+    'INSERT INTO comments (id,business_account_id,record_type,record_id,author_id,message,created_at) VALUES (?,?,?,?,?,?,?)',
   )
-    .bind(row.id, recordType, recordId, actor.id, message, row.created_at)
+    .bind(
+      row.id,
+      actor.businessAccountId,
+      recordType,
+      recordId,
+      actor.id,
+      message,
+      row.created_at,
+    )
     .run();
   await writeAudit(
     env,
@@ -435,9 +466,9 @@ export async function listSavedFilters(request: Request, env: Env) {
   const rawType = new URL(request.url).searchParams.get('filterType');
   const type = rawType ? savedFilterType(rawType) : null;
   const rows = await env.DB.prepare(
-    `SELECT id,name,filter_type,criteria_json,created_at,updated_at FROM saved_filters WHERE user_id=?${type ? ' AND filter_type=?' : ''} ORDER BY name COLLATE NOCASE LIMIT 100`,
+    `SELECT id,name,filter_type,criteria_json,created_at,updated_at FROM saved_filters WHERE business_account_id=? AND user_id=?${type ? ' AND filter_type=?' : ''} ORDER BY name COLLATE NOCASE LIMIT 100`,
   )
-    .bind(actor.id, ...(type ? [type] : []))
+    .bind(actor.businessAccountId, actor.id, ...(type ? [type] : []))
     .all<FilterRow>();
   return json({ savedFilters: rows.results.map(filterJson) });
 }
@@ -451,9 +482,18 @@ export async function createSavedFilter(request: Request, env: Env) {
     id = crypto.randomUUID();
   try {
     await env.DB.prepare(
-      'INSERT INTO saved_filters (id,user_id,name,filter_type,criteria_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?)',
+      'INSERT INTO saved_filters (id,business_account_id,user_id,name,filter_type,criteria_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)',
     )
-      .bind(id, actor.id, name, filterType, criteriaJson, now, now)
+      .bind(
+        id,
+        actor.businessAccountId,
+        actor.id,
+        name,
+        filterType,
+        criteriaJson,
+        now,
+        now,
+      )
       .run();
   } catch {
     throw new HttpError(409, 'A saved filter with this name already exists.');
@@ -477,9 +517,9 @@ export async function updateSavedFilter(request: Request, env: Env) {
     body = await readJsonObject(request),
     id = getRequiredString(body, 'id');
   const row = await env.DB.prepare(
-    'SELECT id,name,filter_type,criteria_json,created_at,updated_at FROM saved_filters WHERE id=? AND user_id=?',
+    'SELECT id,name,filter_type,criteria_json,created_at,updated_at FROM saved_filters WHERE id=? AND business_account_id=? AND user_id=?',
   )
-    .bind(id, actor.id)
+    .bind(id, actor.businessAccountId, actor.id)
     .first<FilterRow>();
   if (!row) throw new HttpError(404, 'Saved filter not found.');
   const name = Object.hasOwn(body, 'name')
@@ -494,9 +534,17 @@ export async function updateSavedFilter(request: Request, env: Env) {
   const updatedAt = new Date().toISOString();
   try {
     await env.DB.prepare(
-      'UPDATE saved_filters SET name=?,filter_type=?,criteria_json=?,updated_at=? WHERE id=? AND user_id=?',
+      'UPDATE saved_filters SET name=?,filter_type=?,criteria_json=?,updated_at=? WHERE id=? AND business_account_id=? AND user_id=?',
     )
-      .bind(name, filterType, criteriaJson, updatedAt, id, actor.id)
+      .bind(
+        name,
+        filterType,
+        criteriaJson,
+        updatedAt,
+        id,
+        actor.businessAccountId,
+        actor.id,
+      )
       .run();
   } catch {
     throw new HttpError(409, 'A saved filter with this name already exists.');
@@ -516,9 +564,9 @@ export async function deleteSavedFilter(request: Request, env: Env) {
     body = await readJsonObject(request),
     id = getRequiredString(body, 'id');
   const result = await env.DB.prepare(
-    'DELETE FROM saved_filters WHERE id=? AND user_id=?',
+    'DELETE FROM saved_filters WHERE id=? AND business_account_id=? AND user_id=?',
   )
-    .bind(id, actor.id)
+    .bind(id, actor.businessAccountId, actor.id)
     .run();
   if (!result.meta.changes) throw new HttpError(404, 'Saved filter not found.');
   return json({ deleted: true });

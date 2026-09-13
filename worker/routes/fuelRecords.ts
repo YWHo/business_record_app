@@ -113,17 +113,22 @@ function currentValues(row: FuelRow): FuelValues {
 
 async function assertReferences(
   env: Env,
+  businessAccountId: string,
   values: FuelValues,
   current?: FuelRow,
 ) {
   const [activity, vehicle] = await Promise.all([
     values.businessActivityId
-      ? env.DB.prepare('SELECT active FROM business_activities WHERE id = ?')
-          .bind(values.businessActivityId)
+      ? env.DB.prepare(
+          'SELECT active FROM business_activities WHERE id = ? AND business_account_id = ?',
+        )
+          .bind(values.businessActivityId, businessAccountId)
           .first<{ active: number }>()
       : Promise.resolve(null),
-    env.DB.prepare('SELECT active FROM vehicles WHERE id = ?')
-      .bind(values.vehicleId)
+    env.DB.prepare(
+      'SELECT active FROM vehicles WHERE id = ? AND business_account_id = ?',
+    )
+      .bind(values.vehicleId, businessAccountId)
       .first<{ active: number }>(),
   ]);
   if (
@@ -142,10 +147,16 @@ async function assertReferences(
   }
 }
 
-async function retentionDate(env: Env, occurredAt: string): Promise<string> {
+async function retentionDate(
+  env: Env,
+  businessAccountId: string,
+  occurredAt: string,
+): Promise<string> {
   const settings = await env.DB.prepare(
-    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE singleton_id = 1',
-  ).first<RetentionSettings>();
+    'SELECT retention_tax_years, tax_year_end_month, tax_year_end_day FROM retention_settings WHERE business_account_id = ?',
+  )
+    .bind(businessAccountId)
+    .first<RetentionSettings>();
   if (!settings)
     throw new HttpError(503, 'Retention settings are unavailable.');
   return calculateRetentionDate(
@@ -180,10 +191,12 @@ export async function listFuelRecords(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const result = await env.DB.prepare(
-    `${fuelSelect} ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
-  ).all<FuelRow>();
+    `${fuelSelect} AND expenses.business_account_id = ? ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
+  )
+    .bind(actor.businessAccountId)
+    .all<FuelRow>();
   return json({ fuelRecords: result.results.map(serialize) });
 }
 
@@ -195,27 +208,34 @@ export async function createFuelRecord(
   requireRole(owner, ['OWNER']);
   const input = await readJsonObject(request);
   const values = fuelValues(input);
-  await assertReferences(env, values);
+  await assertReferences(env, owner.businessAccountId, values);
   const warningResponse = confirmationRequired(values, input);
   if (warningResponse) return warningResponse;
   const category = await env.DB.prepare(
-    "SELECT id FROM expense_categories WHERE system_key = 'FUEL' AND active = 1",
-  ).first<{ id: string }>();
+    "SELECT id FROM expense_categories WHERE business_account_id = ? AND system_key = 'FUEL' AND active = 1",
+  )
+    .bind(owner.businessAccountId)
+    .first<{ id: string }>();
   if (!category)
     throw new HttpError(503, 'Fuel expense category is unavailable.');
-  const retentionUntil = await retentionDate(env, values.purchaseDatetime);
+  const retentionUntil = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO expenses
-        (id, business_activity_id, expense_type, expense_category_id, merchant_name,
+        (id, business_account_id, business_activity_id, expense_type, expense_category_id, merchant_name,
          purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
          description, recurrence_type, status, created_by, created_at, updated_at,
          retention_until, purge_eligible_at)
-       VALUES (?, ?, 'FUEL', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, 'FUEL', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
     ).bind(
       id,
+      owner.businessAccountId,
       values.businessActivityId,
       category.id,
       values.merchantName,
@@ -234,11 +254,12 @@ export async function createFuelRecord(
     ),
     env.DB.prepare(
       `INSERT INTO fuel_expense_details
-        (expense_id, vehicle_id, fuel_station, fuel_price_micros_per_litre,
+        (expense_id, business_account_id, vehicle_id, fuel_station, fuel_price_micros_per_litre,
          fuel_litres, odometer_km, fill_type, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       id,
+      owner.businessAccountId,
       values.vehicleId,
       values.fuelStation,
       values.fuelPriceMicrosPerLitre,
@@ -257,8 +278,10 @@ export async function createFuelRecord(
     'Fuel expense created.',
     values.businessActivityId,
   );
-  const row = await env.DB.prepare(`${fuelSelect} AND expenses.id = ?`)
-    .bind(id)
+  const row = await env.DB.prepare(
+    `${fuelSelect} AND expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<FuelRow>();
   if (!row) throw new HttpError(500, 'Fuel expense could not be loaded.');
   return json({ fuelRecord: serialize(row) }, { status: 201 });
@@ -272,15 +295,21 @@ export async function updateFuelRecord(
   requireRole(owner, ['OWNER']);
   const input = await readJsonObject(request);
   const id = getRequiredString(input, 'id');
-  const row = await env.DB.prepare(`${fuelSelect} AND expenses.id = ?`)
-    .bind(id)
+  const row = await env.DB.prepare(
+    `${fuelSelect} AND expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<FuelRow>();
   if (!row) throw new HttpError(404, 'Fuel expense not found.');
   const values = fuelValues(input, currentValues(row));
-  await assertReferences(env, values, row);
+  await assertReferences(env, owner.businessAccountId, values, row);
   const warningResponse = confirmationRequired(values, input);
   if (warningResponse) return warningResponse;
-  const retentionUntil = await retentionDate(env, values.purchaseDatetime);
+  const retentionUntil = await retentionDate(
+    env,
+    owner.businessAccountId,
+    values.purchaseDatetime,
+  );
   const now = new Date().toISOString();
   await env.DB.batch([
     env.DB.prepare(
@@ -288,7 +317,7 @@ export async function updateFuelRecord(
         total_amount_minor = ?, currency = ?, gst_amount_minor = ?, gst_status = ?,
         description = ?, recurrence_type = ?, status = 'NEW', reviewed_by = NULL,
         reviewed_at = NULL, updated_at = ?, retention_until = ?, purge_eligible_at = ?
-       WHERE id = ? AND expense_type = 'FUEL'`,
+       WHERE id = ? AND business_account_id = ? AND expense_type = 'FUEL'`,
     ).bind(
       values.businessActivityId,
       values.merchantName,
@@ -303,6 +332,7 @@ export async function updateFuelRecord(
       retentionUntil,
       retentionUntil,
       id,
+      owner.businessAccountId,
     ),
     env.DB.prepare(
       `UPDATE fuel_expense_details SET vehicle_id = ?, fuel_station = ?,
@@ -328,8 +358,10 @@ export async function updateFuelRecord(
     'Fuel expense updated.',
     values.businessActivityId,
   );
-  const updated = await env.DB.prepare(`${fuelSelect} AND expenses.id = ?`)
-    .bind(id)
+  const updated = await env.DB.prepare(
+    `${fuelSelect} AND expenses.id = ? AND expenses.business_account_id = ?`,
+  )
+    .bind(id, owner.businessAccountId)
     .first<FuelRow>();
   if (!updated) throw new HttpError(500, 'Fuel expense could not be loaded.');
   return json({ fuelRecord: serialize(updated) });

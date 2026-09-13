@@ -29,8 +29,9 @@ describe('deployed environment resource separation', () => {
     expect(production).not.toContain('business-records-demo-documents');
   });
 
-  it('keeps public demo authentication disabled in production', () => {
-    expect(demo).toMatch(/"DEMO_AUTH_ENABLED":\s*"true"/);
-    expect(production).toMatch(/"DEMO_AUTH_ENABLED":\s*"false"/);
+  it('does not configure server-side demo authentication identities', () => {
+    expect(demo).not.toContain('DEMO_AUTH_ENABLED');
+    expect(demo).not.toContain('DEMO_OWNER_EMAIL');
+    expect(production).not.toContain('DEMO_AUTH_ENABLED');
   });
 });

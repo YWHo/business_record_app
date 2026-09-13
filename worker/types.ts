@@ -8,9 +8,6 @@ export interface Env {
   DEV_OWNER_EMAIL: string;
   DEV_ACCOUNTANT_EMAIL: string;
   DEV_BOOTSTRAP_KEY: string;
-  DEMO_AUTH_ENABLED: string;
-  DEMO_OWNER_EMAIL: string;
-  DEMO_ACCOUNTANT_EMAIL: string;
   APP_ORIGIN: string;
   TURNSTILE_REQUIRED: string;
   TURNSTILE_SITE_KEY: string;
@@ -24,7 +21,6 @@ export interface Env {
   INVITE_RATE_LIMITER: RateLimiter;
   EXPENSIVE_RATE_LIMITER: RateLimiter;
   DEMO_READ_RATE_LIMITER?: RateLimiter;
-  DEMO_WRITE_RATE_LIMITER?: RateLimiter;
   DB: D1Database;
   DOCUMENTS: R2Bucket;
 }
@@ -38,4 +34,5 @@ export interface AuthenticatedUser {
   email: string;
   role: UserRole;
   status: UserStatus;
+  businessAccountId: string;
 }

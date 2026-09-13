@@ -2,7 +2,6 @@ import { HttpError, json, methodNotAllowed } from './lib/http';
 import {
   authConfiguration,
   currentUser,
-  loginToDemo,
   loginLocally,
   logout,
   requestLogin,
@@ -97,7 +96,6 @@ import {
 import { downloadExport, exportStatus } from './routes/exports';
 import { dashboard } from './routes/dashboard';
 import type { Env } from './types';
-import { sessionToken } from './auth/authorization';
 import {
   enforceRateLimit,
   requireSameOrigin,
@@ -127,7 +125,6 @@ const routes: Route[] = [
   { method: 'POST', pathname: '/api/auth/login', handler: requestLogin },
   { method: 'POST', pathname: '/api/auth/verify', handler: verifyLogin },
   { method: 'POST', pathname: '/api/auth/logout', handler: logout },
-  { method: 'POST', pathname: '/api/auth/demo', handler: loginToDemo },
   {
     method: 'GET',
     pathname: '/api/business-activities',
@@ -383,19 +380,17 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
 
   if (env.APP_ENV === 'demo' && pathname.startsWith('/api/')) {
-    const readOnly = request.method === 'GET' || request.method === 'HEAD';
-    const limiter = readOnly
-      ? env.DEMO_READ_RATE_LIMITER
-      : env.DEMO_WRITE_RATE_LIMITER;
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      throw new HttpError(
+        403,
+        'The public demo backend is read-only. Changes stay in this browser.',
+      );
+    }
+    const limiter = env.DEMO_READ_RATE_LIMITER;
     if (!limiter) {
       throw new HttpError(503, 'Demo protection is temporarily unavailable.');
     }
-    await enforceRateLimit(
-      request,
-      limiter,
-      readOnly ? 'demo-read' : 'demo-write',
-      sessionToken(request) ?? '',
-    );
+    await enforceRateLimit(request, limiter, 'demo-read');
   }
 
   const matchingPath = routes.filter((route) => route.pathname === pathname);

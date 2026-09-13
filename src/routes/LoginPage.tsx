@@ -57,7 +57,7 @@ export function LoginPage() {
         <h1 id="login-heading">Sign in</h1>
         <p>
           {configuration?.demoHelper
-            ? 'Explore fictional New Zealand business records. Demo changes are temporary and reset regularly.'
+            ? 'Explore fictional New Zealand business records. Your changes stay only in this browser until you reset them.'
             : 'We will send a single-use sign-in link to your registered email.'}
         </p>
         {configurationError ? (

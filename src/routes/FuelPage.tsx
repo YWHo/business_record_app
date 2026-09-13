@@ -575,7 +575,7 @@ export function FuelPage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
-                  uploadsEnabled={configuration?.environment !== 'demo'}
+                  localOnly={configuration?.environment === 'demo'}
                 />
               </article>
             ))}

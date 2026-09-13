@@ -46,11 +46,16 @@ function currentValues(row: ActivityRow): ActivityValues {
   };
 }
 
-async function assertUniqueName(env: Env, name: string, excludedId = '') {
+async function assertUniqueName(
+  env: Env,
+  businessAccountId: string,
+  name: string,
+  excludedId = '',
+) {
   const duplicate = await env.DB.prepare(
-    'SELECT id FROM business_activities WHERE name = ? AND id != ?',
+    'SELECT id FROM business_activities WHERE business_account_id = ? AND name = ? AND id != ?',
   )
-    .bind(name, excludedId)
+    .bind(businessAccountId, name, excludedId)
     .first();
   if (duplicate) {
     throw new HttpError(
@@ -64,12 +69,15 @@ export async function listActivities(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const result = await env.DB.prepare(
     `SELECT id, name, activity_type, active, started_at, ended_at, created_at, updated_at
        FROM business_activities
+      WHERE business_account_id = ?
       ORDER BY active DESC, name COLLATE NOCASE LIMIT 200`,
-  ).all<ActivityRow>();
+  )
+    .bind(actor.businessAccountId)
+    .all<ActivityRow>();
   return json({ activities: result.results.map(serialize) });
 }
 
@@ -80,16 +88,18 @@ export async function createActivity(
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const values = activityValues(await readJsonObject(request));
-  await assertUniqueName(env, values.name);
+  await assertUniqueName(env, owner.businessAccountId, values.name);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO business_activities
-      (id, name, activity_type, active, started_at, ended_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, business_account_id, name, activity_type, active, started_at,
+       ended_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
+      owner.businessAccountId,
       values.name,
       values.activityType,
       values.active ? 1 : 0,
@@ -139,19 +149,19 @@ export async function updateActivity(
   const id = getRequiredString(body, 'id');
   const row = await env.DB.prepare(
     `SELECT id, name, activity_type, active, started_at, ended_at, created_at, updated_at
-       FROM business_activities WHERE id = ?`,
+       FROM business_activities WHERE id = ? AND business_account_id = ?`,
   )
-    .bind(id)
+    .bind(id, owner.businessAccountId)
     .first<ActivityRow>();
   if (!row) throw new HttpError(404, 'Business activity not found.');
 
   const values = activityValues(body, currentValues(row));
-  await assertUniqueName(env, values.name, id);
+  await assertUniqueName(env, owner.businessAccountId, values.name, id);
   const now = new Date().toISOString();
   await env.DB.prepare(
     `UPDATE business_activities
         SET name = ?, activity_type = ?, active = ?, started_at = ?, ended_at = ?, updated_at = ?
-      WHERE id = ?`,
+      WHERE id = ? AND business_account_id = ?`,
   )
     .bind(
       values.name,
@@ -161,6 +171,7 @@ export async function updateActivity(
       values.endedAt,
       now,
       id,
+      owner.businessAccountId,
     )
     .run();
   const action =

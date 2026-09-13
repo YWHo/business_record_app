@@ -35,18 +35,26 @@ function scopeClause(
   from: string,
   to: string,
   activityId: string | null,
+  businessAccountId: string,
 ) {
   return {
-    sql: `substr(${alias}.${dateColumn},1,10) BETWEEN ? AND ?${activityId ? ` AND ${alias}.business_activity_id=?` : ''}`,
-    bindings: [from, to, ...(activityId ? [activityId] : [])],
+    sql: `${alias}.business_account_id=? AND substr(${alias}.${dateColumn},1,10) BETWEEN ? AND ?${activityId ? ` AND ${alias}.business_activity_id=?` : ''}`,
+    bindings: [
+      businessAccountId,
+      from,
+      to,
+      ...(activityId ? [activityId] : []),
+    ],
   };
 }
 
 export async function dashboard(request: Request, env: Env) {
-  await requireUser(request, env);
+  const actor = await requireUser(request, env);
   const settings = await env.DB.prepare(
-    'SELECT tax_year_end_month,tax_year_end_day FROM retention_settings WHERE singleton_id=1',
-  ).first<SettingsRow>();
+    'SELECT tax_year_end_month,tax_year_end_day FROM retention_settings WHERE business_account_id=?',
+  )
+    .bind(actor.businessAccountId)
+    .first<SettingsRow>();
   if (!settings) throw new HttpError(500, 'Tax-year settings are unavailable.');
   const url = new URL(request.url);
   const requestedTaxYear =
@@ -65,9 +73,9 @@ export async function dashboard(request: Request, env: Env) {
   const activityId = activityValue || null;
   if (activityId) {
     const activity = await env.DB.prepare(
-      'SELECT id FROM business_activities WHERE id=?',
+      'SELECT id FROM business_activities WHERE id=? AND business_account_id=?',
     )
-      .bind(activityId)
+      .bind(activityId, actor.businessAccountId)
       .first();
     if (!activity)
       throw new HttpError(400, 'Business activity filter is invalid.');
@@ -78,6 +86,7 @@ export async function dashboard(request: Request, env: Env) {
     period.from!,
     period.to!,
     activityId,
+    actor.businessAccountId,
   );
   const expenseScope = scopeClause(
     'expenses',
@@ -85,6 +94,7 @@ export async function dashboard(request: Request, env: Env) {
     period.from!,
     period.to!,
     activityId,
+    actor.businessAccountId,
   );
   const sessionScope = scopeClause(
     'work_sessions',
@@ -92,6 +102,7 @@ export async function dashboard(request: Request, env: Env) {
     period.from!,
     period.to!,
     activityId,
+    actor.businessAccountId,
   );
   const [
     incomeRows,

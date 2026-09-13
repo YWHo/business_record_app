@@ -11,7 +11,7 @@ Business Records is a private, invitation-only, source-visible portfolio applica
 - Put authoritative logic in the Cloudflare Worker backend. Never trust client-side authorization or validation alone.
 - Use Cloudflare D1 for relational data and private R2 bindings for files. Fully local development must work through simulated resources without a Cloudflare account.
 - Keep local, demo, and production resources strictly separate. Never commit secrets, real identities, or real financial records.
-- Keep the public demo read-mostly and cost-bounded. Do not enable demo binary uploads, dynamic archives, permanent purge, email, or destructive administration without a documented abuse/cost review and server-enforced limits. Demo-wide limiters must fail closed.
+- Keep the public demo backend strictly read-only and cost-bounded. Demo interaction belongs in the browser-local IndexedDB overlay; never enable demo D1/R2 mutations, dynamic archives, email, or destructive administration without a replacement specification and security review. Demo read limits must fail closed.
 - Use strict TypeScript, ESLint, Prettier, Vitest, React Testing Library, Playwright, and Storybook.
 - Add behavioural tests with each feature. Add meaningful Storybook stories for reusable UI components.
 - Keep collection responses bounded; paginate high-cardinality transaction and audit views and preserve the configured page-size/depth caps.
