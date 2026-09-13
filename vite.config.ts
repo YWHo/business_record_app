@@ -21,6 +21,12 @@ export default defineConfig({
         orientation: 'any',
         scope: '/',
         start_url: '/',
+        related_applications: [
+          {
+            platform: 'webapp',
+            url: '/manifest.webmanifest',
+          },
+        ],
         icons: [
           {
             src: '/app-icon.svg',
