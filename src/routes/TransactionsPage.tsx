@@ -34,6 +34,11 @@ interface SavedFilter {
   filterType: 'TRANSACTIONS' | 'RECEIPTS';
   criteria: Filters;
 }
+interface PageMetadata {
+  number: number;
+  size: number;
+  hasNext: boolean;
+}
 interface Comment {
   id: string;
   message: string;
@@ -232,7 +237,7 @@ function ReviewPanel({
 }
 
 export function TransactionsPage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
   const [mode, setMode] = useState<'TRANSACTIONS' | 'RECEIPTS'>('TRANSACTIONS');
   const [filters, setFilters] = useState<Filters>(emptyFilters),
     [records, setRecords] = useState<Transaction[]>([]),
@@ -240,6 +245,11 @@ export function TransactionsPage() {
     [categories, setCategories] = useState<Reference[]>([]),
     [vehicles, setVehicles] = useState<Reference[]>([]),
     [saved, setSaved] = useState<SavedFilter[]>([]),
+    [page, setPage] = useState<PageMetadata>({
+      number: 1,
+      size: 50,
+      hasNext: false,
+    }),
     [filterName, setFilterName] = useState(''),
     [summary, setSummary] = useState({
       resultCount: 0,
@@ -259,20 +269,29 @@ export function TransactionsPage() {
     setSaved(result.savedFilters);
   }, []);
   const search = useCallback(
-    async (activeFilters: Filters, activeMode: typeof mode) => {
+    async (activeFilters: Filters, activeMode: typeof mode, pageNumber = 1) => {
       const query = new URLSearchParams();
       for (const key of Object.keys(activeFilters) as Array<keyof Filters>) {
         const value = activeFilters[key];
         if (value) query.set(key, value);
       }
+      query.set('page', String(pageNumber));
       const result = await apiRequest<{
         transactions: Transaction[];
         summary: typeof summary;
+        page: PageMetadata;
       }>(
         `/api/${activeMode === 'RECEIPTS' ? 'receipts' : 'transactions'}?${query}`,
       );
       setRecords(result.transactions);
       setSummary(result.summary);
+      setPage(
+        result.page ?? {
+          number: pageNumber,
+          size: result.transactions.length || 50,
+          hasNext: false,
+        },
+      );
     },
     [],
   );
@@ -650,7 +669,9 @@ export function TransactionsPage() {
         <div className="section-heading">
           <div>
             <h2>{mode === 'RECEIPTS' ? 'Receipt log' : 'Transaction log'}</h2>
-            <p>Up to 500 matching records, newest first.</p>
+            <p>
+              Page {page.number} · up to {page.size} matching records.
+            </p>
           </div>
           <span className="count-badge">{records.length}</span>
         </div>
@@ -710,10 +731,29 @@ export function TransactionsPage() {
                   recordType={record.recordType}
                   recordId={record.id}
                   canManage={user?.role === 'OWNER'}
+                  uploadsEnabled={configuration?.environment !== 'demo'}
                 />
               ) : null}
             </article>
           ))}
+        </div>
+        <div className="button-row" aria-label="Transaction pages">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={page.number === 1}
+            onClick={() => void search(filters, mode, page.number - 1)}
+          >
+            Previous page
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!page.hasNext}
+            onClick={() => void search(filters, mode, page.number + 1)}
+          >
+            Next page
+          </button>
         </div>
       </section>
     </section>

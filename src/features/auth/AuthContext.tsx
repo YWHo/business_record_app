@@ -26,6 +26,7 @@ export interface AuthConfiguration {
 
 interface AuthContextValue {
   configuration: AuthConfiguration | null;
+  configurationError?: string;
   loading: boolean;
   user: AuthUser | null;
   refresh: () => Promise<void>;
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [configuration, setConfiguration] = useState<AuthConfiguration | null>(
     null,
   );
+  const [configurationError, setConfigurationError] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
 
@@ -93,7 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     void Promise.all([
-      apiRequest<AuthConfiguration>('/api/auth/config').catch(() => null),
+      apiRequest<AuthConfiguration>('/api/auth/config').catch((caught) => {
+        setConfigurationError(
+          caught instanceof Error
+            ? caught.message
+            : 'Application configuration is temporarily unavailable.',
+        );
+        return null;
+      }),
       apiRequest<{ user: AuthUser }>('/api/auth/me').catch(() => null),
     ]).then(([config, current]) => {
       if (!active) return;
@@ -109,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       configuration,
+      configurationError,
       loading,
       user,
       refresh,
@@ -131,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       },
     }),
-    [configuration, loading, refresh, user],
+    [configuration, configurationError, loading, refresh, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

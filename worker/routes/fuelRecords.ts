@@ -182,7 +182,7 @@ export async function listFuelRecords(
 ): Promise<Response> {
   await requireUser(request, env);
   const result = await env.DB.prepare(
-    `${fuelSelect} ORDER BY expenses.purchase_datetime DESC`,
+    `${fuelSelect} ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
   ).all<FuelRow>();
   return json({ fuelRecords: result.results.map(serialize) });
 }

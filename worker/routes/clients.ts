@@ -38,7 +38,7 @@ async function unique(env: Env, name: string, excluded = '') {
 export async function listClients(request: Request, env: Env) {
   await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${select} ORDER BY active DESC, name COLLATE NOCASE`,
+    `${select} ORDER BY active DESC, name COLLATE NOCASE LIMIT 200`,
   ).all<ClientRow>();
   return json({ clients: rows.results.map(serialize) });
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackupReminder } from '../features/exports/BackupReminder';
-import { apiRequest } from '../features/auth/AuthContext';
+import { apiRequest, useAuth } from '../features/auth/AuthContext';
 
 interface ExportHistory {
   id: string;
@@ -16,6 +16,8 @@ interface ExportStatus {
 }
 
 export function ExportsPage() {
+  const { configuration } = useAuth();
+  const isDemo = configuration?.environment === 'demo';
   const now = new Date();
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const initialTaxYear = String(
@@ -69,50 +71,62 @@ export function ExportsPage() {
       ) : null}
       <section className="panel">
         <h2>Create an export</h2>
-        <p>
-          Exporting never removes, archives, or changes the cloud records. The
-          same period can be downloaded again whenever needed.
-        </p>
-        <div className="work-session-form">
-          <label>
-            Export scope
-            <select
-              value={scope}
-              onChange={(event) => setScope(event.target.value as typeof scope)}
-            >
-              <option value="MONTH">Monthly</option>
-              <option value="TAX_YEAR">Tax year</option>
-              <option value="FULL">Complete archive</option>
-            </select>
-          </label>
-          {scope === 'MONTH' ? (
-            <label>
-              Month
-              <input
-                required
-                type="month"
-                value={month}
-                onChange={(event) => setMonth(event.target.value)}
-              />
-            </label>
-          ) : null}
-          {scope === 'TAX_YEAR' ? (
-            <label>
-              Tax year ending
-              <input
-                required
-                type="number"
-                min="1901"
-                max="9999"
-                value={taxYear}
-                onChange={(event) => setTaxYear(event.target.value)}
-              />
-            </label>
-          ) : null}
-          <a className="button-link" href={href} onClick={started} download>
-            Download portable ZIP
-          </a>
-        </div>
+        {isDemo ? (
+          <p className="notice">
+            Dynamic archive generation is disabled in the public demo to keep
+            shared infrastructure usage bounded. Production and local
+            environments retain the complete backup workflow.
+          </p>
+        ) : (
+          <>
+            <p>
+              Exporting never removes, archives, or changes the cloud records.
+              The same period can be downloaded again whenever needed.
+            </p>
+            <div className="work-session-form">
+              <label>
+                Export scope
+                <select
+                  value={scope}
+                  onChange={(event) =>
+                    setScope(event.target.value as typeof scope)
+                  }
+                >
+                  <option value="MONTH">Monthly</option>
+                  <option value="TAX_YEAR">Tax year</option>
+                  <option value="FULL">Complete archive</option>
+                </select>
+              </label>
+              {scope === 'MONTH' ? (
+                <label>
+                  Month
+                  <input
+                    required
+                    type="month"
+                    value={month}
+                    onChange={(event) => setMonth(event.target.value)}
+                  />
+                </label>
+              ) : null}
+              {scope === 'TAX_YEAR' ? (
+                <label>
+                  Tax year ending
+                  <input
+                    required
+                    type="number"
+                    min="1901"
+                    max="9999"
+                    value={taxYear}
+                    onChange={(event) => setTaxYear(event.target.value)}
+                  />
+                </label>
+              ) : null}
+              <a className="button-link" href={href} onClick={started} download>
+                Download portable ZIP
+              </a>
+            </div>
+          </>
+        )}
       </section>
       <section className="panel">
         <div className="section-heading">

@@ -5,6 +5,7 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import { pageResult, requestPagination } from '../lib/pagination';
 import { writeAudit } from '../services/auditService';
 import { expenseText } from '../services/expenseService';
 import {
@@ -184,12 +185,14 @@ export async function listTransactions(request: Request, env: Env) {
   if (review === 'REVIEWED') where.push('reviewed_by IS NOT NULL');
   else if (review === 'UNREVIEWED') where.push('reviewed_by IS NULL');
   else if (review) throw new HttpError(400, 'Review filter is invalid.');
+  const pagination = requestPagination(url);
   const rows = await env.DB.prepare(
-    `SELECT * FROM (${transactionProjection})${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY transaction_date DESC, id DESC LIMIT 500`,
+    `SELECT * FROM (${transactionProjection})${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY transaction_date DESC, id DESC LIMIT ? OFFSET ?`,
   )
-    .bind(...bindings)
+    .bind(...bindings, pagination.limit, pagination.offset)
     .all<TransactionRow>();
-  const transactions = rows.results.map((row) => ({
+  const result = pageResult(rows.results, pagination);
+  const transactions = result.items.map((row) => ({
     id: row.id,
     recordType: row.record_type,
     subtype: row.subtype,
@@ -211,6 +214,7 @@ export async function listTransactions(request: Request, env: Env) {
   }));
   return json({
     transactions,
+    page: result.page,
     summary: {
       resultCount: transactions.length,
       missingAttachmentCount: transactions.filter(
@@ -340,7 +344,7 @@ export async function listComments(request: Request, env: Env) {
   if (!recordId) throw new HttpError(400, 'recordId is required.');
   await reviewParent(env, recordType, recordId);
   const rows = await env.DB.prepare(
-    `${commentSelect} WHERE comments.record_type=? AND comments.record_id=? ORDER BY comments.created_at,comments.id`,
+    `${commentSelect} WHERE comments.record_type=? AND comments.record_id=? ORDER BY comments.created_at,comments.id LIMIT 200`,
   )
     .bind(recordType, recordId)
     .all<CommentRow>();
@@ -431,7 +435,7 @@ export async function listSavedFilters(request: Request, env: Env) {
   const rawType = new URL(request.url).searchParams.get('filterType');
   const type = rawType ? savedFilterType(rawType) : null;
   const rows = await env.DB.prepare(
-    `SELECT id,name,filter_type,criteria_json,created_at,updated_at FROM saved_filters WHERE user_id=?${type ? ' AND filter_type=?' : ''} ORDER BY name COLLATE NOCASE`,
+    `SELECT id,name,filter_type,criteria_json,created_at,updated_at FROM saved_filters WHERE user_id=?${type ? ' AND filter_type=?' : ''} ORDER BY name COLLATE NOCASE LIMIT 100`,
   )
     .bind(actor.id, ...(type ? [type] : []))
     .all<FilterRow>();

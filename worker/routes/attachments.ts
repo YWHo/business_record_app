@@ -110,7 +110,7 @@ export async function listAttachments(request: Request, env: Env) {
   const recordId = queryValue(url, 'recordId');
   await parent(env, recordType, recordId);
   const rows = await env.DB.prepare(
-    `${attachmentSelect} WHERE attachments.record_type = ? AND attachments.record_id = ? AND attachments.purged_at IS NULL ORDER BY attachments.created_at DESC, attachments.version_number DESC`,
+    `${attachmentSelect} WHERE attachments.record_type = ? AND attachments.record_id = ? AND attachments.purged_at IS NULL ORDER BY attachments.created_at DESC, attachments.version_number DESC LIMIT 100`,
   )
     .bind(recordType, recordId)
     .all<AttachmentRow>();
@@ -118,6 +118,13 @@ export async function listAttachments(request: Request, env: Env) {
 }
 
 export async function uploadAttachment(request: Request, env: Env) {
+  if (env.APP_ENV === 'demo') {
+    await discardRequestBody(request);
+    throw new HttpError(
+      403,
+      'Document uploads are unavailable in the public demo.',
+    );
+  }
   let actor;
   try {
     actor = await requireUser(request, env);

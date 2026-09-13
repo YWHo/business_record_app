@@ -37,6 +37,11 @@ interface RetentionSettings {
   backupReminderDays: number;
   updatedAt: string;
 }
+interface PageMetadata {
+  number: number;
+  size: number;
+  hasNext: boolean;
+}
 const emptyAuditFilters = {
   userId: '',
   activityId: '',
@@ -47,25 +52,42 @@ const emptyAuditFilters = {
 };
 
 export function GovernancePage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
+  const isDemo = configuration?.environment === 'demo';
   const [trash, setTrash] = useState<TrashItem[]>([]),
     [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]),
     [savedFilters, setSavedFilters] = useState<SavedAuditFilter[]>([]),
     [filterName, setFilterName] = useState(''),
     [settings, setSettings] = useState<RetentionSettings | null>(null),
     [filters, setFilters] = useState(emptyAuditFilters),
+    [auditPage, setAuditPage] = useState<PageMetadata>({
+      number: 1,
+      size: 50,
+      hasNext: false,
+    }),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
-  const loadAudit = useCallback(async (criteria: typeof emptyAuditFilters) => {
-    const query = new URLSearchParams();
-    Object.entries(criteria).forEach(([key, value]) => {
-      if (value) query.set(key, value);
-    });
-    const result = await apiRequest<{ auditEvents: AuditEvent[] }>(
-      `/api/audit-log?${query}`,
-    );
-    setAuditEvents(result.auditEvents);
-  }, []);
+  const loadAudit = useCallback(
+    async (criteria: typeof emptyAuditFilters, pageNumber = 1) => {
+      const query = new URLSearchParams({ page: String(pageNumber) });
+      Object.entries(criteria).forEach(([key, value]) => {
+        if (value) query.set(key, value);
+      });
+      const result = await apiRequest<{
+        auditEvents: AuditEvent[];
+        page: PageMetadata;
+      }>(`/api/audit-log?${query}`);
+      setAuditEvents(result.auditEvents);
+      setAuditPage(
+        result.page ?? {
+          number: pageNumber,
+          size: result.auditEvents.length || 50,
+          hasNext: false,
+        },
+      );
+    },
+    [],
+  );
   const load = useCallback(
     async (criteria: typeof emptyAuditFilters) => {
       const [trashResult, settingsResult, , savedResult] = await Promise.all([
@@ -250,14 +272,20 @@ export function GovernancePage() {
                     >
                       Restore
                     </button>
-                    <button
-                      type="button"
-                      className="danger-button"
-                      disabled={!item.purgeEligible}
-                      onClick={() => void purge(item)}
-                    >
-                      Permanently purge
-                    </button>
+                    {isDemo ? (
+                      <span>
+                        Permanent purge is disabled in the public demo.
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="danger-button"
+                        disabled={!item.purgeEligible}
+                        onClick={() => void purge(item)}
+                      >
+                        Permanently purge
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <p>Only the owner can restore or purge records.</p>
@@ -267,6 +295,25 @@ export function GovernancePage() {
           ) : (
             <p>Trash is empty.</p>
           )}
+        </div>
+        <div className="button-row" aria-label="Audit log pages">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={auditPage.number === 1}
+            onClick={() => void loadAudit(filters, auditPage.number - 1)}
+          >
+            Previous page
+          </button>
+          <span>Page {auditPage.number}</span>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!auditPage.hasNext}
+            onClick={() => void loadAudit(filters, auditPage.number + 1)}
+          >
+            Next page
+          </button>
         </div>
       </section>
       {settings ? (

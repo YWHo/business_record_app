@@ -59,6 +59,23 @@ describe('AttachmentPanel mobile capture', () => {
     ).toBeInTheDocument();
   });
 
+  it('explains the public demo restriction without rendering a file picker', async () => {
+    render(
+      <AttachmentPanel
+        recordType="EXPENSE"
+        recordId="expense-1"
+        canManage
+        uploadsEnabled={false}
+      />,
+    );
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(
+      screen.getByText(/uploads are disabled in the public demo/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Take a photo')).not.toBeInTheDocument();
+  });
+
   it('keeps a selected file available for an explicit failed-upload retry', async () => {
     let uploadAttempts = 0;
     vi.stubGlobal(

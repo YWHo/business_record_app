@@ -45,7 +45,7 @@ async function assertUnique(env: Env, name: string, excludedId = '') {
 export async function listExpenseCategories(request: Request, env: Env) {
   await requireUser(request, env);
   const result = await env.DB.prepare(
-    `${select} ORDER BY active DESC, name COLLATE NOCASE`,
+    `${select} ORDER BY active DESC, name COLLATE NOCASE LIMIT 200`,
   ).all<CategoryRow>();
   return json({ categories: result.results.map(serialize) });
 }

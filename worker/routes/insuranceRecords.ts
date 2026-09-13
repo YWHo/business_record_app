@@ -282,7 +282,7 @@ function allocationStatement(
 export async function listInsuranceRecords(request: Request, env: Env) {
   await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${select} WHERE expenses.expense_type = 'INSURANCE' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC`,
+    `${select} WHERE expenses.expense_type = 'INSURANCE' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
   ).all<InsuranceRow>();
   return json({ insuranceRecords: rows.results.map(serialize) });
 }

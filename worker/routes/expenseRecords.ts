@@ -265,7 +265,7 @@ function updateExpense(
 export async function listGeneralExpenses(request: Request, env: Env) {
   await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${expenseSelect} WHERE expenses.expense_type = 'GENERAL' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC`,
+    `${expenseSelect} WHERE expenses.expense_type = 'GENERAL' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
   ).all<ExpenseRow>();
   return json({ generalExpenses: rows.results.map(serializeExpense) });
 }
@@ -337,7 +337,7 @@ export async function updateGeneralExpense(request: Request, env: Env) {
 export async function listParkingRecords(request: Request, env: Env) {
   await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${parkingSelect} WHERE expenses.expense_type = 'PARKING' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC`,
+    `${parkingSelect} WHERE expenses.expense_type = 'PARKING' AND expenses.deleted_at IS NULL ORDER BY expenses.purchase_datetime DESC LIMIT 200`,
   ).all<ParkingRow>();
   return json({ parkingRecords: rows.results.map(serializeParking) });
 }

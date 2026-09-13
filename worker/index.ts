@@ -97,7 +97,9 @@ import {
 import { downloadExport, exportStatus } from './routes/exports';
 import { dashboard } from './routes/dashboard';
 import type { Env } from './types';
+import { sessionToken } from './auth/authorization';
 import {
+  enforceRateLimit,
   requireSameOrigin,
   secureApiResponse,
 } from './services/securityService';
@@ -379,6 +381,23 @@ const routes: Route[] = [
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
+
+  if (env.APP_ENV === 'demo' && pathname.startsWith('/api/')) {
+    const readOnly = request.method === 'GET' || request.method === 'HEAD';
+    const limiter = readOnly
+      ? env.DEMO_READ_RATE_LIMITER
+      : env.DEMO_WRITE_RATE_LIMITER;
+    if (!limiter) {
+      throw new HttpError(503, 'Demo protection is temporarily unavailable.');
+    }
+    await enforceRateLimit(
+      request,
+      limiter,
+      readOnly ? 'demo-read' : 'demo-write',
+      sessionToken(request) ?? '',
+    );
+  }
+
   const matchingPath = routes.filter((route) => route.pathname === pathname);
   const route = matchingPath.find(
     (candidate) => candidate.method === request.method,
@@ -422,8 +441,13 @@ export default {
           pathname: new URL(request.url).pathname,
         });
         response = json(
-          { error: 'An unexpected error occurred.' },
-          { status: 500 },
+          {
+            error:
+              env.APP_ENV === 'demo'
+                ? 'The public demo is temporarily at capacity. Please try again later.'
+                : 'An unexpected error occurred.',
+          },
+          { status: env.APP_ENV === 'demo' ? 503 : 500 },
         );
       }
     }

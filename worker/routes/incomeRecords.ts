@@ -449,7 +449,7 @@ function detailUpdate(env: Env, id: string, values: IncomeValues) {
 export async function listIncomeRecords(request: Request, env: Env) {
   await requireUser(request, env);
   const rows = await env.DB.prepare(
-    `${select} WHERE income_records.deleted_at IS NULL ORDER BY income_records.transaction_date DESC, income_records.created_at DESC`,
+    `${select} WHERE income_records.deleted_at IS NULL ORDER BY income_records.transaction_date DESC, income_records.created_at DESC LIMIT 200`,
   ).all<IncomeRow>();
   const totals = new Map<string, number>();
   for (const row of rows.results)

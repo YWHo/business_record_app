@@ -92,7 +92,7 @@ export async function listVehicles(
   const result = await env.DB.prepare(
     `SELECT id, registration, description, active, acquired_at, retired_at, notes, created_at, updated_at
        FROM vehicles
-      ORDER BY active DESC, registration COLLATE NOCASE`,
+      ORDER BY active DESC, registration COLLATE NOCASE LIMIT 200`,
   ).all<VehicleRow>();
   return json({ vehicles: result.results.map(serialize) });
 }

@@ -84,7 +84,7 @@ function duration(minutes: number | null) {
 }
 
 export function RecordsPage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [parking, setParking] = useState<ParkingRecord[]>([]);
   const [general, setGeneral] = useState<ExpenseRecord[]>([]);
@@ -310,6 +310,7 @@ export function RecordsPage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
+                  uploadsEnabled={configuration?.environment !== 'demo'}
                 />
               </article>
             ))}
@@ -395,6 +396,7 @@ export function RecordsPage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
+                  uploadsEnabled={configuration?.environment !== 'demo'}
                 />
               </article>
             ))}

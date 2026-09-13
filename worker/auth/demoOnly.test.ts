@@ -51,6 +51,19 @@ describe('demo authentication boundary', () => {
     },
   );
 
+  it('cannot use public demo role switching against production', async () => {
+    await expect(
+      loginToDemo(
+        new Request('https://records.example.invalid/api/auth/demo', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ role: 'OWNER' }),
+        }),
+        environment({ APP_ENV: 'production', DEMO_AUTH_ENABLED: 'true' }),
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
   it('advertises role switching only for the demo environment', async () => {
     const request = new Request('https://demo.example.invalid/api/auth/config');
     const demo = await authConfiguration(request, environment()).json<{

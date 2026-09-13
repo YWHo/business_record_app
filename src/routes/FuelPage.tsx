@@ -330,7 +330,7 @@ function FuelForm({
 }
 
 export function FuelPage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [records, setRecords] = useState<FuelRecord[]>([]);
   const [activities, setActivities] = useState<Option[]>([]);
@@ -575,6 +575,7 @@ export function FuelPage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
+                  uploadsEnabled={configuration?.environment !== 'demo'}
                 />
               </article>
             ))}

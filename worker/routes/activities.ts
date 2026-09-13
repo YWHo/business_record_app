@@ -68,7 +68,7 @@ export async function listActivities(
   const result = await env.DB.prepare(
     `SELECT id, name, activity_type, active, started_at, ended_at, created_at, updated_at
        FROM business_activities
-      ORDER BY active DESC, name COLLATE NOCASE`,
+      ORDER BY active DESC, name COLLATE NOCASE LIMIT 200`,
   ).all<ActivityRow>();
   return json({ activities: result.results.map(serialize) });
 }

@@ -45,4 +45,22 @@ describe('email delivery boundary', () => {
       message: 'Email delivery is temporarily unavailable.',
     });
   });
+
+  it('sends only to the configured relay rather than a message URL', async () => {
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(null, { status: 202 })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await deliverEmail(environment(), {
+      ...message,
+      actionUrl: 'https://attacker.example.invalid/proxy-target',
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL('https://relay.example.invalid/send'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
 });

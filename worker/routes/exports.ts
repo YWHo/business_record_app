@@ -114,6 +114,12 @@ export async function exportStatus(request: Request, env: Env) {
 }
 
 export async function downloadExport(request: Request, env: Env) {
+  if (env.APP_ENV === 'demo') {
+    throw new HttpError(
+      403,
+      'Archive generation is unavailable in the public demo.',
+    );
+  }
   const actor = await requireUser(request, env);
   requireSameOriginFetch(request, env);
   await enforceRateLimit(

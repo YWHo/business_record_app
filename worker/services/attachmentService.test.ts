@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_ATTACHMENT_BYTES,
   attachmentRotation,
   detectedMimeType,
   safeDownloadFilename,
@@ -35,6 +36,23 @@ describe('attachment validation', () => {
         new TextEncoder().encode('%PDF-1.7'),
       ),
     ).toThrow('contents do not match');
+  });
+
+  it('rejects oversized files and unsupported MIME types', () => {
+    expect(() =>
+      validateAttachmentFile(
+        'oversized.pdf',
+        'application/pdf',
+        new Uint8Array(MAX_ATTACHMENT_BYTES + 1),
+      ),
+    ).toThrow('exceeds the 25 MB limit');
+    expect(() =>
+      validateAttachmentFile(
+        'payload.txt',
+        'text/plain',
+        new TextEncoder().encode('not a supported document'),
+      ),
+    ).toThrow('type is not supported');
   });
 
   it('rejects empty files and filenames containing control characters', () => {

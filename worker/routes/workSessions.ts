@@ -233,7 +233,7 @@ export async function listWorkSessions(
 ): Promise<Response> {
   await requireUser(request, env);
   const result = await env.DB.prepare(
-    `${sessionSelect} ORDER BY work_sessions.started_at DESC`,
+    `${sessionSelect} ORDER BY work_sessions.started_at DESC LIMIT 200`,
   ).all<WorkSessionRow>();
   return json({
     sessions: result.results.map(serialize),

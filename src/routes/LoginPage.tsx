@@ -4,7 +4,8 @@ import { useAuth, apiRequest } from '../features/auth/AuthContext';
 import { TurnstileWidget } from '../features/auth/TurnstileWidget';
 
 export function LoginPage() {
-  const { configuration, demoLogin, localLogin, user } = useAuth();
+  const { configuration, configurationError, demoLogin, localLogin, user } =
+    useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -59,7 +60,12 @@ export function LoginPage() {
             ? 'Explore fictional New Zealand business records. Demo changes are temporary and reset regularly.'
             : 'We will send a single-use sign-in link to your registered email.'}
         </p>
-        {!configuration?.demoHelper ? (
+        {configurationError ? (
+          <p role="alert" className="notice error">
+            {configurationError} Refresh this page to try again.
+          </p>
+        ) : null}
+        {configuration && !configuration.demoHelper ? (
           <form onSubmit={(event) => void submit(event)} className="stack-form">
             <label htmlFor="login-email">Email address</label>
             <input

@@ -43,6 +43,10 @@ export const ReadOnlyAccountant: Story = {
   args: { canManage: false },
 };
 
+export const PublicDemo: Story = {
+  args: { uploadsEnabled: false },
+};
+
 export const LoadError: Story = {
   parameters: { loadError: true },
 };

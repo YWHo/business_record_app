@@ -139,7 +139,11 @@ The common displayed value is net payment for platform and subscription records,
 
 ## Public demo setup
 
-The demo is a separate named Cloudflare environment for portfolio visitors. It uses only fictional identities and records, its own Worker, D1 database, R2 bucket, and rate-limit namespaces, and never reads production bindings. Visitors choose **Continue as Demo Owner** or **Continue as Demo Accountant**; the Worker maps that role to a fixed synthetic account and creates a normal rate-limited session. Email login and the loopback development helper are not exposed in demo mode. Account invitations and disabling are also unavailable so one visitor cannot disrupt the shared identities; normal owner/accountant business-record permissions remain active.
+The demo is a separate named Cloudflare environment for portfolio visitors. It uses only fictional identities and records, its own Worker, D1 database, R2 bucket, variables, and rate-limit namespaces, and never reads production bindings. Visitors choose **Continue as Demo Owner** or **Continue as Demo Accountant**; the Worker maps that role to a fixed synthetic account and creates a normal rate-limited session. Email login and the loopback development helper are not exposed in demo mode. Account invitations and disabling are also unavailable so one visitor cannot disrupt the shared identities; normal owner/accountant business-record permissions remain active.
+
+Keep the demo on the Workers Free plan initially. Quota exhaustion may temporarily make the demo unavailable; do not bypass protections or automatically upgrade it to paid execution. The Worker applies separate demo-wide read and write limits before route work, in addition to stricter authentication limits. A missing limiter fails closed. If the account later becomes pay-as-you-go, configure low account-level budget alerts, remembering that alerts notify rather than cap spend. Re-check current Cloudflare pricing and limits before changing plans or R2 storage class; no price or free-tier quota belongs in application logic.
+
+The demo is deliberately read-mostly. Lightweight edits and comments remain available for role demonstrations, but binary document uploads, dynamic ZIP generation, permanent deletion, outbound email, invitations, bootstrap, and destructive administration are rejected server-side. The interface explains unavailable capabilities. Use local development to test the complete upload, export, and purge workflows.
 
 Provision the remote demo resources once:
 
@@ -163,7 +167,7 @@ pnpm db:reset:demo -- --confirm business-records-demo
 
 `pnpm db:seed:demo` replaces records without applying migrations first and has the same confirmation guard. The seed provides two synthetic accounts, four business activities, two vehicles, fictional clients/providers, work sessions, weekly platform payments, paid and outstanding IT invoices, SaaS summaries, fuel, parking, software, cloud hosting, insurance allocations, reconciliations, comments, audit history, saved filters, and mixed review statuses.
 
-The SQL seed intentionally contains no attachment metadata because there are no matching committed R2 objects. A reset makes documents uploaded by prior visitors unreachable by deleting their D1 metadata; configure a short object lifecycle policy on the dedicated demo bucket to remove those orphaned bytes. Never apply that lifecycle policy to production evidence.
+The SQL seed intentionally contains no attachment metadata because there are no matching committed R2 objects, and public demo uploads are disabled. If the bucket contains objects from an older deployment that permitted uploads, remove them deliberately or configure a short lifecycle policy on the dedicated demo bucket. Never apply that lifecycle policy to production evidence. Use R2 Standard unless a later ADR records a reviewed reason to change storage class.
 
 ## Production authentication setup
 
@@ -281,6 +285,19 @@ Money is stored in integer minor units with an explicit currency. Mileage distan
 
 The deployment scripts select a committed, selector-only Vite mode file for the build and pass the matching explicit `--env` to Wrangler for upload. The mode files contain no secrets. Never run remote database commands without reviewing the target and including `--remote` intentionally.
 
+## Demo usage monitoring
+
+Review the following periodically and after unexpected demo slowdowns:
+
+- Workers request and error trends, especially 429 and 5xx responses;
+- D1 rows read/written, query latency, storage growth, and quota warnings;
+- R2 object count, storage, Class A/Class B operations, and any old orphaned objects;
+- rate-limit and security events available through Cloudflare analytics or logs;
+- recent reset success and confirmation that only fictional records and identities remain;
+- current Cloudflare plan, pricing, and limits before enabling paid use or changing storage class.
+
+Use access-controlled, sampled Workers logs without request bodies or tokens. Configure provider notifications for quota and service anomalies. If pay-as-you-go is enabled, use low budget alerts as notification only; application limits remain the actual safety boundary.
+
 ## Security notes
 
 - D1 and R2 are accessed only from the Worker. R2 has no public bucket URL.
@@ -288,9 +305,10 @@ The deployment scripts select a committed, selector-only Vite mode file for the 
 - Session, login-link, and invitation tokens are random and stored only as SHA-256 hashes.
 - Production login uses server-verified Turnstile and route-specific Cloudflare rate limiting.
 - Deployed state-changing API requests require the exact configured application origin; uploads and exports have dedicated per-client and per-account limits.
+- The public demo has separate read/write request limits and rejects binary uploads, dynamic archives, and permanent purge before expensive work.
 - Cookies are HTTP-only, same-site strict, and secure over HTTPS; disabled accounts lose active sessions immediately.
 - Static and API responses set restrictive content, framing, referrer, permissions, and transport headers. API responses are non-cacheable and do not expose internal errors.
-- Uploads are private, size/type/signature checked, and forced to download without sniffing. Export files are hashed, counted, and neutralize spreadsheet formula prefixes in textual CSV cells.
+- Production/local uploads are private, size/type/signature checked, and forced to download without sniffing. Export files are hashed, counted, and neutralize spreadsheet formula prefixes in textual CSV cells.
 - `.dev.vars*`, `.env*`, local Wrangler state, and generated builds are ignored.
 - Do not commit real financial data, identities, resource IDs, or secrets.
 

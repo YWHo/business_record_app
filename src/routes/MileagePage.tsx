@@ -107,7 +107,7 @@ function requestBody(draft: WorkSessionDraft) {
 }
 
 export function MileagePage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [summary, setSummary] = useState(emptySummary);
@@ -503,6 +503,7 @@ export function MileagePage() {
                   recordType="WORK_SESSION"
                   recordId={session.id}
                   canManage={canManage}
+                  uploadsEnabled={configuration?.environment !== 'demo'}
                 />
               </article>
             ))}

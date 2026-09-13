@@ -515,7 +515,7 @@ function AdjustmentForm({
 }
 
 export function InsurancePage() {
-  const { user } = useAuth();
+  const { configuration, user } = useAuth();
   const isOwner = user?.role === 'OWNER';
   const [records, setRecords] = useState<InsuranceRecord[]>([]);
   const [activities, setActivities] = useState<ReferenceOption[]>([]);
@@ -770,6 +770,7 @@ export function InsurancePage() {
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={isOwner}
+                  uploadsEnabled={configuration?.environment !== 'demo'}
                 />
               </article>
             ))}

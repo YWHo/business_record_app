@@ -735,7 +735,7 @@ function ReconcileForm({
   );
 }
 export function IncomePage() {
-  const { user } = useAuth(),
+  const { configuration, user } = useAuth(),
     canManage = user?.role === 'OWNER';
   const [records, setRecords] = useState<IncomeRecord[]>([]),
     [activities, setActivities] = useState<Reference[]>([]),
@@ -965,6 +965,7 @@ export function IncomePage() {
                 recordType="INCOME"
                 recordId={record.id}
                 canManage={canManage}
+                uploadsEnabled={configuration?.environment !== 'demo'}
               />
             </article>
           ))}

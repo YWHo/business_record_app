@@ -5,6 +5,7 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import { pageResult, requestPagination } from '../lib/pagination';
 import { writeAudit } from '../services/auditService';
 import {
   isPurgeEligible,
@@ -91,6 +92,7 @@ export async function listAuditLog(request: Request, env: Env) {
       bindings.push(value);
     }
   }
+  const pagination = requestPagination(url);
   const rows = await env.DB.prepare(
     `SELECT audit_log.id,audit_log.action,audit_log.entity_type,audit_log.entity_id,
       audit_log.business_activity_id,audit_log.summary,audit_log.changed_fields_json,
@@ -99,9 +101,9 @@ export async function listAuditLog(request: Request, env: Env) {
      FROM audit_log JOIN users ON users.id=audit_log.user_id
      LEFT JOIN business_activities ON business_activities.id=audit_log.business_activity_id
      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-     ORDER BY audit_log.created_at DESC,audit_log.id DESC LIMIT 500`,
+     ORDER BY audit_log.created_at DESC,audit_log.id DESC LIMIT ? OFFSET ?`,
   )
-    .bind(...bindings)
+    .bind(...bindings, pagination.limit, pagination.offset)
     .all<{
       id: string;
       action: string;
@@ -115,8 +117,9 @@ export async function listAuditLog(request: Request, env: Env) {
       user_email: string;
       activity_name: string | null;
     }>();
+  const result = pageResult(rows.results, pagination);
   return json({
-    auditEvents: rows.results.map((row) => ({
+    auditEvents: result.items.map((row) => ({
       id: row.id,
       action: row.action,
       entityType: row.entity_type,
@@ -129,6 +132,7 @@ export async function listAuditLog(request: Request, env: Env) {
       userId: row.user_id,
       userEmail: row.user_email,
     })),
+    page: result.page,
   });
 }
 
@@ -147,7 +151,7 @@ export async function listTrash(request: Request, env: Env) {
       SELECT id,'WORK_SESSION','MILEAGE','Work session',substr(started_at,1,10),
         business_activity_id,status,deleted_at,retention_until,purge_eligible_at,purged_at
         FROM work_sessions WHERE deleted_at IS NOT NULL
-    ) ORDER BY deleted_at DESC,id DESC`,
+    ) ORDER BY deleted_at DESC,id DESC LIMIT 200`,
   ).all<{
     id: string;
     record_type: RetainedRecordType;
@@ -266,6 +270,11 @@ export async function restoreFromTrash(request: Request, env: Env) {
 }
 
 export async function purgeFromTrash(request: Request, env: Env) {
+  if (env.APP_ENV === 'demo')
+    throw new HttpError(
+      403,
+      'Permanent deletion is unavailable in the public demo.',
+    );
   const actor = await requireUser(request, env);
   requireRole(actor, ['OWNER']);
   const body = await readJsonObject(request),

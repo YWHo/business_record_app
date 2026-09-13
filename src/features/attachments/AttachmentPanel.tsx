@@ -22,10 +22,12 @@ export function AttachmentPanel({
   recordType,
   recordId,
   canManage,
+  uploadsEnabled = true,
 }: {
   recordType: RecordType;
   recordId: string;
   canManage: boolean;
+  uploadsEnabled?: boolean;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -184,7 +186,13 @@ export function AttachmentPanel({
           </div>
         ))}
       </div>
-      {canManage ? (
+      {canManage && !uploadsEnabled ? (
+        <p className="notice">
+          Document uploads are disabled in the public demo. Synthetic records
+          remain available to inspect.
+        </p>
+      ) : null}
+      {canManage && uploadsEnabled ? (
         <form
           className="attachment-form"
           onSubmit={(event) => {
