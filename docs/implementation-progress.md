@@ -487,5 +487,6 @@ Acceptance criteria completed:
 - Documented that local end-to-end tests reset only guarded Miniflare state and that remote demo reset, production migrations, bootstrap, secret changes, and deployment require explicit protected workflows.
 - Documented Wrangler's interactive login, account verification and switching, browser-flow troubleshooting, and least-privilege non-interactive CI authentication before resource provisioning.
 - Removed the first-deployment origin ambiguity by documenting the deterministic `workers.dev` URL, custom-domain alternative, exact Turnstile hostname format, and separate demo origin before configuration or deployment.
+- Clarified that committed `DEV_*` values remain non-deliverable sentinels, the real owner address belongs only in the encrypted `BOOTSTRAP_OWNER_EMAIL` Worker secret, and SOPS is not required for production Worker secrets.
 
 Notes: No live Cloudflare resources were changed. The committed configuration intentionally retains placeholder remote IDs and origins until the operator provisions resources. Actual production deployment, DNS, Turnstile, email delivery, bucket privacy, WAF, monitoring, alerts, and recovery rehearsal require the owner's accounts and approval.

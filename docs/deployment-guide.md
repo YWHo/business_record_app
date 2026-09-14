@@ -95,6 +95,8 @@ pnpm exec wrangler r2 bucket create business-records-production-documents
 
 In `wrangler.jsonc`, replace the production D1 placeholder with the returned UUID. Replace production `APP_ORIGIN`, `TURNSTILE_SITE_KEY`, `EMAIL_DELIVERY_URL`, and `EMAIL_FROM` with the values prepared above. Keep `APP_ENV=production`, `LOCAL_AUTH_ENABLED=false`, and `TURNSTILE_REQUIRED=true`.
 
+Do **not** put a real email address or key in `DEV_OWNER_EMAIL`, `DEV_ACCOUNTANT_EMAIL`, or `DEV_BOOTSTRAP_KEY`. Those committed values are inert sentinels for disabled development-only behavior; production bootstrap does not read them. Leave the production values as `disabled@production.invalid` and `disabled`. The `.invalid` and `.test` domains used by committed configuration are deliberately non-deliverable.
+
 The rate-limit namespace IDs are configuration identifiers, not credentials. Keep the production values distinct from demo values. In Cloudflare, confirm the R2 bucket has no public development URL or custom public domain.
 
 Apply migrations before making the Worker usable:
@@ -119,7 +121,16 @@ pnpm exec wrangler secret put EMAIL_DELIVERY_BEARER_TOKEN --env production
 pnpm exec wrangler secret list --env production
 ```
 
-The production environment declares these four secret names as required, so a normal deployment fails rather than silently omitting one. Wrangler secret updates create a Worker version and may deploy it; configure and migrate the bound resources first. Never put secret values in `wrangler.jsonc`, a shell history command, CI output, screenshots, issues, or source control.
+`BOOTSTRAP_OWNER_EMAIL` is the only place to enter the initial owner's real email. In production the Worker reads it from Cloudflare's encrypted secret binding, while `DEV_OWNER_EMAIL` is ignored. The email is not returned by `wrangler secret list` after it is stored.
+
+If the Worker already exists, the same values can be entered through Cloudflare Dashboard → **Workers & Pages** → `business-records-production` → **Settings** → **Variables and Secrets**. Add each required name with type **Secret**, not plaintext variable. The four required names are:
+
+- `BOOTSTRAP_OWNER_EMAIL`
+- `BOOTSTRAP_ADMIN_KEY`
+- `TURNSTILE_SECRET_KEY`
+- `EMAIL_DELIVERY_BEARER_TOKEN`
+
+The production environment declares these names as required, so a normal deployment fails rather than silently omitting one. Wrangler secret updates create a Worker version and may deploy it; configure and migrate the bound resources first. Never put secret values in `wrangler.jsonc`, a shell history command, CI output, screenshots, issues, or source control. SOPS is unnecessary for these Worker values because no encrypted secret file needs to live in the repository; introducing it would also require protecting and rotating a separate decryption key.
 
 ## 4. First production deployment
 

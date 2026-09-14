@@ -189,6 +189,8 @@ Before the first production deployment:
 4. Configure an HTTPS email relay accepting `POST` JSON with `from`, `to`, `subject`, and `text` fields plus a bearer token.
 5. Store the real owner email, a strong one-time administrative key, the Turnstile secret, and relay token as Worker secrets—never committed variables:
 
+Leave `DEV_OWNER_EMAIL`, `DEV_ACCOUNTANT_EMAIL`, and `DEV_BOOTSTRAP_KEY` unchanged. Production ignores those development-only sentinel values. The real owner address belongs only in the `BOOTSTRAP_OWNER_EMAIL` Cloudflare secret:
+
 ```bash
 pnpm exec wrangler secret put BOOTSTRAP_OWNER_EMAIL --env production
 pnpm exec wrangler secret put BOOTSTRAP_ADMIN_KEY --env production
