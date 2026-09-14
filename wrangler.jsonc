@@ -104,6 +104,14 @@
     },
     "production": {
       "name": "business-records-production",
+      "secrets": {
+        "required": [
+          "BOOTSTRAP_OWNER_EMAIL",
+          "BOOTSTRAP_ADMIN_KEY",
+          "TURNSTILE_SECRET_KEY",
+          "EMAIL_DELIVERY_BEARER_TOKEN",
+        ],
+      },
       "vars": {
         "APP_ENV": "production",
         "LOCAL_AUTH_ENABLED": "false",

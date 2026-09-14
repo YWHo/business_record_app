@@ -4,7 +4,15 @@ A private, invitation-only application for organising business income, expenses,
 
 ## Current status
 
-Phase 20 plus the version 2 public-demo protection addendum provide an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated, cost-bounded public demo offers synthetic New Zealand owner/accountant scenarios without signup. The security and reliability review is recorded in [`docs/security-review.md`](docs/security-review.md). Local development still needs no Cloudflare account or email provider.
+The application is an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated, cost-bounded public demo offers synthetic New Zealand owner/accountant scenarios without signup. Local development still needs no Cloudflare account or email provider.
+
+Start with the guide that matches the job:
+
+- [Architecture](docs/architecture.md) and [data model](docs/data-model.md)
+- [Production and demo deployment](docs/deployment-guide.md)
+- [Routine operations](docs/operations-guide.md)
+- [Backup, incident recovery, and redeployment](docs/recovery-guide.md)
+- [Security review](docs/security-review.md) and [architecture decisions](docs/adr/)
 
 ## Local setup — no Cloudflare account required
 
@@ -171,6 +179,8 @@ The SQL seed intentionally contains no attachment metadata unless matching ficti
 
 ## Production authentication setup
 
+The concise sequence below is useful as a reference. For a first deployment, upgrades, verification, and rollback gates, follow the complete [deployment guide](docs/deployment-guide.md).
+
 Before the first production deployment:
 
 1. Replace the production D1/R2 IDs, `APP_ORIGIN`, Turnstile site key, email relay URL, and sender placeholders in `wrangler.jsonc`.
@@ -314,7 +324,7 @@ Use access-controlled, sampled Workers logs without request bodies or tokens. Co
 
 ## Known limitations and roadmap
 
-Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, critical Playwright workflows, an isolated synthetic public demo, and the security/reliability hardening review are complete. Final deployment and recovery work follows in Phase 21.
+Authentication, reference data, business records, private versioned attachments, unified review, audit/trash/retention controls, portable exports, operating analytics, installable PWA behavior, mobile capture, Storybook component coverage, critical Playwright workflows, an isolated synthetic public demo, security controls, and owner/operator documentation are complete. Production still requires operator-owned Cloudflare resources, DNS, Turnstile, an email relay, secrets, monitoring, and a deliberate deployment using the deployment guide.
 
 ## Source-visible notice
 

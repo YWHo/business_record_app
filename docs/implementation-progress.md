@@ -471,4 +471,19 @@ Acceptance criteria completed:
 - Corrected the v2c demo and rate-limit documentation and refreshed the source-visible security review.
 - Verified formatting, lint, TypeScript, 136 unit/component tests, the complete local API smoke suite, all 6 Playwright workflows, production/demo/Storybook builds, D1 integrity and foreign keys, and a dependency audit with no known vulnerabilities.
 
-Notes: No database migration is required. Cloudflare WAF, production Turnstile hostname, deployed secrets, private bucket policy, logging, alerts, and placeholder resource replacement remain deployment controls to verify in Phase 21.
+Notes: No database migration is required. Cloudflare WAF, production Turnstile hostname, deployed secrets, private bucket policy, logging, alerts, and placeholder resource replacement remain operator-controlled deployment checks.
+
+## Deployment and operator handover
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Reworked the README into an owner-facing entry point linking architecture, deployment, routine operations, recovery, security, and decision records.
+- Added a production and demo deployment guide covering prerequisites, release gates, isolated resource provisioning, migrations, required secrets, dry runs, first-owner bootstrap, post-deploy checks, rollback preparation, CI/CD boundaries, and release evidence.
+- Declared the four production secret names as required deployment configuration so an incomplete production secret set fails safely.
+- Added an operations guide covering access ownership, daily/weekly/monthly checks, exports, destructive actions, credential rotation, incident triage, demo capacity, and service handover.
+- Added a recovery guide distinguishing portable application exports, D1 Time Travel, Worker rollback, and R2 recovery; documented the lack of an automated archive importer and the reconciliation required before a full rebuild.
+- Documented that local end-to-end tests reset only guarded Miniflare state and that remote demo reset, production migrations, bootstrap, secret changes, and deployment require explicit protected workflows.
+
+Notes: No live Cloudflare resources were changed. The committed configuration intentionally retains placeholder remote IDs and origins until the operator provisions resources. Actual production deployment, DNS, Turnstile, email delivery, bucket privacy, WAF, monitoring, alerts, and recovery rehearsal require the owner's accounts and approval.
