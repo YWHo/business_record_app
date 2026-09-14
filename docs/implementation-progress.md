@@ -456,3 +456,19 @@ Acceptance criteria completed:
 - Verified formatting, lint, TypeScript, 122 unit/component tests, a fresh migrated and seeded database, schema and foreign-key integrity, application/demo/production builds, Storybook, all 6 Playwright workflows, and a dependency audit with no known vulnerabilities.
 
 Notes: The source gap analysis lives beside the external v2/v2c specifications and is intentionally outside this Git repository.
+
+## Version 2c Phase 20 re-certification
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Re-ran the full Phase 20 authorization, authentication abuse, rate-limit, Turnstile, upload, secret, public-source threat, logging, retention, export-integrity, and dependency review against the version 2c architecture.
+- Made invitation acceptance failure-safe by batching guarded identity creation, active account membership creation, and single-use token consumption, while refusing to reactivate a globally disabled identity.
+- Deferred export completion history and audit insertion until every streamed archive entry has loaded and passed its size/hash verification; the two completion records are inserted atomically.
+- Applied expensive upload/export limits by business account and capped account user and invitation collections.
+- Expanded tenant regression coverage across attachments, audit, retention, export history, record mutations, membership administration, and capped account collections.
+- Corrected the v2c demo and rate-limit documentation and refreshed the source-visible security review.
+- Verified formatting, lint, TypeScript, 136 unit/component tests, the complete local API smoke suite, all 6 Playwright workflows, production/demo/Storybook builds, D1 integrity and foreign keys, and a dependency audit with no known vulnerabilities.
+
+Notes: No database migration is required. Cloudflare WAF, production Turnstile hostname, deployed secrets, private bucket policy, logging, alerts, and placeholder resource replacement remain deployment controls to verify in Phase 21.

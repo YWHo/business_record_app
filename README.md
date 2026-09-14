@@ -304,8 +304,8 @@ Use access-controlled, sampled Workers logs without request bodies or tokens. Co
 - Backend routes enforce roles; frontend checks are never authoritative.
 - Session, login-link, and invitation tokens are random and stored only as SHA-256 hashes.
 - Production login uses server-verified Turnstile and route-specific Cloudflare rate limiting.
-- Deployed state-changing API requests require the exact configured application origin; uploads and exports have dedicated per-client and per-account limits.
-- The public demo has separate read/write request limits and rejects binary uploads, dynamic archives, and permanent purge before expensive work.
+- Deployed state-changing API requests require the exact configured application origin; uploads and exports have dedicated per-client and per-business-account limits.
+- The public demo rate-limits reads and rejects every mutation before authentication, D1, R2, or other expensive route work.
 - Cookies are HTTP-only, same-site strict, and secure over HTTPS; disabled accounts lose active sessions immediately.
 - Static and API responses set restrictive content, framing, referrer, permissions, and transport headers. API responses are non-cacheable and do not expose internal errors.
 - Production/local uploads are private, size/type/signature checked, and forced to download without sniffing. Export files are hashed, counted, and neutralize spreadsheet formula prefixes in textual CSV cells.

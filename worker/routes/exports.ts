@@ -1,7 +1,6 @@
 import { requireUser } from '../auth/authorization';
 import { HttpError, json } from '../lib/http';
 import { sha256Hex } from '../services/attachmentService';
-import { writeAudit } from '../services/auditService';
 import {
   enforceRateLimit,
   requireSameOriginFetch,
@@ -140,7 +139,7 @@ export async function downloadExport(request: Request, env: Env) {
     request,
     env.EXPENSIVE_RATE_LIMITER,
     'archive-export',
-    actor.id,
+    actor.businessAccountId,
   );
   const settings = await env.DB.prepare(
     `SELECT retention_tax_years,tax_year_end_month,tax_year_end_day,backup_reminder_days
@@ -823,33 +822,40 @@ export async function downloadExport(request: Request, env: Env) {
     ...attachmentEntries,
     manifestFile.entry,
   ];
-  const archive = storedZip(archiveEntries, generatedAt);
-  await env.DB.prepare(
-    `INSERT INTO export_history (id,business_account_id,requested_by,export_scope,period_key,expected_record_count,
-      expected_attachment_count,exported_attachment_count,manifest_sha256,completed_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?)`,
-  )
-    .bind(
-      exportId,
-      actor.businessAccountId,
-      actor.id,
-      period.scope,
-      period.periodKey,
-      recordCount,
-      attachments.length,
-      attachmentEntries.length,
-      manifestFile.manifest.sha256,
-      generatedAt.toISOString(),
-    )
-    .run();
-  await writeAudit(
-    env,
-    actor,
-    'EXPORT_COMPLETED',
-    'EXPORT',
-    exportId,
-    `${period.scope} portable export completed with ${recordCount} records and ${attachments.length} attachments.`,
-  );
+  const archive = storedZip(archiveEntries, generatedAt, async () => {
+    const completedAt = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO export_history (id,business_account_id,requested_by,export_scope,period_key,expected_record_count,
+          expected_attachment_count,exported_attachment_count,manifest_sha256,completed_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      ).bind(
+        exportId,
+        actor.businessAccountId,
+        actor.id,
+        period.scope,
+        period.periodKey,
+        recordCount,
+        attachments.length,
+        attachmentEntries.length,
+        manifestFile.manifest.sha256,
+        completedAt,
+      ),
+      env.DB.prepare(
+        `INSERT INTO audit_log
+          (id, business_account_id, user_id, action, entity_type, entity_id,
+           business_activity_id, summary, changed_fields_json, created_at)
+         VALUES (?, ?, ?, 'EXPORT_COMPLETED', 'EXPORT', ?, NULL, ?, NULL, ?)`,
+      ).bind(
+        crypto.randomUUID(),
+        actor.businessAccountId,
+        actor.id,
+        exportId,
+        `${period.scope} portable export completed with ${recordCount} records and ${attachments.length} attachments.`,
+        completedAt,
+      ),
+    ]);
+  });
   const suffix = period.periodKey ?? generatedAt.toISOString().slice(0, 10);
   return new Response(archive, {
     headers: {

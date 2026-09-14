@@ -102,7 +102,7 @@ Trash sets the parent record's `status` to `TRASHED` and records `deleted_at`; c
 
 ## Export history
 
-`export_history` is an immutable completion ledger, not archive storage. It references the requesting user and stores scope, optional month/tax-year key, expected record and attachment counts, verified exported attachment count, manifest SHA-256, and completion time. A check constraint requires expected and exported attachment counts to match. User references preserve attribution, while repeat exports create separate history rows and never change source records.
+`export_history` is an immutable completion ledger, not archive storage. It references the requesting user and stores scope, optional month/tax-year key, expected record and attachment counts, verified exported attachment count, manifest SHA-256, and completion time. A check constraint requires expected and exported attachment counts to match. The Worker writes the history row and matching audit event atomically only after every streamed entry has loaded and passed its size/hash check; a failed or abandoned generation is not presented as a successful backup. User references preserve attribution, while repeat exports create separate history rows and never change source records.
 
 ## Derived dashboard views
 

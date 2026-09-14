@@ -184,6 +184,7 @@ function endRecord(entries: number, directorySize: number, offset: number) {
 export function storedZip(
   entries: ZipEntry[],
   generatedAt: Date,
+  onComplete?: () => Promise<void>,
 ): ReadableStream<Uint8Array> {
   if (entries.length > 65_535)
     throw new HttpError(413, 'Export contains too many files.');
@@ -231,6 +232,7 @@ export function storedZip(
         return;
       }
       const centralOffset = offset;
+      await onComplete?.();
       for (const header of central) {
         controller.enqueue(header);
         offset += header.byteLength;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   backupDue,
   crc32,
@@ -51,6 +51,51 @@ describe('portable export service', () => {
       new DataView(archive.buffer).getUint32(archive.length - 22, true),
     ).toBe(0x06054b50);
     expect(crc32(bytes)).toBe(0xc26da664);
+  });
+
+  it('records completion only after every entry has loaded successfully', async () => {
+    const events: string[] = [];
+    const bytes = new TextEncoder().encode('verified');
+    const stream = storedZip(
+      [
+        {
+          path: 'data/verified.txt',
+          size: bytes.length,
+          load: () => {
+            events.push('loaded');
+            return Promise.resolve(bytes);
+          },
+        },
+      ],
+      new Date('2026-09-14T00:00:00.000Z'),
+      () => {
+        events.push('completed');
+        return Promise.resolve();
+      },
+    );
+
+    await new Response(stream).arrayBuffer();
+    expect(events).toEqual(['loaded', 'completed']);
+  });
+
+  it('does not record completion when an entry cannot be loaded', async () => {
+    const onComplete = vi.fn(() => Promise.resolve());
+    const stream = storedZip(
+      [
+        {
+          path: 'documents/missing.pdf',
+          size: 10,
+          load: () => Promise.reject(new Error('R2 unavailable')),
+        },
+      ],
+      new Date('2026-09-14T00:00:00.000Z'),
+      onComplete,
+    );
+
+    await expect(new Response(stream).arrayBuffer()).rejects.toThrow(
+      'R2 unavailable',
+    );
+    expect(onComplete).not.toHaveBeenCalled();
   });
 
   it('marks missing and stale backups due', () => {

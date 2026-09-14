@@ -143,10 +143,11 @@ export async function listUsers(request: Request, env: Env): Promise<Response> {
   const result = await env.DB.prepare(
     `SELECT users.id, users.email, business_account_members.role,
             business_account_members.status, users.created_at, users.updated_at
-       FROM business_account_members
+      FROM business_account_members
        JOIN users ON users.id = business_account_members.user_id
       WHERE business_account_members.business_account_id = ?
-      ORDER BY business_account_members.role DESC, users.email`,
+      ORDER BY business_account_members.role DESC, users.email
+      LIMIT 200`,
   )
     .bind(owner.businessAccountId)
     .all();
@@ -219,7 +220,8 @@ export async function listInvitations(
             END AS status
        FROM invitations
       WHERE business_account_id = ?
-      ORDER BY created_at DESC`,
+      ORDER BY created_at DESC
+      LIMIT 200`,
   )
     .bind(now, owner.businessAccountId)
     .all();

@@ -108,56 +108,106 @@ export async function acceptAccountantInvitation(
 }> {
   const email = normalizeEmail(rawEmail);
   const now = new Date().toISOString();
+  const tokenHash = await hashToken(token);
   const existingUser = await env.DB.prepare(
-    'SELECT id, role FROM users WHERE email = ?',
+    'SELECT id, status FROM users WHERE email = ?',
   )
     .bind(email)
-    .first<{ id: string; role: string }>();
+    .first<{ id: string; status: string }>();
 
   const invitation = await env.DB.prepare(
-    `UPDATE invitations
-        SET accepted_at = ?
+    `SELECT id, business_account_id
+       FROM invitations
       WHERE token_hash = ?
         AND email = ?
         AND accepted_at IS NULL
-        AND expires_at > ?
-      RETURNING id, business_account_id`,
+        AND expires_at > ?`,
   )
-    .bind(now, await hashToken(token), email, now)
+    .bind(tokenHash, email, now)
     .first<{ id: string; business_account_id: string }>();
 
-  if (!invitation) {
+  if (!invitation || (existingUser && existingUser.status !== 'ACTIVE')) {
     throw new HttpError(400, 'Invitation is invalid or expired.');
   }
 
   const userId = existingUser?.id ?? crypto.randomUUID();
-
-  if (existingUser) {
-    await env.DB.prepare(
-      `UPDATE users
-          SET status = 'ACTIVE', updated_at = ?
-        WHERE id = ?`,
-    )
-      .bind(now, userId)
-      .run();
-  } else {
-    await env.DB.prepare(
-      `INSERT INTO users (id, email, role, status, created_at, updated_at)
-       VALUES (?, ?, 'ACCOUNTANT', 'ACTIVE', ?, ?)`,
-    )
-      .bind(userId, email, now, now)
-      .run();
+  const statements: D1PreparedStatement[] = [];
+  if (!existingUser) {
+    statements.push(
+      env.DB.prepare(
+        `INSERT INTO users (id, email, role, status, created_at, updated_at)
+         SELECT ?, ?, 'ACCOUNTANT', 'ACTIVE', ?, ?
+          WHERE EXISTS (
+            SELECT 1 FROM invitations
+             WHERE id = ? AND business_account_id = ? AND token_hash = ?
+               AND email = ? AND accepted_at IS NULL AND expires_at > ?
+          )`,
+      ).bind(
+        userId,
+        email,
+        now,
+        now,
+        invitation.id,
+        invitation.business_account_id,
+        tokenHash,
+        email,
+        now,
+      ),
+    );
   }
-
-  await env.DB.prepare(
-    `INSERT INTO business_account_members
-      (business_account_id, user_id, role, status, created_at, updated_at)
-     VALUES (?, ?, 'ACCOUNTANT', 'ACTIVE', ?, ?)
-     ON CONFLICT(business_account_id, user_id) DO UPDATE SET
-       role = 'ACCOUNTANT', status = 'ACTIVE', updated_at = excluded.updated_at`,
-  )
-    .bind(invitation.business_account_id, userId, now, now)
-    .run();
+  statements.push(
+    env.DB.prepare(
+      `INSERT INTO business_account_members
+        (business_account_id, user_id, role, status, created_at, updated_at)
+       SELECT invitations.business_account_id, ?, 'ACCOUNTANT', 'ACTIVE', ?, ?
+         FROM invitations
+         JOIN users ON users.id = ? AND users.status = 'ACTIVE'
+        WHERE invitations.id = ? AND invitations.business_account_id = ?
+          AND invitations.token_hash = ? AND invitations.email = ?
+          AND invitations.accepted_at IS NULL AND invitations.expires_at > ?
+       ON CONFLICT(business_account_id, user_id) DO UPDATE SET
+         role = 'ACCOUNTANT', status = 'ACTIVE', updated_at = excluded.updated_at`,
+    ).bind(
+      userId,
+      now,
+      now,
+      userId,
+      invitation.id,
+      invitation.business_account_id,
+      tokenHash,
+      email,
+      now,
+    ),
+    env.DB.prepare(
+      `UPDATE invitations
+          SET accepted_at = ?
+        WHERE id = ? AND business_account_id = ? AND token_hash = ?
+          AND email = ? AND accepted_at IS NULL AND expires_at > ?
+          AND EXISTS (
+            SELECT 1
+              FROM business_account_members
+              JOIN users ON users.id = business_account_members.user_id
+             WHERE business_account_members.business_account_id = invitations.business_account_id
+               AND business_account_members.user_id = ?
+               AND business_account_members.role = 'ACCOUNTANT'
+               AND business_account_members.status = 'ACTIVE'
+               AND users.status = 'ACTIVE'
+          )`,
+    ).bind(
+      now,
+      invitation.id,
+      invitation.business_account_id,
+      tokenHash,
+      email,
+      now,
+      userId,
+    ),
+  );
+  const results = await env.DB.batch(statements);
+  const acceptance = results.at(-1);
+  if (acceptance?.meta.changes !== 1) {
+    throw new HttpError(400, 'Invitation is invalid or expired.');
+  }
 
   return {
     id: userId,

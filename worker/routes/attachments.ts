@@ -141,7 +141,7 @@ export async function uploadAttachment(request: Request, env: Env) {
     request,
     env.EXPENSIVE_RATE_LIMITER,
     'attachment-upload',
-    actor.id,
+    actor.businessAccountId,
   );
   const contentLength = Number(request.headers.get('content-length') ?? 0);
   if (contentLength > 27 * 1024 * 1024)
