@@ -183,10 +183,11 @@ The concise sequence below is useful as a reference. For a first deployment, upg
 
 Before the first production deployment:
 
-1. Replace the production D1/R2 IDs, `APP_ORIGIN`, Turnstile site key, email relay URL, and sender placeholders in `wrangler.jsonc`.
-2. Configure a Turnstile widget for the production hostname. Production rejects login requests unless the response is verified server-side.
-3. Configure an HTTPS email relay accepting `POST` JSON with `from`, `to`, `subject`, and `text` fields plus a bearer token.
-4. Store the real owner email, a strong one-time administrative key, the Turnstile secret, and relay token as Worker secrets—never committed variables:
+1. Choose the final origin. For the default route it is predictably `https://business-records-production.<your-account-subdomain>.workers.dev`; find or configure **Your subdomain** under Cloudflare **Workers & Pages**. A custom production domain may be chosen instead. See the deployment guide for both flows.
+2. Replace the production D1 database ID, `APP_ORIGIN`, Turnstile site key, email relay URL, and sender placeholders in `wrangler.jsonc`; confirm the configured production R2 bucket name matches the bucket you created.
+3. Configure a Turnstile widget for the production hostname. Production rejects login requests unless the response is verified server-side.
+4. Configure an HTTPS email relay accepting `POST` JSON with `from`, `to`, `subject`, and `text` fields plus a bearer token.
+5. Store the real owner email, a strong one-time administrative key, the Turnstile secret, and relay token as Worker secrets—never committed variables:
 
 ```bash
 pnpm exec wrangler secret put BOOTSTRAP_OWNER_EMAIL --env production

@@ -9,7 +9,7 @@ Never reuse a D1 database, R2 bucket, hostname, secret, or real identity between
 
 ## 1. Prerequisites and release gate
 
-Use Node.js 22+, pnpm 10+, a Cloudflare account, a production hostname, a Turnstile widget for that hostname, and an HTTPS email relay. The relay must accept `POST` JSON fields `from`, `to`, `subject`, and `text` with a bearer token.
+Use Node.js 22+, pnpm 10+, and a Cloudflare account. During the steps below you will choose the production hostname, create a Turnstile widget for that hostname, and configure an HTTPS email relay. The relay must accept `POST` JSON fields `from`, `to`, `subject`, and `text` with a bearer token.
 
 ### Authenticate Wrangler
 
@@ -64,14 +64,36 @@ Record the commit being released, test results, operator, UTC time, and intended
 
 ## 2. Provision production resources
 
-After `whoami` identifies the intended account, create dedicated resources once:
+### Choose the production origin before deploying
+
+`APP_ORIGIN` is the exact public origin where people will use the production application. It is configuration, not a value returned by the application. Choose one of these routes before the first deployment.
+
+For an initial `workers.dev` deployment, open the Cloudflare dashboard and go to **Workers & Pages**. Find **Your subdomain**; choose it there if the account does not have one yet. The production Worker name is already fixed by `wrangler.jsonc` as `business-records-production`, so its predictable URL is:
+
+```text
+https://business-records-production.<your-account-subdomain>.workers.dev
+```
+
+For example, if **Your subdomain** is `acme-records`, set:
+
+```json
+"APP_ORIGIN": "https://business-records-production.acme-records.workers.dev"
+```
+
+Do not run a placeholder-configured production deployment merely to discover this URL. Do not use a version-preview URL, include a path, or add a trailing slash.
+
+For a custom domain, decide the final hostname first, such as `records.example.nz`, and set `APP_ORIGIN` to `https://records.example.nz`. The Worker may be deployed before the dashboard mapping is attached, but authentication and state-changing verification must wait until the custom domain resolves to that Worker. Cloudflare recommends a route or custom domain rather than `workers.dev` for business-critical production use.
+
+Create the production Turnstile widget for the chosen hostname. The widget's hostname field is only the host—for example, `business-records-production.acme-records.workers.dev` or `records.example.nz`—without `https://`, a port, or a path. Copy its public site key into production `TURNSTILE_SITE_KEY`; retain its secret key for the secret step below.
+
+After `whoami` identifies the intended account and the origin is decided, create dedicated resources once:
 
 ```bash
 pnpm exec wrangler d1 create business-records-production
 pnpm exec wrangler r2 bucket create business-records-production-documents
 ```
 
-In `wrangler.jsonc`, replace the production D1 placeholder with the returned UUID. Replace production `APP_ORIGIN`, `TURNSTILE_SITE_KEY`, `EMAIL_DELIVERY_URL`, and `EMAIL_FROM` with real non-secret values. Keep `APP_ENV=production`, `LOCAL_AUTH_ENABLED=false`, and `TURNSTILE_REQUIRED=true`.
+In `wrangler.jsonc`, replace the production D1 placeholder with the returned UUID. Replace production `APP_ORIGIN`, `TURNSTILE_SITE_KEY`, `EMAIL_DELIVERY_URL`, and `EMAIL_FROM` with the values prepared above. Keep `APP_ENV=production`, `LOCAL_AUTH_ENABLED=false`, and `TURNSTILE_REQUIRED=true`.
 
 The rate-limit namespace IDs are configuration identifiers, not credentials. Keep the production values distinct from demo values. In Cloudflare, confirm the R2 bucket has no public development URL or custom public domain.
 
@@ -109,7 +131,7 @@ pnpm exec wrangler deploy --env production --dry-run --outdir .wrangler/deploy-p
 pnpm deploy:production
 ```
 
-Map the production hostname to the Worker in Cloudflare, set `APP_ORIGIN` to that exact HTTPS origin, and deploy again if the hostname changed. Do not include a path or trailing slash in `APP_ORIGIN`.
+Wrangler prints the deployed `workers.dev` URL. If that was the selected production route, it must exactly match `APP_ORIGIN`; stop and correct the configuration if it does not. If you selected a custom domain, attach that domain to this Worker in Cloudflare and wait for DNS/TLS readiness. Do not replace the planned `APP_ORIGIN` with a version-preview URL or an unintended `workers.dev` URL.
 
 Verify the public boundary before bootstrap:
 
@@ -133,14 +155,20 @@ Do not paste the real key into shared logs. The call is idempotent only for the 
 
 ## 5. Provision and deploy the public demo
 
-Create separate resources and place only fictional data in them:
+Choose a separate demo origin before deployment. With the same account subdomain, the default is predictable from the configured demo Worker name:
+
+```text
+https://business-records-demo.<your-account-subdomain>.workers.dev
+```
+
+Alternatively, decide a dedicated demo custom domain. Then create separate resources and place only fictional data in them:
 
 ```bash
 pnpm exec wrangler d1 create business-records-demo
 pnpm exec wrangler r2 bucket create business-records-demo-documents
 ```
 
-Replace only the demo D1 placeholder and demo `APP_ORIGIN` in `wrangler.jsonc`. Keep the demo email, local-auth, bootstrap, and Turnstile settings disabled. Then:
+Replace only the demo D1 placeholder and demo `APP_ORIGIN` in `wrangler.jsonc`. The origin must be the exact URL chosen above, without a path or trailing slash. Keep the demo email, local-auth, bootstrap, and Turnstile settings disabled. Then:
 
 ```bash
 pnpm db:reset:demo
