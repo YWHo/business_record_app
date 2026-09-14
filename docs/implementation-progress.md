@@ -485,5 +485,6 @@ Acceptance criteria completed:
 - Added an operations guide covering access ownership, daily/weekly/monthly checks, exports, destructive actions, credential rotation, incident triage, demo capacity, and service handover.
 - Added a recovery guide distinguishing portable application exports, D1 Time Travel, Worker rollback, and R2 recovery; documented the lack of an automated archive importer and the reconciliation required before a full rebuild.
 - Documented that local end-to-end tests reset only guarded Miniflare state and that remote demo reset, production migrations, bootstrap, secret changes, and deployment require explicit protected workflows.
+- Documented Wrangler's interactive login, account verification and switching, browser-flow troubleshooting, and least-privilege non-interactive CI authentication before resource provisioning.
 
 Notes: No live Cloudflare resources were changed. The committed configuration intentionally retains placeholder remote IDs and origins until the operator provisions resources. Actual production deployment, DNS, Turnstile, email delivery, bucket privacy, WAF, monitoring, alerts, and recovery rehearsal require the owner's accounts and approval.

@@ -9,7 +9,40 @@ Never reuse a D1 database, R2 bucket, hostname, secret, or real identity between
 
 ## 1. Prerequisites and release gate
 
-Use Node.js 22+, pnpm 10+, a Cloudflare account, Wrangler authentication, a production hostname, a Turnstile widget for that hostname, and an HTTPS email relay. The relay must accept `POST` JSON fields `from`, `to`, `subject`, and `text` with a bearer token.
+Use Node.js 22+, pnpm 10+, a Cloudflare account, a production hostname, a Turnstile widget for that hostname, and an HTTPS email relay. The relay must accept `POST` JSON fields `from`, `to`, `subject`, and `text` with a bearer token.
+
+### Authenticate Wrangler
+
+For an interactive deployment from your own computer, sign in before running any provisioning command:
+
+```bash
+pnpm exec wrangler login
+```
+
+Wrangler opens a Cloudflare authorization page in your browser. Sign in, authorize Wrangler, return to the terminal after it confirms success, and verify the selected account:
+
+```bash
+pnpm exec wrangler whoami
+```
+
+If the browser does not open automatically, open the authorization URL printed in the terminal. If `whoami` still reports that you are not authenticated, retry `wrangler login` and ensure the terminal remains open until the browser flow completes. To replace an incorrect or expired interactive login:
+
+```bash
+pnpm exec wrangler logout
+pnpm exec wrangler login
+pnpm exec wrangler whoami
+```
+
+If `whoami` lists more than one account, pin the intended account for the current shell using the ID it reports, then use that same shell for every command in this guide:
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID='<intended-account-id>'
+pnpm exec wrangler whoami
+```
+
+The account ID is an identifier rather than a credential, but it must still select the correct account. Verify every new D1, R2, and Worker resource appears there.
+
+Do not use interactive login in CI/CD. Store a least-privilege `CLOUDFLARE_API_TOKEN` and the matching `CLOUDFLARE_ACCOUNT_ID` in the CI provider's protected secret store. Scope the token to the intended account and only the resource permissions required by that job. Never commit either value or print the token.
 
 Before preparing a release:
 
@@ -31,10 +64,9 @@ Record the commit being released, test results, operator, UTC time, and intended
 
 ## 2. Provision production resources
 
-Authenticate and create dedicated resources once:
+After `whoami` identifies the intended account, create dedicated resources once:
 
 ```bash
-pnpm exec wrangler whoami
 pnpm exec wrangler d1 create business-records-production
 pnpm exec wrangler r2 bucket create business-records-production-documents
 ```
