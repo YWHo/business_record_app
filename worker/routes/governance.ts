@@ -7,6 +7,7 @@ import {
 } from '../lib/http';
 import { pageResult, requestPagination } from '../lib/pagination';
 import { writeAudit } from '../services/auditService';
+import { requireDocumentStorage } from '../services/documentStorageService';
 import {
   isPurgeEligible,
   retainedRecordType,
@@ -325,7 +326,7 @@ export async function purgeFromTrash(request: Request, env: Env) {
   ]);
   await Promise.all(
     attachments.results.map(({ object_key }) =>
-      env.DOCUMENTS.delete(object_key),
+      requireDocumentStorage(env).delete(object_key),
     ),
   );
   const statements = [

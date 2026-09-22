@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Env } from '../types';
-import { uploadAttachment } from './attachments';
+import { downloadAttachment, uploadAttachment } from './attachments';
 import { downloadExport } from './exports';
 import { purgeFromTrash } from './governance';
 
@@ -30,6 +30,20 @@ describe('public demo expensive-operation boundary', () => {
         demo,
       ),
     ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('rejects document downloads before database or bucket access', async () => {
+    await expect(
+      downloadAttachment(
+        new Request(
+          'https://demo.example.invalid/api/attachments/file?id=unknown',
+        ),
+        demo,
+      ),
+    ).rejects.toMatchObject({
+      status: 404,
+      message: 'Document storage is unavailable in the demo.',
+    });
   });
 
   it('rejects permanent deletion before authentication or data writes', async () => {

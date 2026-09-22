@@ -9,6 +9,7 @@ import {
   type AttachmentRecordType,
 } from '../services/attachmentService';
 import { writeAudit } from '../services/auditService';
+import { requireDocumentStorage } from '../services/documentStorageService';
 import { enforceRateLimit } from '../services/securityService';
 import type { Env } from '../types';
 
@@ -240,7 +241,7 @@ export async function uploadAttachment(request: Request, env: Env) {
   const id = crypto.randomUUID();
   const objectKey = `business-accounts/${actor.businessAccountId}/attachments/${recordType.toLowerCase()}/${recordId}/${versionGroupId}/v${versionNumber}-${id}`;
   const now = new Date().toISOString();
-  await env.DOCUMENTS.put(objectKey, bytes, {
+  await requireDocumentStorage(env).put(objectKey, bytes, {
     httpMetadata: { contentType: validated.mimeType },
     customMetadata: { sha256, attachmentId: id },
   });
@@ -275,7 +276,7 @@ export async function uploadAttachment(request: Request, env: Env) {
       ),
     ]);
   } catch (error) {
-    await env.DOCUMENTS.delete(objectKey);
+    await requireDocumentStorage(env).delete(objectKey);
     throw error;
   }
   await writeAudit(
@@ -300,6 +301,7 @@ export async function uploadAttachment(request: Request, env: Env) {
 }
 
 export async function downloadAttachment(request: Request, env: Env) {
+  if (env.APP_ENV === 'demo') requireDocumentStorage(env);
   const actor = await requireUser(request, env);
   const id = queryValue(new URL(request.url), 'id');
   const row = await env.DB.prepare(
@@ -309,7 +311,7 @@ export async function downloadAttachment(request: Request, env: Env) {
     .first<AttachmentRow>();
   if (!row) throw new HttpError(404, 'Attachment not found.');
   await parent(env, actor.businessAccountId, row.record_type, row.record_id);
-  const object = await env.DOCUMENTS.get(row.object_key);
+  const object = await requireDocumentStorage(env).get(row.object_key);
   if (!object) throw new HttpError(404, 'Attachment file is unavailable.');
   const encoded = encodeURIComponent(row.original_filename);
   const headers = new Headers();

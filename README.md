@@ -147,17 +147,16 @@ The common displayed value is net payment for platform and subscription records,
 
 ## Public demo setup
 
-The demo is a separate named Cloudflare environment for portfolio visitors. It uses only fictional records, its own Worker, D1 database, R2 bucket, variables, and rate-limit namespace, and never reads production bindings. Visitors choose **Continue as Demo Owner** or **Continue as Demo Accountant**; that selection exists only in the current browser tab and creates no server session or cookie. Email login and the loopback development helper are not exposed in demo mode.
+The demo is a separate named Cloudflare environment for portfolio visitors. It uses only fictional records, its own Worker, D1 database, variables, and rate-limit namespace, and never reads production bindings. It has no R2 binding. Visitors choose **Continue as Demo Owner** or **Continue as Demo Accountant**; that selection exists only in the current browser tab and creates no server session or cookie. Email login and the loopback development helper are not exposed in demo mode.
 
-Keep the demo on the Workers Free plan initially. Quota exhaustion may temporarily make the demo unavailable; do not bypass protections or automatically upgrade it to paid execution. The Worker applies a demo-wide read limit before read route work and rejects writes before any limiter or storage work. A missing read limiter fails closed. If the account later becomes pay-as-you-go, configure low account-level budget alerts, remembering that alerts notify rather than cap spend. Re-check current Cloudflare pricing and limits before changing plans or R2 storage class; no price or free-tier quota belongs in application logic.
+Keep the demo on the Workers Free plan initially. Quota exhaustion may temporarily make the demo unavailable; do not bypass protections or automatically upgrade it to paid execution. The Worker applies a demo-wide read limit before read route work, caches successful JSON GET responses at the edge for ten minutes, and rejects writes before any limiter or storage work. Cache failures fall through to the normal read path. A missing read limiter fails closed. If the account later becomes pay-as-you-go, configure low account-level budget alerts, remembering that alerts notify rather than cap spend. Re-check current Cloudflare pricing and limits before changing plans or R2 storage class; no price or free-tier quota belongs in application logic.
 
-The demo backend is strictly read-only: every non-GET API request is rejected before D1 or R2 work. The UI keeps edits, comments, statuses, new records, and deletion tombstones in a per-browser IndexedDB overlay. Reloading preserves that browser's changes; another browser context starts clean. **Reset demo data** clears only the current browser overlay. Demo document selection and preview never send visitor files to the Worker or R2. Dynamic ZIP generation, permanent deletion, outbound email, invitations, bootstrap, and destructive administration remain unavailable.
+The demo backend is strictly read-only: every non-GET API request is rejected before D1 work. The UI keeps edits, comments, statuses, new records, and deletion tombstones in a per-browser IndexedDB overlay. Reloading preserves that browser's changes; another browser context starts clean. **Reset demo data** clears only the current browser overlay. Demo document selection and preview never send visitor files to the Worker. Dynamic ZIP generation, permanent deletion, outbound email, invitations, bootstrap, and destructive administration remain unavailable.
 
 Provision the remote demo resources once:
 
 ```bash
 pnpm exec wrangler d1 create business-records-demo
-pnpm exec wrangler r2 bucket create business-records-demo-documents
 ```
 
 Replace the demo D1 placeholder ID and `APP_ORIGIN` in `wrangler.jsonc` with the created resource ID and final demo Worker URL. Do not copy production identifiers or secrets into the demo environment. Apply migrations, load the synthetic dataset, and deploy:
@@ -175,7 +174,7 @@ pnpm db:reset:demo -- --confirm business-records-demo
 
 `pnpm db:seed:demo` replaces records without applying migrations first and has the same confirmation guard. The seed provides two synthetic accounts, four business activities, two vehicles, fictional clients/providers, work sessions, weekly platform payments, paid and outstanding IT invoices, SaaS summaries, fuel, parking, software, cloud hosting, insurance allocations, reconciliations, comments, audit history, saved filters, and mixed review statuses.
 
-The SQL seed intentionally contains no attachment metadata unless matching fictional R2 objects are deliberately provisioned. Browser-selected demo files remain local and cannot create bucket objects. Remove any objects left by an older write-enabled demo deployment. Never apply a demo cleanup policy to production evidence. Use R2 Standard unless a later ADR records a reviewed reason to change storage class.
+The SQL seed intentionally contains no attachment metadata. Browser-selected demo files remain local, and the demo Worker cannot access R2. Production documents continue to use a private R2 bucket with the Standard storage class unless a later ADR records a reviewed reason to change it.
 
 ## Production authentication setup
 
@@ -302,7 +301,7 @@ Money is stored in integer minor units with an explicit currency. Mileage distan
 
 ## Environment separation
 
-`wrangler.jsonc` declares independent local, demo, and production D1/R2 bindings. The committed demo and production UUIDs are intentional placeholders, not credentials. Before deployment, create resources in the target Cloudflare account and replace only that environment's placeholders.
+`wrangler.jsonc` declares independent local and production D1/R2 bindings plus a D1-only demo environment. Cloudflare resource IDs are configuration identifiers, not credentials. Before deployment, create the resources for the target environment and set its identifiers.
 
 The deployment scripts select a committed, selector-only Vite mode file for the build and pass the matching explicit `--env` to Wrangler for upload. The mode files contain no secrets. Never run remote database commands without reviewing the target and including `--remote` intentionally.
 

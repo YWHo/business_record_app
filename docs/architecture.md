@@ -36,7 +36,7 @@ Owner bootstrap requires the configured email and an administrative secret. It c
 
 The local login helper selects only configured seeded identities and requires both `APP_ENV=local` and a loopback request hostname. It never bypasses normal route authorization.
 
-The public demo has no real authentication route, session, or cookie. Owner/accountant selection is held in the current tab's `sessionStorage` solely to simulate UI permissions. The Worker independently treats every demo request as read-only, returns immutable synthetic records for bounded GET requests, and rejects every non-read API request before D1 or R2 work.
+The public demo has no real authentication route, session, or cookie. Owner/accountant selection is held in the current tab's `sessionStorage` solely to simulate UI permissions. The Worker independently treats every demo request as read-only, returns immutable synthetic records for bounded GET requests, caches successful JSON reads at the edge for ten minutes, and rejects every non-read API request before D1 or R2 work. The demo has no R2 binding.
 
 Demo D1 is restored from a deterministic synthetic seed through an operator-only command that requires the exact remote demo target and always supplies both `--remote` and `--env demo`. Visitor edits, comments, status changes, tombstones, and temporary records form an IndexedDB overlay in that visitor's browser. Resetting the visible demo clears only that overlay. Demo document selection and preview stay browser-local and never reach the Worker or R2.
 

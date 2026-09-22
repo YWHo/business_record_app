@@ -187,10 +187,9 @@ Alternatively, decide a dedicated demo custom domain. Then create separate resou
 
 ```bash
 pnpm exec wrangler d1 create business-records-demo
-pnpm exec wrangler r2 bucket create business-records-demo-documents
 ```
 
-Replace only the demo D1 placeholder and demo `APP_ORIGIN` in `wrangler.jsonc`. The origin must be the exact URL chosen above, without a path or trailing slash. Keep the demo email, local-auth, bootstrap, and Turnstile settings disabled. Then:
+Replace only the demo D1 placeholder and demo `APP_ORIGIN` in `wrangler.jsonc`. The origin must be the exact URL chosen above, without a path or trailing slash. The demo deliberately has no R2 binding: document downloads are unavailable, its seed contains no attachment metadata, and browser-only changes never reach server storage. Keep the demo email, local-auth, bootstrap, and Turnstile settings disabled. Then:
 
 ```bash
 pnpm db:reset:demo
@@ -200,7 +199,9 @@ pnpm exec wrangler deploy --env demo --dry-run --outdir .wrangler/deploy-preview
 pnpm deploy:demo
 ```
 
-The reset requires typing `business-records-demo` because it destroys and reseeds remote demo rows. Verify both browser roles, browser-local edits and reset, cross-browser isolation, read rate limiting, and rejection of every non-GET API request. Check that demo D1/R2 IDs and hostname differ from production before publishing its URL.
+Wrangler currently warns that the top-level local `DOCUMENTS` binding is not present in `env.demo`, even when demo declares the intentional empty `r2_buckets` list. This non-inheritance warning is expected. Do not add a demo bucket to silence it; confirm the dry-run binding table has no `DOCUMENTS` entry.
+
+The reset requires typing `business-records-demo` because it destroys and reseeds remote demo rows. Successful demo JSON reads are cached at Cloudflare's edge for ten minutes without another D1 query, so a remote reset can take up to ten minutes to appear at an edge location. Verify both browser roles, browser-local edits and reset, cross-browser isolation, read rate limiting, and rejection of every non-GET API request. Check that the demo D1 ID and hostname differ from production before publishing its URL.
 
 ## 6. Subsequent releases
 

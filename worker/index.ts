@@ -96,6 +96,7 @@ import {
 import { downloadExport, exportStatus } from './routes/exports';
 import { dashboard } from './routes/dashboard';
 import type { Env } from './types';
+import { prepareDemoCache } from './services/demoCacheService';
 import {
   enforceRateLimit,
   requireSameOrigin,
@@ -376,7 +377,11 @@ const routes: Route[] = [
   },
 ];
 
-async function handleRequest(request: Request, env: Env): Promise<Response> {
+async function handleRequest(
+  request: Request,
+  env: Env,
+  context?: ExecutionContext,
+): Promise<Response> {
   const { pathname } = new URL(request.url);
 
   if (env.APP_ENV === 'demo' && pathname.startsWith('/api/')) {
@@ -399,7 +404,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   );
 
   if (route) {
-    return route.handler(request, env);
+    const cache = await prepareDemoCache(request, env);
+    if (cache?.response) return cache.response;
+    const response = await route.handler(request, env);
+    if (cache) {
+      const cacheWrite = cache.store(response.clone());
+      if (context) context.waitUntil(cacheWrite);
+      else await cacheWrite;
+      return cache.miss(response);
+    }
+    return response;
   }
 
   if (matchingPath.length > 0) {
@@ -410,7 +424,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    context?: ExecutionContext,
+  ): Promise<Response> {
     const requestId = crypto.randomUUID();
     let response: Response;
     try {
@@ -423,7 +441,7 @@ export default {
         });
       } else {
         requireSameOrigin(request, env);
-        response = await handleRequest(request, env);
+        response = await handleRequest(request, env, context);
       }
     } catch (error) {
       if (error instanceof HttpError) {

@@ -1,6 +1,7 @@
 import { requireUser } from '../auth/authorization';
 import { HttpError, json } from '../lib/http';
 import { sha256Hex } from '../services/attachmentService';
+import { requireDocumentStorage } from '../services/documentStorageService';
 import {
   enforceRateLimit,
   requireSameOriginFetch,
@@ -133,6 +134,7 @@ export async function downloadExport(request: Request, env: Env) {
       'Archive generation is unavailable in the public demo.',
     );
   }
+  const documents = requireDocumentStorage(env);
   const actor = await requireUser(request, env);
   requireSameOriginFetch(request, env);
   await enforceRateLimit(
@@ -396,7 +398,7 @@ export async function downloadExport(request: Request, env: Env) {
   const attachmentManifest: Array<Record<string, unknown>> = [];
   const attachmentIndex: Array<Record<string, unknown>> = [];
   for (const attachment of attachments) {
-    const object = await env.DOCUMENTS.head(attachment.object_key);
+    const object = await documents.head(attachment.object_key);
     if (!object || object.size !== attachment.file_size)
       throw new HttpError(409, 'An expected source attachment is unavailable.');
     if (
@@ -412,7 +414,7 @@ export async function downloadExport(request: Request, env: Env) {
       path,
       size: attachment.file_size,
       load: async () => {
-        const stored = await env.DOCUMENTS.get(attachment.object_key);
+        const stored = await documents.get(attachment.object_key);
         if (!stored)
           throw new HttpError(500, 'An attachment disappeared during export.');
         const bytes = new Uint8Array(await stored.arrayBuffer());

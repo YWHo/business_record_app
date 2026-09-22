@@ -75,7 +75,7 @@ describe('demo authentication boundary', () => {
     const response = await worker.fetch(
       new Request('https://demo.example.invalid/api/auth/demo', {
         method: 'POST',
-      }) as never,
+      }),
       environment(),
     );
     expect(response.status).toBe(403);

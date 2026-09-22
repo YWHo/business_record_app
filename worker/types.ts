@@ -22,7 +22,7 @@ export interface Env {
   EXPENSIVE_RATE_LIMITER: RateLimiter;
   DEMO_READ_RATE_LIMITER?: RateLimiter;
   DB: D1Database;
-  DOCUMENTS: R2Bucket;
+  DOCUMENTS?: R2Bucket;
 }
 
 export interface RateLimiter {

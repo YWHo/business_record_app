@@ -6,8 +6,7 @@ const environment = {
   APP_ENV: 'production',
   APP_ORIGIN: 'https://records.example.invalid',
 } as Env;
-const incoming = (request: Request) =>
-  request as Parameters<typeof worker.fetch>[0];
+const incoming = (request: Request) => request;
 
 describe('Worker security middleware', () => {
   it('hardens API errors and returns a correlation identifier', async () => {

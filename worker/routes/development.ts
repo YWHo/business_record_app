@@ -5,6 +5,7 @@ import {
   acceptAccountantInvitation,
   createAccountantInvitation,
 } from '../services/invitationService';
+import { requireDocumentStorage } from '../services/documentStorageService';
 import type { Env } from '../types';
 
 export async function listDevelopmentOutbox(
@@ -100,10 +101,14 @@ export async function writeStorageProbe(
   requireRole(user, ['OWNER']);
   const storedAt = new Date().toISOString();
 
-  await env.DOCUMENTS.put('development-checks/r2-binding.txt', storedAt, {
-    httpMetadata: { contentType: 'text/plain; charset=utf-8' },
-    customMetadata: { createdBy: user.id },
-  });
+  await requireDocumentStorage(env).put(
+    'development-checks/r2-binding.txt',
+    storedAt,
+    {
+      httpMetadata: { contentType: 'text/plain; charset=utf-8' },
+      customMetadata: { createdBy: user.id },
+    },
+  );
 
   return json({ objectKey: 'development-checks/r2-binding.txt', storedAt });
 }
@@ -115,7 +120,9 @@ export async function readStorageProbe(
   requireLocalAuth(request, env);
   const user = await requireUser(request, env);
   requireRole(user, ['OWNER']);
-  const object = await env.DOCUMENTS.get('development-checks/r2-binding.txt');
+  const object = await requireDocumentStorage(env).get(
+    'development-checks/r2-binding.txt',
+  );
 
   return json({ exists: object !== null, value: await object?.text() });
 }

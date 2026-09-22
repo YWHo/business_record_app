@@ -9,7 +9,7 @@ const captures = (source: string, pattern: RegExp) =>
   new Set([...source.matchAll(pattern)].map((match) => match[1]));
 
 describe('deployed environment resource separation', () => {
-  it('uses disjoint demo and production storage and rate-limit bindings', () => {
+  it('keeps demo resources disjoint and omits document storage', () => {
     expect(demoStart).toBeGreaterThan(-1);
     expect(productionStart).toBeGreaterThan(demoStart);
     const demoResources = captures(
@@ -25,7 +25,10 @@ describe('deployed environment resource separation', () => {
     for (const resource of demoResources) {
       expect(productionResources.has(resource)).toBe(false);
     }
+    expect(demo).toContain('"r2_buckets": []');
+    expect(demo).not.toContain('"binding": "DOCUMENTS"');
     expect(demo).not.toContain('business-records-production');
+    expect(production).toContain('"binding": "DOCUMENTS"');
     expect(production).not.toContain('business-records-demo-documents');
   });
 
