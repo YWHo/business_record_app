@@ -116,6 +116,14 @@
             "period": 60,
           },
         },
+        {
+          "name": "DEMO_BURST_RATE_LIMITER",
+          "namespace_id": "2005",
+          "simple": {
+            "limit": 30,
+            "period": 10,
+          },
+        },
       ],
     },
     "production": {

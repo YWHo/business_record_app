@@ -58,6 +58,7 @@ describe('Worker security middleware', () => {
   });
 
   it('rejects an excessive demo action before route handling', async () => {
+    const allow = { limit: () => Promise.resolve({ success: true }) };
     const response = await worker.fetch(
       incoming(
         new Request('https://demo.example.invalid/api/not-present', {
@@ -68,13 +69,15 @@ describe('Worker security middleware', () => {
         ...environment,
         APP_ENV: 'demo',
         APP_ORIGIN: 'https://demo.example.invalid',
-        DEMO_READ_RATE_LIMITER: {
+        DEMO_READ_RATE_LIMITER: allow,
+        DEMO_BURST_RATE_LIMITER: {
           limit: () => Promise.resolve({ success: false }),
         },
       },
     );
 
     expect(response.status).toBe(429);
+    expect(response.headers.get('retry-after')).toBe('10');
   });
 
   it('rejects every demo mutation before a database, bucket, or limiter call', async () => {
@@ -114,6 +117,7 @@ describe('Worker security middleware', () => {
         APP_ENV: 'demo',
         APP_ORIGIN: 'https://demo.example.invalid',
         DEMO_READ_RATE_LIMITER: allow,
+        DEMO_BURST_RATE_LIMITER: allow,
         DB: {
           prepare: () => {
             throw new Error('provider quota detail');

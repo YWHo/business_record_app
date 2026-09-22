@@ -13,6 +13,7 @@ import {
   recordDemoMutation,
   resetDemoData,
 } from '../demo/demoStore';
+import { fetchWithRateLimitRetry } from '../../lib/rateLimitRetry';
 
 export interface AuthUser {
   id: string;
@@ -66,7 +67,7 @@ export async function apiRequest<T>(
   const method = (init?.method ?? 'GET').toUpperCase();
   if (publicDemo && method !== 'GET' && method !== 'HEAD')
     return (await recordDemoMutation(path, init ?? {})) as T;
-  const response = await fetch(path, {
+  const response = await fetchWithRateLimitRetry(path, {
     ...init,
     headers: {
       ...(typeof init?.body === 'string'

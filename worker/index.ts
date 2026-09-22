@@ -391,11 +391,13 @@ async function handleRequest(
         'The public demo backend is read-only. Changes stay in this browser.',
       );
     }
-    const limiter = env.DEMO_READ_RATE_LIMITER;
-    if (!limiter) {
+    const sustainedLimiter = env.DEMO_READ_RATE_LIMITER;
+    const burstLimiter = env.DEMO_BURST_RATE_LIMITER;
+    if (!sustainedLimiter || !burstLimiter) {
       throw new HttpError(503, 'Demo protection is temporarily unavailable.');
     }
-    await enforceRateLimit(request, limiter, 'demo-read');
+    await enforceRateLimit(request, sustainedLimiter, 'demo-read');
+    await enforceRateLimit(request, burstLimiter, 'demo-burst', '', 10);
   }
 
   const matchingPath = routes.filter((route) => route.pathname === pathname);
@@ -445,7 +447,10 @@ export default {
       }
     } catch (error) {
       if (error instanceof HttpError) {
-        response = json({ error: error.message }, { status: error.status });
+        response = json(
+          { error: error.message },
+          { status: error.status, headers: error.headers },
+        );
       } else {
         console.error('Unhandled API error', {
           requestId,

@@ -43,6 +43,25 @@ describe('request security', () => {
     expect(new Set(keys).size).toBe(2);
   });
 
+  it('provides a retry delay when a limit is exceeded', async () => {
+    const limiter = {
+      limit: () => Promise.resolve({ success: false }),
+    };
+
+    await expect(
+      enforceRateLimit(
+        new Request('https://records.example.invalid/api/dashboard'),
+        limiter,
+        'demo-burst',
+        '',
+        10,
+      ),
+    ).rejects.toMatchObject({
+      status: 429,
+      headers: { 'retry-after': '10' },
+    });
+  });
+
   it('requires the configured origin for deployed unsafe requests', () => {
     const env = securityEnvironment();
     expect(() =>

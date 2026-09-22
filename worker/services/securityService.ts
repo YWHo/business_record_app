@@ -68,6 +68,7 @@ export async function enforceRateLimit(
   limiter: RateLimiter,
   scope: string,
   discriminator = '',
+  retryAfterSeconds = 60,
 ): Promise<void> {
   const clientAddress = request.headers.get('cf-connecting-ip') ?? 'local';
   const dimensions = [`${scope}:client:${clientAddress}`];
@@ -79,7 +80,9 @@ export async function enforceRateLimit(
   );
 
   if (results.some((result) => !result.success)) {
-    throw new HttpError(429, 'Too many requests. Please try again later.');
+    throw new HttpError(429, 'Too many requests. Please try again later.', {
+      'retry-after': String(retryAfterSeconds),
+    });
   }
 }
 

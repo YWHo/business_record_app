@@ -21,6 +21,7 @@ export interface Env {
   INVITE_RATE_LIMITER: RateLimiter;
   EXPENSIVE_RATE_LIMITER: RateLimiter;
   DEMO_READ_RATE_LIMITER?: RateLimiter;
+  DEMO_BURST_RATE_LIMITER?: RateLimiter;
   DB: D1Database;
   DOCUMENTS?: R2Bucket;
 }

@@ -28,7 +28,9 @@ describe('deployed environment resource separation', () => {
     expect(demo).toContain('"r2_buckets": []');
     expect(demo).not.toContain('"binding": "DOCUMENTS"');
     expect(demo).not.toContain('business-records-production');
+    expect(demo).toContain('"name": "DEMO_BURST_RATE_LIMITER"');
     expect(production).toContain('"binding": "DOCUMENTS"');
+    expect(production).not.toContain('"name": "DEMO_BURST_RATE_LIMITER"');
     expect(production).not.toContain('business-records-demo-documents');
   });
 

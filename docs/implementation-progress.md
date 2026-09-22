@@ -452,6 +452,7 @@ Acceptance criteria completed:
 - Replaced public demo sessions and cookies with browser-local role simulation.
 - Made the entire demo Worker API read-only for public mutations before D1/R2 work.
 - Removed the demo R2 binding, guarded document storage at runtime, and cached successful demo JSON reads at the edge for ten minutes to reduce repeated D1 work.
+- Layered a short demo burst limit over the sustained read limit, added `Retry-After` responses, and bounded browser retries for safe reads with exponential delay and jitter.
 - Added an IndexedDB demo overlay for local edits, comments, status changes, temporary records, document workflow metadata, and tombstones, plus a visible current-browser reset action.
 - Updated architecture, data-model, deployment, and demo-operation documentation for future commercial readiness without implementing signup, billing, or ownership transfer.
 - Verified formatting, lint, TypeScript, 122 unit/component tests, a fresh migrated and seeded database, schema and foreign-key integrity, application/demo/production builds, Storybook, all 6 Playwright workflows, and a dependency audit with no known vulnerabilities.

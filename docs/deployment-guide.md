@@ -201,7 +201,7 @@ pnpm deploy:demo
 
 Wrangler currently warns that the top-level local `DOCUMENTS` binding is not present in `env.demo`, even when demo declares the intentional empty `r2_buckets` list. This non-inheritance warning is expected. Do not add a demo bucket to silence it; confirm the dry-run binding table has no `DOCUMENTS` entry.
 
-The reset requires typing `business-records-demo` because it destroys and reseeds remote demo rows. Successful demo JSON reads are cached at Cloudflare's edge for ten minutes without another D1 query, so a remote reset can take up to ten minutes to appear at an edge location. Verify both browser roles, browser-local edits and reset, cross-browser isolation, read rate limiting, and rejection of every non-GET API request. Check that the demo D1 ID and hostname differ from production before publishing its URL.
+The reset requires typing `business-records-demo` because it destroys and reseeds remote demo rows. Successful demo JSON reads are cached at Cloudflare's edge for ten minutes without another D1 query, so a remote reset can take up to ten minutes to appear at an edge location. Verify both browser roles, browser-local edits and reset, cross-browser isolation, the 30-per-10-second burst and 120-per-minute sustained read limits, `Retry-After` responses, and rejection of every non-GET API request. Check that the demo D1 ID and hostname differ from production before publishing its URL.
 
 ## 6. Subsequent releases
 
