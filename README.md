@@ -2,6 +2,8 @@
 
 A private, invitation-only application for organising business income, expenses, mileage, and supporting documents. It is designed for small New Zealand business workflows and deliberately avoids making tax-treatment decisions.
 
+**[Try the live demo](https://business-records-demo.brian-ho-nz.workers.dev/)** — explore the synthetic owner and accountant workflows without signing up.
+
 ## Current status
 
 The application is an installable, mobile-first React PWA and Cloudflare Worker API with passwordless production authentication, business records, private versioned documents, review and retention controls, portable backups, and a server-derived business dashboard. Critical lifecycles have Storybook, unit, and Playwright coverage, and an isolated, cost-bounded public demo offers synthetic New Zealand owner/accountant scenarios without signup. Local development still needs no Cloudflare account or email provider.
