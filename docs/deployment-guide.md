@@ -111,26 +111,34 @@ pnpm exec wrangler d1 execute business-records-production --env production --rem
 
 ## 3. Configure production secrets
 
-Generate a strong, unique bootstrap key in a password manager. Set the exact owner email, bootstrap key, Turnstile secret, and email relay bearer token interactively:
+Generate a strong, unique bootstrap key in a password manager. For the first deployment, place the exact owner email, bootstrap key, Turnstile secret, and email relay bearer token in a local `.env.production.secrets` file:
 
-```bash
-pnpm exec wrangler secret put BOOTSTRAP_OWNER_EMAIL --env production
-pnpm exec wrangler secret put BOOTSTRAP_ADMIN_KEY --env production
-pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production
-pnpm exec wrangler secret put EMAIL_DELIVERY_BEARER_TOKEN --env production
-pnpm exec wrangler secret list --env production
+```dotenv
+BOOTSTRAP_OWNER_EMAIL="owner@example.com"
+BOOTSTRAP_ADMIN_KEY="replace-with-a-strong-unique-key"
+TURNSTILE_SECRET_KEY="replace-with-the-turnstile-secret"
+EMAIL_DELIVERY_BEARER_TOKEN="replace-with-the-email-provider-token"
 ```
 
-`BOOTSTRAP_OWNER_EMAIL` is the only place to enter the initial owner's real email. In production the Worker reads it from Cloudflare's encrypted secret binding, while `DEV_OWNER_EMAIL` is ignored. The email is not returned by `wrangler secret list` after it is stored.
+The repository's `.env.*` ignore rule covers this file. Verify that before entering real values, and restrict local access:
 
-If the Worker already exists, the same values can be entered through Cloudflare Dashboard → **Workers & Pages** → `business-records-production` → **Settings** → **Variables and Secrets**. Add each required name with type **Secret**, not plaintext variable. The four required names are:
+```bash
+git check-ignore -v .env.production.secrets
+chmod 600 .env.production.secrets
+```
+
+Do not use `.env.production` for these values because Vite automatically loads that conventional filename during production builds. Wrangler reads `.env.production.secrets` only when it is passed explicitly with `--secrets-file`. The file must contain all four required values before the first deployment.
+
+`BOOTSTRAP_OWNER_EMAIL` is the only place to enter the initial owner's real email. During deployment, Wrangler uploads these values into Cloudflare's encrypted secret bindings; the Worker does not read the local file at runtime. Production ignores `DEV_OWNER_EMAIL`, and secret values are not returned by `wrangler secret list` after upload.
+
+If the Worker already exists, rotate an individual value with `pnpm exec wrangler secret put <NAME> --env production`, or enter it through Cloudflare Dashboard → **Workers & Pages** → `business-records-production` → **Settings** → **Variables and Secrets**. Add each required name with type **Secret**, not plaintext variable. The four required names are:
 
 - `BOOTSTRAP_OWNER_EMAIL`
 - `BOOTSTRAP_ADMIN_KEY`
 - `TURNSTILE_SECRET_KEY`
 - `EMAIL_DELIVERY_BEARER_TOKEN`
 
-The production environment declares these names as required, so a normal deployment fails rather than silently omitting one. Wrangler secret updates create a Worker version and may deploy it; configure and migrate the bound resources first. Never put secret values in `wrangler.jsonc`, a shell history command, CI output, screenshots, issues, or source control. SOPS is unnecessary for these Worker values because no encrypted secret file needs to live in the repository; introducing it would also require protecting and rotating a separate decryption key.
+The production environment declares these names as required, so a deployment fails rather than silently omitting one. Wrangler secret updates create a Worker version and may deploy it; configure and migrate the bound resources first. Never put secret values in `wrangler.jsonc`, a shell history command, CI output, screenshots, issues, or source control. Keep the local secrets file only on a trusted encrypted workstation, or remove it after confirming the values are also retained in a password manager. SOPS is unnecessary because no encrypted secret file needs to live in the repository; introducing it would also require protecting and rotating a separate decryption key.
 
 ## 4. First production deployment
 
@@ -139,8 +147,11 @@ Review every production binding in `wrangler.jsonc`, then build and inspect a lo
 ```bash
 pnpm build:production
 pnpm exec wrangler deploy --env production --dry-run --outdir .wrangler/deploy-preview/production
-pnpm deploy:production
+pnpm exec wrangler deploy --env production --secrets-file .env.production.secrets
+pnpm exec wrangler secret list --env production
 ```
+
+The explicit `--secrets-file` command creates the initial Worker version with all required secrets. After that succeeds, later `pnpm deploy:production` runs preserve the uploaded secrets; use `wrangler secret put` or another secrets-file deployment only when rotating them.
 
 Wrangler prints the deployed `workers.dev` URL. If that was the selected production route, it must exactly match `APP_ORIGIN`; stop and correct the configuration if it does not. If you selected a custom domain, attach that domain to this Worker in Cloudflare and wait for DNS/TLS readiness. Do not replace the planned `APP_ORIGIN` with a version-preview URL or an unintended `workers.dev` URL.
 

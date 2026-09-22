@@ -187,22 +187,30 @@ Before the first production deployment:
 2. Replace the production D1 database ID, `APP_ORIGIN`, Turnstile site key, email relay URL, and sender placeholders in `wrangler.jsonc`; confirm the configured production R2 bucket name matches the bucket you created.
 3. Configure a Turnstile widget for the production hostname. Production rejects login requests unless the response is verified server-side.
 4. Configure an HTTPS email relay accepting `POST` JSON with `from`, `to`, `subject`, and `text` fields plus a bearer token.
-5. Store the real owner email, a strong one-time administrative key, the Turnstile secret, and relay token as Worker secrets—never committed variables:
+5. Put the real owner email, a strong one-time administrative key, the Turnstile secret, and relay token in the Git-ignored `.env.production.secrets` file for the initial deployment—never in committed variables.
 
 Leave `DEV_OWNER_EMAIL`, `DEV_ACCOUNTANT_EMAIL`, and `DEV_BOOTSTRAP_KEY` unchanged. Production ignores those development-only sentinel values. The real owner address belongs only in the `BOOTSTRAP_OWNER_EMAIL` Cloudflare secret:
 
+```dotenv
+BOOTSTRAP_OWNER_EMAIL="owner@example.com"
+BOOTSTRAP_ADMIN_KEY="replace-with-a-strong-unique-key"
+TURNSTILE_SECRET_KEY="replace-with-the-turnstile-secret"
+EMAIL_DELIVERY_BEARER_TOKEN="replace-with-the-email-provider-token"
+```
+
+Verify the file is ignored before adding real values. Use this separate filename instead of `.env.production`, which Vite loads automatically during production builds:
+
 ```bash
-pnpm exec wrangler secret put BOOTSTRAP_OWNER_EMAIL --env production
-pnpm exec wrangler secret put BOOTSTRAP_ADMIN_KEY --env production
-pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production
-pnpm exec wrangler secret put EMAIL_DELIVERY_BEARER_TOKEN --env production
+git check-ignore -v .env.production.secrets
+chmod 600 .env.production.secrets
 ```
 
 Apply migrations to the deliberately selected remote production D1 database, deploy, then initialise the configured owner once:
 
 ```bash
 pnpm exec wrangler d1 migrations apply business-records-production --env production --remote
-pnpm deploy:production
+pnpm build:production
+pnpm exec wrangler deploy --env production --secrets-file .env.production.secrets
 
 curl -X POST \
   -H 'Origin: https://<production-host>' \
