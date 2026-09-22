@@ -2,7 +2,7 @@
 
 This guide deploys two deliberately separate Cloudflare Workers:
 
-- `business-records-production`, containing private live records;
+- `business-records`, containing private live records;
 - `business-records-demo`, containing fictional public demonstration data only.
 
 Never reuse a D1 database, R2 bucket, hostname, secret, or real identity between them. Run all commands from the repository root. Commands containing `--remote` change Cloudflare resources.
