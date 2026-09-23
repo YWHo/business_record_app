@@ -10,13 +10,15 @@ interface LegalEntityRow {
   company_number: string | null;
   country: string;
   active: number;
+  attribution_review_required: number;
   created_at: string;
   updated_at: string;
 }
 
 const legalEntityColumns = `
   id, business_account_id, entity_type, legal_name, trading_name, nzbn,
-  company_number, country, active, created_at, updated_at
+  company_number, country, active, attribution_review_required, created_at,
+  updated_at
 `;
 
 function toLegalEntity(row: LegalEntityRow): LegalEntity {
@@ -30,6 +32,7 @@ function toLegalEntity(row: LegalEntityRow): LegalEntity {
     companyNumber: row.company_number,
     country: row.country,
     status: row.active === 1 ? 'ACTIVE' : 'INACTIVE',
+    attributionReviewRequired: row.attribution_review_required === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -75,8 +78,9 @@ export async function createLegalEntity(
     .prepare(
       `INSERT INTO business_entities (
          id, business_account_id, entity_type, legal_name, trading_name, nzbn,
-         company_number, country, active, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         company_number, country, active, attribution_review_required,
+         created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       input.id,
@@ -88,6 +92,7 @@ export async function createLegalEntity(
       input.companyNumber,
       input.country,
       input.status === 'ACTIVE' ? 1 : 0,
+      input.attributionReviewRequired ? 1 : 0,
       input.createdAt,
       input.updatedAt,
     )

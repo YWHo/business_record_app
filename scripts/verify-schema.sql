@@ -51,3 +51,52 @@ WHERE type IN ('index', 'trigger')
     'business_entity_periods_no_overlap_update'
   )
 ORDER BY name;
+
+SELECT
+  (SELECT COUNT(*) FROM businesses) AS businesses,
+  (SELECT COUNT(*) FROM business_entity_periods) AS business_entity_periods,
+  (SELECT COUNT(*) FROM business_entities WHERE attribution_review_required = 1)
+    AS legal_entities_requiring_review,
+  (SELECT COUNT(*) FROM expenses
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS expenses_missing_attribution,
+  (SELECT COUNT(*) FROM income_records
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS income_missing_attribution,
+  (SELECT COUNT(*) FROM work_sessions
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS sessions_missing_attribution;
+
+SELECT COUNT(*) AS overlapping_business_period_pairs
+FROM business_entity_periods AS left_period
+JOIN business_entity_periods AS right_period
+  ON right_period.business_id = left_period.business_id
+  AND right_period.id > left_period.id
+  AND left_period.effective_from <= COALESCE(right_period.effective_to, '9999-12-31')
+  AND COALESCE(left_period.effective_to, '9999-12-31') >= right_period.effective_from;
+
+SELECT
+  (SELECT COUNT(*) FROM fuel_expense_details
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS fuel_details_missing_attribution,
+  (SELECT COUNT(*) FROM parking_expense_details
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS parking_details_missing_attribution,
+  (SELECT COUNT(*) FROM insurance_expense_details
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS insurance_details_missing_attribution,
+  (SELECT COUNT(*) FROM expense_allocations
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS allocations_missing_attribution,
+  (SELECT COUNT(*) FROM platform_income_details
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS platform_details_missing_attribution,
+  (SELECT COUNT(*) FROM contract_income_details
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS contract_details_missing_attribution,
+  (SELECT COUNT(*) FROM subscription_income_details
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS subscription_details_missing_attribution,
+  (SELECT COUNT(*) FROM income_reconciliations
+   WHERE business_id IS NULL OR legal_entity_id IS NULL)
+    AS reconciliations_missing_attribution;

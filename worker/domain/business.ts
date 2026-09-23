@@ -26,6 +26,7 @@ export interface LegalEntity {
   companyNumber: string | null;
   country: string;
   status: BusinessStatus;
+  attributionReviewRequired: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +66,7 @@ export interface CreateLegalEntityInput {
   companyNumber: string | null;
   country: string;
   status: BusinessStatus;
+  attributionReviewRequired: boolean;
   createdAt: string;
   updatedAt: string;
 }

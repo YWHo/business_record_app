@@ -109,4 +109,29 @@ describe('business repositories', () => {
       '2027-04-01',
     ]);
   });
+
+  it('maps an explicit legal-entity attribution review state', async () => {
+    const { db } = fakeDatabase({
+      id: 'entity-1',
+      business_account_id: 'account-1',
+      entity_type: 'SOLE_TRADER',
+      legal_name: null,
+      trading_name: null,
+      nzbn: null,
+      company_number: null,
+      country: 'NZ',
+      active: 1,
+      attribution_review_required: 1,
+      created_at: '2026-04-01T00:00:00.000Z',
+      updated_at: '2026-04-01T00:00:00.000Z',
+    });
+
+    await expect(
+      findLegalEntityById(db, 'account-1', 'entity-1'),
+    ).resolves.toMatchObject({
+      legalName: null,
+      status: 'ACTIVE',
+      attributionReviewRequired: true,
+    });
+  });
 });

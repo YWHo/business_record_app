@@ -75,6 +75,14 @@ open period, and insert/update triggers reject overlaps. Exactly one current
 period for every active business becomes a verified invariant when the backfill
 creates businesses and periods.
 
+Migration 0008 creates one business per legacy top-level activity, creates the
+initial operating periods, and fills business/legal-entity attribution on root
+records and their dependent details and metadata. The public demo uses explicit
+fictional sole-trader and company identities, including an Uber Ride entity
+change. A private legacy sole-trader entity whose legal name is unknown is not
+renamed from its user's email; it and its attributed records are retained with
+`attribution_review_required = 1` until verified.
+
 ## Financial record bases
 
 `expenses` and `income_records` contain fields shared by their respective record families. Type-specific details live in one-to-one detail tables. General expense and general income records need no detail row, allowing new unstructured cases without a schema change.

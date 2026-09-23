@@ -559,3 +559,38 @@ Acceptance criteria completed:
 Notes: Migration 0007 is additive and deliberately creates no business or
 period rows. Existing records keep null business/legal-entity attribution until
 the dedicated backfill increment verifies and populates them.
+
+## Historical business and legal-entity attribution
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added migration 0008 to create one deterministic business for every existing
+  top-level activity while retaining the legacy relationship for compatibility
+  comparison and preserving private names and lifecycle state.
+- Created initial same-account operating periods from the earliest activity or
+  accounting date and retained the existing sole-trader entity rather than
+  inventing historical company ownership.
+- Added explicit review markers for unnamed legacy legal entities and their
+  attributed expense, income, and work-session records; private display/legal
+  names are never inferred from email addresses.
+- Backfilled business and date-resolved legal-entity attribution on accounting
+  roots, typed details, allocations, reconciliations, attachments, comments,
+  and business-related audit events.
+- Assigned clients, vehicles, and categories to a business only when historical
+  use proves exactly one business; genuinely shared reference rows remain
+  account-scoped.
+- Upgraded the synthetic public demo to Uber Eats, Uber Ride, IT Contracting,
+  and HomeRekod with Brian Ho, Taxi Limited, and SaaS Limited, including a
+  non-overlapping historical Uber Ride entity transition.
+- Updated fresh local/demo seeds, schema verification, and demo verification to
+  validate businesses, periods, review flags, attribution completeness, and
+  foreign-key integrity.
+- Extended legal-entity domain/repository mappings to expose the explicit
+  attribution-review state.
+
+Notes: The backfill remains additive and keeps all legacy activity columns.
+Unknown source attribution is preserved and surfaced for review rather than
+dropped or speculatively assigned. Business/entity write-time resolution and
+business-scoped authorization are delivered in the next increment.

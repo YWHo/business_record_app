@@ -23,6 +23,7 @@ DELETE FROM vehicles;
 DELETE FROM business_entity_periods;
 DELETE FROM businesses;
 DELETE FROM business_activities;
+DELETE FROM business_entities WHERE id <> 'business-entity-primary';
 UPDATE retention_settings SET updated_by = NULL;
 DELETE FROM development_outbox;
 DELETE FROM sessions;
@@ -35,6 +36,30 @@ INSERT INTO users (id, email, role, status, created_at, updated_at)
 VALUES
   ('demo-owner', 'demo-owner@example.invalid', 'OWNER', 'ACTIVE', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
   ('demo-accountant', 'demo-accountant@example.invalid', 'ACCOUNTANT', 'ACTIVE', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
+
+UPDATE users
+SET display_name = CASE id
+  WHEN 'demo-owner' THEN 'Brian Ho'
+  WHEN 'demo-accountant' THEN 'Demo Accountant'
+END;
+
+UPDATE business_entities
+SET entity_type = 'SOLE_TRADER',
+    legal_name = 'Brian Ho',
+    trading_name = NULL,
+    active = 1,
+    attribution_review_required = 0,
+    updated_at = '2026-04-01T00:00:00.000Z'
+WHERE id = 'business-entity-primary';
+
+INSERT INTO business_entities (
+  id, business_account_id, entity_type, legal_name, trading_name, nzbn,
+  company_number, country, active, created_at, updated_at,
+  attribution_review_required
+)
+VALUES
+  ('demo-entity-taxi-limited', 'business-account-primary', 'LIMITED_COMPANY', 'Taxi Limited', NULL, NULL, NULL, 'NZ', 1, '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z', 0),
+  ('demo-entity-saas-limited', 'business-account-primary', 'LIMITED_COMPANY', 'SaaS Limited', NULL, NULL, NULL, 'NZ', 1, '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z', 0);
 
 UPDATE business_accounts
 SET display_name = 'Synthetic Demo Business', updated_at = '2026-04-01T00:00:00.000Z'
@@ -54,6 +79,27 @@ VALUES
   ('demo-activity-contracting', 'IT Contracting', 'PROFESSIONAL_SERVICES', 1, '2026-04-01', NULL, '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
   ('demo-activity-saas', 'SaaS Business', 'SOFTWARE_SERVICE', 1, '2026-04-01', NULL, '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
 
+INSERT INTO businesses (
+  id, business_account_id, name, description, business_type, default_currency,
+  status, legacy_business_activity_id, created_at, updated_at
+)
+VALUES
+  ('business-demo-activity-delivery', 'business-account-primary', 'Uber Eats', 'Food delivery', 'PLATFORM_SERVICES', 'NZD', 'ACTIVE', 'demo-activity-delivery', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
+  ('business-demo-activity-rideshare', 'business-account-primary', 'Uber Ride', 'Ride-hailing', 'PLATFORM_SERVICES', 'NZD', 'ACTIVE', 'demo-activity-rideshare', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
+  ('business-demo-activity-contracting', 'business-account-primary', 'IT Contracting', 'IT services', 'PROFESSIONAL_SERVICES', 'NZD', 'ACTIVE', 'demo-activity-contracting', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
+  ('business-demo-activity-saas', 'business-account-primary', 'HomeRekod', 'SaaS website', 'SOFTWARE_SERVICE', 'NZD', 'ACTIVE', 'demo-activity-saas', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
+
+INSERT INTO business_entity_periods (
+  id, business_account_id, business_id, legal_entity_id, effective_from,
+  effective_to, created_at, created_by, notes
+)
+VALUES
+  ('period-business-demo-activity-delivery-initial', 'business-account-primary', 'business-demo-activity-delivery', 'business-entity-primary', '2026-04-01', NULL, '2026-04-01T00:00:00.000Z', 'demo-owner', 'Synthetic sole-trader operating period.'),
+  ('period-business-demo-activity-rideshare-initial', 'business-account-primary', 'business-demo-activity-rideshare', 'business-entity-primary', '2026-04-01', '2026-06-30', '2026-04-01T00:00:00.000Z', 'demo-owner', 'Synthetic historical sole-trader period.'),
+  ('period-business-demo-activity-rideshare-company', 'business-account-primary', 'business-demo-activity-rideshare', 'demo-entity-taxi-limited', '2026-07-01', NULL, '2026-07-01T00:00:00.000Z', 'demo-owner', 'Synthetic company operating period.'),
+  ('period-business-demo-activity-contracting-initial', 'business-account-primary', 'business-demo-activity-contracting', 'business-entity-primary', '2026-04-01', NULL, '2026-04-01T00:00:00.000Z', 'demo-owner', 'Synthetic sole-trader operating period.'),
+  ('period-business-demo-activity-saas-initial', 'business-account-primary', 'business-demo-activity-saas', 'demo-entity-saas-limited', '2026-04-01', NULL, '2026-04-01T00:00:00.000Z', 'demo-owner', 'Synthetic company operating period.');
+
 INSERT INTO vehicles (id, registration, description, active, acquired_at, retired_at, notes, created_at, updated_at)
 VALUES
   ('demo-vehicle-koru', 'KORU24', '2024 hybrid hatchback', 1, '2025-11-18', NULL, 'Synthetic demonstration vehicle', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
@@ -63,6 +109,9 @@ INSERT INTO clients (id, name, active, notes, created_at, updated_at)
 VALUES
   ('demo-client-harbour', 'Harbour Lantern Limited', 1, 'Fictional Wellington software consultancy client', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
   ('demo-client-kowhai', 'Kowhai Field Services Limited', 1, 'Fictional Christchurch operations client', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
+
+UPDATE clients
+SET business_id = 'business-demo-activity-contracting';
 
 INSERT INTO work_sessions (
   id, business_activity_id, vehicle_id, started_at, ended_at,
@@ -174,6 +223,88 @@ VALUES
   ('demo-audit-11', 'demo-owner', 'INCOME_CREATED', 'INCOME', 'demo-contract-open', 'demo-activity-contracting', 'Outstanding contract invoice recorded.', NULL, '2026-08-20T00:10:00.000Z'),
   ('demo-audit-12', 'demo-accountant', 'COMMENT_CREATED', 'EXPENSE', 'demo-parking-2', 'demo-activity-rideshare', 'Missing receipt requested.', NULL, '2026-08-15T01:00:00.000Z');
 
+-- Seed inserts retain the legacy activity columns for compatibility. Populate
+-- the authoritative business/entity attribution from the known demo periods.
+UPDATE expenses
+SET business_id = 'business-' || business_activity_id,
+    legal_entity_id = CASE business_activity_id
+      WHEN 'demo-activity-rideshare' THEN 'demo-entity-taxi-limited'
+      WHEN 'demo-activity-saas' THEN 'demo-entity-saas-limited'
+      ELSE 'business-entity-primary'
+    END,
+    attribution_review_required = 0;
+
+UPDATE work_sessions
+SET business_id = 'business-' || business_activity_id,
+    legal_entity_id = CASE business_activity_id
+      WHEN 'demo-activity-rideshare' THEN 'demo-entity-taxi-limited'
+      ELSE 'business-entity-primary'
+    END,
+    attribution_review_required = 0;
+
+UPDATE income_records
+SET business_id = 'business-' || business_activity_id,
+    legal_entity_id = CASE business_activity_id
+      WHEN 'demo-activity-rideshare' THEN 'demo-entity-taxi-limited'
+      WHEN 'demo-activity-saas' THEN 'demo-entity-saas-limited'
+      ELSE 'business-entity-primary'
+    END,
+    attribution_review_required = 0;
+
+UPDATE fuel_expense_details
+SET business_id = (SELECT business_id FROM expenses WHERE id = fuel_expense_details.expense_id),
+    legal_entity_id = (SELECT legal_entity_id FROM expenses WHERE id = fuel_expense_details.expense_id);
+UPDATE parking_expense_details
+SET business_id = (SELECT business_id FROM expenses WHERE id = parking_expense_details.expense_id),
+    legal_entity_id = (SELECT legal_entity_id FROM expenses WHERE id = parking_expense_details.expense_id);
+UPDATE insurance_expense_details
+SET business_id = (SELECT business_id FROM expenses WHERE id = insurance_expense_details.expense_id),
+    legal_entity_id = (SELECT legal_entity_id FROM expenses WHERE id = insurance_expense_details.expense_id);
+UPDATE expense_allocations
+SET business_id = (SELECT business_id FROM expenses WHERE id = expense_allocations.expense_id),
+    legal_entity_id = (SELECT legal_entity_id FROM expenses WHERE id = expense_allocations.expense_id);
+UPDATE platform_income_details
+SET business_id = (SELECT business_id FROM income_records WHERE id = platform_income_details.income_id),
+    legal_entity_id = (SELECT legal_entity_id FROM income_records WHERE id = platform_income_details.income_id);
+UPDATE contract_income_details
+SET business_id = (SELECT business_id FROM income_records WHERE id = contract_income_details.income_id),
+    legal_entity_id = (SELECT legal_entity_id FROM income_records WHERE id = contract_income_details.income_id);
+UPDATE subscription_income_details
+SET business_id = (SELECT business_id FROM income_records WHERE id = subscription_income_details.income_id),
+    legal_entity_id = (SELECT legal_entity_id FROM income_records WHERE id = subscription_income_details.income_id);
+UPDATE income_reconciliations
+SET business_id = (SELECT business_id FROM income_records WHERE id = income_reconciliations.income_id),
+    legal_entity_id = (SELECT legal_entity_id FROM income_records WHERE id = income_reconciliations.income_id);
+
+UPDATE comments
+SET business_id = CASE record_type
+      WHEN 'EXPENSE' THEN (SELECT business_id FROM expenses WHERE id = comments.record_id)
+      WHEN 'INCOME' THEN (SELECT business_id FROM income_records WHERE id = comments.record_id)
+      WHEN 'WORK_SESSION' THEN (SELECT business_id FROM work_sessions WHERE id = comments.record_id)
+    END,
+    legal_entity_id = CASE record_type
+      WHEN 'EXPENSE' THEN (SELECT legal_entity_id FROM expenses WHERE id = comments.record_id)
+      WHEN 'INCOME' THEN (SELECT legal_entity_id FROM income_records WHERE id = comments.record_id)
+      WHEN 'WORK_SESSION' THEN (SELECT legal_entity_id FROM work_sessions WHERE id = comments.record_id)
+    END;
+
+UPDATE audit_log
+SET business_id = 'business-' || business_activity_id,
+    legal_entity_id = CASE business_activity_id
+      WHEN 'demo-activity-rideshare' THEN 'demo-entity-taxi-limited'
+      WHEN 'demo-activity-saas' THEN 'demo-entity-saas-limited'
+      ELSE 'business-entity-primary'
+    END
+WHERE business_activity_id IS NOT NULL;
+
+UPDATE expense_categories
+SET business_id = (
+  SELECT CASE WHEN COUNT(DISTINCT expense.business_id) = 1
+    THEN MIN(expense.business_id) ELSE NULL END
+  FROM expenses AS expense
+  WHERE expense.expense_category_id = expense_categories.id
+);
+
 UPDATE retention_settings
 SET retention_tax_years = 10,
     tax_year_end_month = 3,
@@ -187,4 +318,4 @@ INSERT INTO runtime_metadata (key, value, updated_at)
 VALUES
   ('seed_profile', 'public-demo-synthetic-nz', '2026-09-11T00:00:00.000Z'),
   ('schema_phase', '19', '2026-09-11T00:00:00.000Z'),
-  ('schema_architecture', 'business-identity-foundation', '2026-09-23T00:00:00.000Z');
+  ('schema_architecture', 'business-identity-backfilled', '2026-09-23T00:00:00.000Z');
