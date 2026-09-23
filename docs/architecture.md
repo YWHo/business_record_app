@@ -48,6 +48,25 @@ Every business, detail, policy, collaboration, audit, and export row carries `bu
 
 The split leaves room for future signup, plans, billing, additional roles, multiple memberships, and platform-administered ownership/control transfer without redesigning record ownership. Version 1 implements none of those commercial workflows and deliberately exposes no self-service ownership transfer.
 
+### Planned business-first extension
+
+The next architecture increment adds first-class businesses and effective-dated
+business/legal-entity operating periods. Existing `business_accounts` and
+`business_account_members` remain the account boundary, and
+`business_entities` remains the physical legal-entity table. Current top-level
+`business_activities` are migration sources for businesses, not a second layer
+forced beneath them.
+
+Accounting writes will carry account, business, and persisted legal-entity
+attribution. The Worker will derive legal entity from the selected business and
+the record's effective date; ordinary clients will not choose it. Account and
+business UI contexts will use different responsive shells and dedicated
+list/create/detail/edit routes. The complete target model and migration safety
+rules are documented in
+[`architecture/business-and-legal-entity-model.md`](architecture/business-and-legal-entity-model.md),
+and the implementation inventory is in
+[`v3-upgrade-gap-analysis.md`](v3-upgrade-gap-analysis.md).
+
 ## Reference data lifecycle
 
 Business activities and vehicles are database-backed reference records exposed through authenticated Worker routes. Both roles may read active and inactive records because historical financial and mileage views need their labels. Every mutation is owner-only and validated again at the Worker boundary.

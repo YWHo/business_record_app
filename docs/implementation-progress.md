@@ -492,3 +492,38 @@ Acceptance criteria completed:
 - Clarified that committed `DEV_*` values remain non-deliverable sentinels, the real owner address belongs only in the encrypted `BOOTSTRAP_OWNER_EMAIL` Worker secret, and SOPS is not required for production Worker secrets.
 
 Notes: No live Cloudflare resources were changed. The committed configuration intentionally retains placeholder remote IDs and origins until the operator provisions resources. Actual production deployment, DNS, Turnstile, email delivery, bucket privacy, WAF, monitoring, alerts, and recovery rehearsal require the owner's accounts and approval.
+
+## Business-first UI and legal-entity upgrade — architecture baseline
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Audited the existing D1 schema, account tenancy, Worker routes and services,
+  React route/page structure, public-demo IndexedDB overlay, and automated test
+  inventory against the business-first target model.
+- Identified the reusable account, membership, legal-entity, accounting,
+  security, demo, component, and test foundations and documented the missing
+  business, operating-period, record-attribution, and responsive-shell layers.
+- Defined an additive D1 migration and historical backfill plan that preserves
+  current records, maps top-level activities to businesses, refuses speculative
+  company attribution, and verifies counts, periods, foreign keys, and orphans
+  before cleanup.
+- Defined authoritative effective dates for expense, work-session, platform,
+  contract, subscription, and general-income attribution, including confirmed
+  and audited edits across an entity boundary.
+- Defined business-scoped API and client route plans with transitional legacy
+  adapters, account/business authorization, URL-owned selection, and explicit
+  account versus business contexts.
+- Mapped overloaded legacy pages to focused list, create, detail, edit, account
+  settings, business settings, and accountant experiences informed by the
+  desktop, phone, and small-tablet product mockups.
+- Recorded compatibility risks and required schema, domain, authorization,
+  demo, responsive, Storybook, and Playwright regression coverage.
+- Accepted architecture decisions for business/legal-entity separation and
+  periods, business-first responsive navigation, and D1 repository boundaries
+  with PostgreSQL retained only as a future option.
+
+Notes: This planning increment changes no runtime code or database schema. The
+next increment introduces the business and operating-period schema, types,
+indexes, and repository support without backfilling existing records.

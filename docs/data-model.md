@@ -48,6 +48,13 @@ A partial unique index permits at most one active `OWNER` membership per busines
 
 Migration 0006 backfills the existing private dataset into `business-account-primary` and adds account-leading indexes across records, details, attachments, comments, audit history, filters, retention settings, sessions, invitations, and exports. The Worker generates tenant-prefixed R2 keys. Commercial signup/billing and ownership transfer remain future platform-admin workflows.
 
+The accepted next model adds businesses and effective-dated operating periods
+without renaming these account tables. The design, date semantics, attribution
+rules, and safe backfill sequence are recorded in
+[`architecture/business-and-legal-entity-model.md`](architecture/business-and-legal-entity-model.md).
+Until the corresponding migrations land, `business_activities` and the current
+account-only legal-entity metadata remain the implemented schema.
+
 ## Financial record bases
 
 `expenses` and `income_records` contain fields shared by their respective record families. Type-specific details live in one-to-one detail tables. General expense and general income records need no detail row, allowing new unstructured cases without a schema change.
