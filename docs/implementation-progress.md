@@ -527,3 +527,35 @@ Acceptance criteria completed:
 Notes: This planning increment changes no runtime code or database schema. The
 next increment introduces the business and operating-period schema, types,
 indexes, and repository support without backfilling existing records.
+
+## Business and operating-period schema foundation
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added first-class, account-scoped `businesses` with lifecycle status, default
+  currency, optional descriptive metadata, and a unique transitional link to
+  the existing top-level activity.
+- Added account-scoped `business_entity_periods` with inclusive calendar dates,
+  same-account foreign keys, at most one open period per business, and database
+  triggers rejecting overlapping inserts or boundary updates.
+- Added nullable business and legal-entity attribution columns to financial
+  roots, typed accounting details, allocations, reconciliations, attachments,
+  comments, audit history, and export history so existing deployments remain
+  readable until historical backfill is complete.
+- Added nullable business scope to vehicles, categories, and clients and a
+  nullable user display name for later verified backfill.
+- Added account-leading business/entity/date indexes for operational records,
+  documents, audit history, exports, and reference data.
+- Added typed business, legal-entity, operating-period, and creation contracts
+  plus account-scoped D1 repositories for list, lookup, and creation operations.
+- Added repository isolation/mapping tests and schema verification output for
+  new attribution columns and period integrity objects.
+- Kept local and public-demo reset seeds compatible with the new foreign-key
+  order while deliberately leaving the new business tables empty until the
+  historical/data-seed backfill increment.
+
+Notes: Migration 0007 is additive and deliberately creates no business or
+period rows. Existing records keep null business/legal-entity attribution until
+the dedicated backfill increment verifies and populates them.

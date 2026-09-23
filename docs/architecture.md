@@ -48,21 +48,22 @@ Every business, detail, policy, collaboration, audit, and export row carries `bu
 
 The split leaves room for future signup, plans, billing, additional roles, multiple memberships, and platform-administered ownership/control transfer without redesigning record ownership. Version 1 implements none of those commercial workflows and deliberately exposes no self-service ownership transfer.
 
-### Planned business-first extension
+### Business-first schema extension
 
-The next architecture increment adds first-class businesses and effective-dated
+Migration 0007 adds first-class businesses and effective-dated
 business/legal-entity operating periods. Existing `business_accounts` and
 `business_account_members` remain the account boundary, and
 `business_entities` remains the physical legal-entity table. Current top-level
-`business_activities` are migration sources for businesses, not a second layer
-forced beneath them.
+`business_activities` are the migration sources for businesses, not a second
+layer forced beneath them.
 
-Accounting writes will carry account, business, and persisted legal-entity
-attribution. The Worker will derive legal entity from the selected business and
-the record's effective date; ordinary clients will not choose it. Account and
-business UI contexts will use different responsive shells and dedicated
-list/create/detail/edit routes. The complete target model and migration safety
-rules are documented in
+The new attribution columns remain nullable until the dedicated historical
+backfill is applied. After that, accounting writes carry account, business, and
+persisted legal-entity attribution. The Worker derives legal entity from the
+selected business and record effective date; ordinary clients do not choose it.
+Account and business UI contexts use different responsive shells and dedicated
+list/create/detail/edit routes as they are delivered. The complete target model
+and migration safety rules are documented in
 [`architecture/business-and-legal-entity-model.md`](architecture/business-and-legal-entity-model.md),
 and the implementation inventory is in
 [`v3-upgrade-gap-analysis.md`](v3-upgrade-gap-analysis.md).

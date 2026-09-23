@@ -13,8 +13,9 @@
 ## Relationship overview
 
 ```text
-business_accounts ─ business_entities
+business_accounts ─ business_entities (legal entities)
   ├─ business_account_members ─ users
+  ├─ businesses ─ business_entity_periods ─ business_entities
   ├─ sessions
   ├─ authentication_challenges ─ development_auth_outbox (local only)
   ├─ invitations ─ development_outbox (local only)
@@ -48,12 +49,31 @@ A partial unique index permits at most one active `OWNER` membership per busines
 
 Migration 0006 backfills the existing private dataset into `business-account-primary` and adds account-leading indexes across records, details, attachments, comments, audit history, filters, retention settings, sessions, invitations, and exports. The Worker generates tenant-prefixed R2 keys. Commercial signup/billing and ownership transfer remain future platform-admin workflows.
 
-The accepted next model adds businesses and effective-dated operating periods
-without renaming these account tables. The design, date semantics, attribution
-rules, and safe backfill sequence are recorded in
+Migration 0007 adds businesses and effective-dated operating periods without
+renaming these account tables. It also adds nullable business/legal-entity
+attribution to accounting roots, relevant detail/metadata tables, and
+business-scoped reference data. Nullable columns keep existing deployments
+readable until the dedicated historical backfill verifies every row.
+
+The design, date semantics, attribution rules, and safe backfill sequence are
+recorded in
 [`architecture/business-and-legal-entity-model.md`](architecture/business-and-legal-entity-model.md).
-Until the corresponding migrations land, `business_activities` and the current
-account-only legal-entity metadata remain the implemented schema.
+Until backfill and compatibility cleanup are complete, `business_activities`
+and their current foreign keys remain alongside first-class businesses.
+
+## Businesses and operating periods
+
+`businesses` is the operational context shown in the application. Names are
+case-insensitively unique inside an account, default currency is explicit, and
+status is lifecycle state rather than deletion. A temporary unique legacy
+activity link supports one-to-one migration and comparison.
+
+`business_entity_periods` connects a business to the legal entity operating it
+over inclusive calendar dates. Composite foreign keys require the business and
+entity to belong to the same account. A partial unique index permits at most one
+open period, and insert/update triggers reject overlaps. Exactly one current
+period for every active business becomes a verified invariant when the backfill
+creates businesses and periods.
 
 ## Financial record bases
 

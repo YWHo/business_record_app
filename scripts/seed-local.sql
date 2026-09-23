@@ -20,6 +20,8 @@ DELETE FROM expenses;
 DELETE FROM saved_filters;
 DELETE FROM clients;
 DELETE FROM vehicles;
+DELETE FROM business_entity_periods;
+DELETE FROM businesses;
 DELETE FROM business_activities;
 UPDATE retention_settings SET updated_by = NULL;
 DELETE FROM development_outbox;
@@ -87,4 +89,5 @@ VALUES (
 INSERT INTO runtime_metadata (key, value, updated_at)
 VALUES
   ('seed_profile', 'local-development', '2026-01-01T00:00:00.000Z'),
-  ('schema_phase', '16', '2026-09-10T00:00:00.000Z');
+  ('schema_phase', '16', '2026-09-10T00:00:00.000Z'),
+  ('schema_architecture', 'business-identity-foundation', '2026-09-23T00:00:00.000Z');
