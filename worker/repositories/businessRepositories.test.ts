@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { findBusinessById, listBusinesses } from './businessRepository';
-import { findBusinessEntityPeriodForDate } from './businessEntityPeriodRepository';
+import {
+  findBusinessEntityPeriodForDate,
+  listBusinessEntityPeriodsForDate,
+} from './businessEntityPeriodRepository';
 import { findLegalEntityById } from './legalEntityRepository';
 
 interface FakeStatement {
@@ -102,6 +105,25 @@ describe('business repositories', () => {
 
     expect(queries[0].sql).toContain('business_account_id = ?');
     expect(queries[0].sql).toContain('business_id = ?');
+    expect(queries[0].values).toEqual([
+      'account-1',
+      'business-1',
+      '2027-04-01',
+      '2027-04-01',
+    ]);
+  });
+
+  it('caps matching period reads so domain services can detect overlap', async () => {
+    const { db, queries } = fakeDatabase(null);
+
+    await listBusinessEntityPeriodsForDate(
+      db,
+      'account-1',
+      'business-1',
+      '2027-04-01',
+    );
+
+    expect(queries[0].sql).toContain('LIMIT 2');
     expect(queries[0].values).toEqual([
       'account-1',
       'business-1',

@@ -75,6 +75,28 @@ export async function findBusinessEntityPeriodForDate(
   return row ? toBusinessEntityPeriod(row) : null;
 }
 
+export async function listBusinessEntityPeriodsForDate(
+  db: D1Database,
+  businessAccountId: string,
+  businessId: string,
+  effectiveDate: string,
+): Promise<BusinessEntityPeriod[]> {
+  const result = await db
+    .prepare(
+      `SELECT ${periodColumns}
+       FROM business_entity_periods
+       WHERE business_account_id = ?
+         AND business_id = ?
+         AND effective_from <= ?
+         AND (effective_to IS NULL OR effective_to >= ?)
+       ORDER BY effective_from DESC, id DESC
+       LIMIT 2`,
+    )
+    .bind(businessAccountId, businessId, effectiveDate, effectiveDate)
+    .all<BusinessEntityPeriodRow>();
+  return result.results.map(toBusinessEntityPeriod);
+}
+
 export async function createBusinessEntityPeriod(
   db: D1Database,
   input: CreateBusinessEntityPeriodInput,

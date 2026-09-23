@@ -594,3 +594,29 @@ Notes: The backfill remains additive and keeps all legacy activity columns.
 Unknown source attribution is preserved and surfaced for review rather than
 dropped or speculatively assigned. Business/entity write-time resolution and
 business-scoped authorization are delivered in the next increment.
+
+## Business context and legal-entity resolution services
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added account-scoped business authorization with separate historical-read
+  and active-write behavior.
+- Added allowlisted authorization helpers that bind account, business, record,
+  and reference identifiers; account-shared reference data remains supported.
+- Added New Zealand effective-date normalization and exact operating-period
+  resolution, failing closed for gaps, overlaps, missing entities, and inactive
+  write attribution.
+- Added period-set validation and legal-entity change planning with inclusive
+  boundaries and a stable confirmation warning for edits crossing an entity
+  boundary.
+- Extended audit writes with optional business and legal-entity scope while
+  preserving compatibility with existing callers.
+- Added unit coverage for tenancy isolation, record/reference scoping, timezone
+  boundaries, period integrity, entity resolution, confirmation, and scoped
+  audit persistence.
+
+Notes: This increment introduces reusable domain services and does not expose
+new API routes or change the current UI. Route integration follows in the next
+increment.

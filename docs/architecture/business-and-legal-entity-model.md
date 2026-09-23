@@ -174,6 +174,18 @@ period resolution and business rules; repositories perform bound SQL. This
 keeps D1 as the current implementation while avoiding Worker handlers that
 depend on SQLite-specific query shapes throughout the codebase.
 
+The domain boundary now resolves an effective New Zealand business date to
+exactly one operating period and same-account legal entity. It fails closed for
+missing or overlapping periods, inactive write targets, and account/business
+scope mismatches. Record edits that cross an operating-period boundary return a
+stable confirmation warning instead of silently changing legal attribution.
+
+Reusable authorization helpers require account and business predicates for
+business records and accept only explicitly allowlisted repository tables.
+Business reference data may be assigned to that business or deliberately
+shared at account scope; arbitrary table names and browser-provided legal
+entity IDs are not authorization inputs.
+
 ## UI context
 
 Account context contains My Businesses, cross-business transactions/reports,
