@@ -36,15 +36,38 @@ async function mockImmutableDemo(page: Page, unsafeRequests: string[]) {
           }
         : path === '/api/dashboard'
           ? dashboard
-          : path === '/api/business-activities'
-            ? { activities: [] }
-            : path === '/api/vehicles'
-              ? { vehicles: [] }
-              : path === '/api/expense-categories'
-                ? { categories: [] }
-                : path === '/api/clients'
-                  ? { clients: [] }
-                  : {};
+          : path === '/api/businesses'
+            ? {
+                businesses: [
+                  {
+                    id: 'business-demo-activity-delivery',
+                    name: 'Uber Eats',
+                    description: 'Food delivery',
+                    businessType: 'PLATFORM_SERVICES',
+                    defaultCurrency: 'NZD',
+                    status: 'ACTIVE',
+                    legacyBusinessActivityId: 'demo-activity-delivery',
+                  },
+                  {
+                    id: 'business-demo-activity-rideshare',
+                    name: 'Uber Ride',
+                    description: 'Ride-hailing',
+                    businessType: 'PLATFORM_SERVICES',
+                    defaultCurrency: 'NZD',
+                    status: 'ACTIVE',
+                    legacyBusinessActivityId: 'demo-activity-rideshare',
+                  },
+                ],
+              }
+            : path === '/api/business-activities'
+              ? { activities: [] }
+              : path === '/api/vehicles'
+                ? { vehicles: [] }
+                : path === '/api/expense-categories'
+                  ? { categories: [] }
+                  : path === '/api/clients'
+                    ? { clients: [] }
+                    : {};
     await route.fulfill({ json: payload });
   });
 }
@@ -58,6 +81,9 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await mockImmutableDemo(firstPage, firstUnsafe);
 
   await firstPage.goto('/login');
+  await expect(
+    firstPage.getByRole('button', { name: 'Continue as Demo Owner' }),
+  ).toBeVisible();
   await firstPage.evaluate(`(async () => {
     await new Promise((resolve, reject) => {
       const deletion = indexedDB.deleteDatabase('business-records-public-demo');
@@ -95,10 +121,18 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await firstPage
     .getByRole('button', { name: 'Continue as Demo Owner' })
     .click();
+  await firstPage.getByRole('link', { name: 'Uber Eats' }).click();
+  await firstPage.setViewportSize({ width: 320, height: 720 });
   await expect(
     firstPage.getByRole('button', { name: 'Reset demo data' }),
   ).toBeVisible();
-  await firstPage.getByRole('link', { name: 'Setup' }).click();
+  expect(
+    await firstPage.evaluate<boolean>(
+      'document.documentElement.scrollWidth <= window.innerWidth',
+    ),
+  ).toBe(true);
+  await firstPage.setViewportSize({ width: 1280, height: 720 });
+  await firstPage.getByRole('link', { name: 'Business settings' }).click();
   const clients = firstPage.getByRole('region', {
     name: 'Clients',
     exact: true,
@@ -166,7 +200,8 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await secondPage
     .getByRole('button', { name: 'Continue as Demo Owner' })
     .click();
-  await secondPage.getByRole('link', { name: 'Setup' }).click();
+  await secondPage.getByRole('link', { name: 'Uber Eats' }).click();
+  await secondPage.getByRole('link', { name: 'Business settings' }).click();
   await expect(
     secondPage.getByRole('heading', { name: 'Only in this browser' }),
   ).toHaveCount(0);

@@ -13,6 +13,10 @@ async function login(page: Page, role: 'owner' | 'accountant') {
   await page.goto('/login');
   await page.getByRole('button', { name: `Continue as local ${role}` }).click();
   await expect(
+    page.getByRole('heading', { name: 'My businesses' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'IT Contracting' }).click();
+  await expect(
     page.getByRole('heading', { name: 'Your business at a glance' }),
   ).toBeVisible();
 }
@@ -28,19 +32,25 @@ test.describe.serial('critical business workflows', () => {
     const ownerContext = await browser.newContext();
     const ownerPage = await ownerContext.newPage();
 
-    await ownerPage.goto('/setup');
+    await ownerPage.goto(
+      '/app/businesses/business-activity-contracting/settings',
+    );
     await expect(ownerPage).toHaveURL(/\/login$/);
     await login(ownerPage, 'owner');
-    await expect(ownerPage.getByRole('link', { name: 'Users' })).toBeVisible();
+    await expect(
+      ownerPage.getByRole('link', { name: 'Account settings' }),
+    ).toBeVisible();
     await ownerContext.close();
 
     const accountantContext = await browser.newContext();
     const accountantPage = await accountantContext.newPage();
     await login(accountantPage, 'accountant');
     await expect(
-      accountantPage.getByRole('link', { name: 'Users' }),
+      accountantPage.getByRole('link', { name: 'Account settings' }),
     ).toHaveCount(0);
-    await accountantPage.getByRole('link', { name: 'Setup' }).click();
+    await accountantPage
+      .getByRole('link', { name: 'Business settings' })
+      .click();
     await expect(
       accountantPage.getByText(
         'Accountants can view this setup. Only the owner can change it.',
@@ -68,7 +78,7 @@ test.describe.serial('critical business workflows', () => {
     page,
   }) => {
     await login(page, 'owner');
-    await page.getByRole('link', { name: 'Setup' }).click();
+    await page.getByRole('link', { name: 'Business settings' }).click();
 
     const activityRegion = page.getByRole('region', {
       name: 'Business activities',
@@ -143,7 +153,7 @@ test.describe.serial('critical business workflows', () => {
     await expect(page.getByText('Fuel expense added.')).toBeVisible();
     await expect(cardWith(page, 'E2E Fuel Stop')).toContainText('$100.00');
 
-    await page.getByRole('link', { name: 'Records' }).click();
+    await page.getByRole('link', { name: 'Expenses', exact: true }).click();
     const parkingForm = page
       .getByRole('heading', { name: 'Add parking' })
       .locator('..');
@@ -320,7 +330,7 @@ test.describe.serial('critical business workflows', () => {
     await expect(cardWith(page, contractClient)).toBeVisible();
     await expect(cardWith(page, parkingProvider)).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'Exports' }).click();
+    await page.getByRole('link', { name: 'Reports', exact: true }).click();
     await page.getByLabel('Export scope').selectOption('FULL');
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('link', { name: 'Download portable ZIP' }).click();
@@ -328,7 +338,7 @@ test.describe.serial('critical business workflows', () => {
     expect(download.suggestedFilename()).toMatch(/\.zip$/);
     expect(await download.failure()).toBeNull();
 
-    await page.getByRole('link', { name: 'Users' }).click();
+    await page.getByRole('link', { name: 'Account settings' }).click();
     await page.getByLabel('Email address').fill(inviteeEmail);
     await page.getByRole('button', { name: 'Send invitation' }).click();
     await expect(
@@ -352,6 +362,7 @@ test.describe.serial('critical business workflows', () => {
       throw new Error('Invitation was not written to the outbox.');
     const invitationUrl = new URL(invitation.invitation_url);
 
+    await page.getByLabel('Open account menu').click();
     await page.getByRole('button', { name: 'Sign out' }).click();
     await page.goto(`${invitationUrl.pathname}${invitationUrl.search}`);
     await page.getByLabel('Email address').fill(inviteeEmail);

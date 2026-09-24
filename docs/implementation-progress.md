@@ -675,3 +675,33 @@ Acceptance criteria completed:
 Notes: The public-demo Worker and D1 database remain strictly read-only. Local
 storage migration fails closed when old data has insufficient scope, and the
 visible reset action affects only the current browser.
+
+## Business-first responsive application shell
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the overloaded horizontal workspace menu with separate account and
+  business shells under the `/app` route hierarchy.
+- Made the selected business an explicit URL segment and added a persistent,
+  accessible business selector throughout the business workspace.
+- Added safe fallback to My businesses when a selected business is unavailable
+  or no longer authorized; legacy ambiguous feature URLs also return to the
+  account landing page.
+- Added account and business sidebars with clear context labels, subordinate
+  fuel and insurance expense links, and owner-only account settings access.
+- Added a compact smartphone header and bottom navigation for Dashboard,
+  Expenses, Income, and Business settings.
+- Added compact persistent navigation for small-tablet portrait and a wider
+  persistent sidebar for landscape-tablet and desktop layouts.
+- Preserved the visible browser-local demo reset, PWA status, authentication
+  controls, existing feature pages, and all prior security boundaries.
+- Added component-routing coverage and real-browser checks for phone, tablet,
+  desktop, business switching, safe context restoration, and horizontal
+  overflow.
+
+Notes: My businesses currently provides the functional entry list needed by
+the shell. Its full legal-entity-aware card design is delivered in the next
+increment. Existing feature pages remain mounted under business routes until
+their focused list/create/detail redesign increments.

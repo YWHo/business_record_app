@@ -68,6 +68,17 @@ and migration safety rules are documented in
 and the implementation inventory is in
 [`v3-upgrade-gap-analysis.md`](v3-upgrade-gap-analysis.md).
 
+The selected business is encoded in `/app/businesses/:businessId/...`; it is
+not hidden mutable application state. The client reloads the authorized
+business directory on startup and returns to My businesses when a URL names a
+business the current member can no longer access. Account routes never render a
+business selector. Business routes retain the selector and their business ID
+through normal navigation and business switching clears query parameters.
+Desktop and landscape-tablet layouts use a persistent business sidebar,
+small-tablet portrait uses the same navigation in a compact column, and phone
+layouts replace it with a four-destination bottom navigation bar while keeping
+the selector in the app header.
+
 ## Reference data lifecycle
 
 Business activities and vehicles are database-backed reference records exposed through authenticated Worker routes. Both roles may read active and inactive records because historical financial and mileage views need their labels. Every mutation is owner-only and validated again at the Worker boundary.

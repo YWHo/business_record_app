@@ -43,7 +43,7 @@ export function UserManagementPage() {
   }, [configuration?.demoHelper, load, user?.role]);
 
   if (user?.role !== 'OWNER' || configuration?.demoHelper)
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app/businesses" replace />;
 
   async function invite(event: FormEvent) {
     event.preventDefault();

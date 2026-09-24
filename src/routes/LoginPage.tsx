@@ -12,7 +12,7 @@ export function LoginPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/app/businesses" replace />;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -32,7 +32,7 @@ export function LoginPage() {
     setError('');
     try {
       await localLogin(identity);
-      await navigate('/');
+      await navigate('/app/businesses');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to sign in.');
     }
@@ -42,7 +42,7 @@ export function LoginPage() {
     setError('');
     try {
       await demoLogin(role);
-      await navigate('/');
+      await navigate('/app/businesses');
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : 'Unable to open the demo.',

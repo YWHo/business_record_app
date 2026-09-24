@@ -28,6 +28,37 @@ describe('App', () => {
             : input instanceof URL
               ? input.href
               : input.url;
+        if (url.endsWith('/api/businesses'))
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                businesses: [
+                  {
+                    id: 'business-activity-contracting',
+                    name: 'IT Contracting',
+                    description: 'IT services',
+                    businessType: 'PROFESSIONAL_SERVICES',
+                    defaultCurrency: 'NZD',
+                    status: 'ACTIVE',
+                    legacyBusinessActivityId: 'activity-contracting',
+                  },
+                  {
+                    id: 'business-activity-delivery',
+                    name: 'Delivery Platform',
+                    description: 'Delivery services',
+                    businessType: 'PLATFORM_SERVICES',
+                    defaultCurrency: 'NZD',
+                    status: 'ACTIVE',
+                    legacyBusinessActivityId: 'activity-delivery',
+                  },
+                ],
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            ),
+          );
         const body = url.endsWith('/api/auth/config')
           ? {
               environment: 'local',
@@ -426,7 +457,7 @@ describe('App', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('renders the dashboard route', async () => {
-    renderApp('/');
+    renderApp('/app/businesses/business-activity-contracting');
 
     expect(
       await screen.findByRole('heading', {
@@ -441,8 +472,44 @@ describe('App', () => {
     expect(screen.getByText('$75.00')).toBeInTheDocument();
   });
 
+  it('separates account and business navigation contexts', async () => {
+    const account = renderApp('/app/businesses');
+    expect(
+      await screen.findByRole('heading', { name: 'My businesses' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Current business')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Account navigation' }),
+    ).toBeInTheDocument();
+    account.unmount();
+
+    renderApp('/app/businesses/business-activity-contracting/expenses');
+    expect(await screen.findByLabelText('Current business')).toHaveValue(
+      'business-activity-contracting',
+    );
+    expect(
+      screen.getByRole('navigation', {
+        name: 'IT Contracting navigation',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Mobile navigation' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: 'Expenses' })[0],
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('returns safely to My businesses when business access is unavailable', async () => {
+    renderApp('/app/businesses/business-no-longer-accessible');
+    expect(
+      await screen.findByRole('heading', { name: 'My businesses' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Current business')).not.toBeInTheDocument();
+  });
+
   it('offers monthly, tax-year, and full portable exports', async () => {
-    renderApp('/exports');
+    renderApp('/app/reports');
     expect(
       await screen.findByRole('heading', {
         name: /exports and local backup/i,
@@ -458,7 +525,7 @@ describe('App', () => {
   });
 
   it('renders a not-found page for unknown routes', async () => {
-    renderApp('/missing');
+    renderApp('/app/missing');
 
     expect(
       await screen.findByRole('heading', { name: /page not found/i }),
@@ -466,14 +533,16 @@ describe('App', () => {
   });
 
   it('renders owner management for activities and vehicles', async () => {
-    renderApp('/setup');
+    renderApp('/app/businesses/business-activity-contracting/settings');
 
     expect(
       await screen.findByRole('heading', {
         name: /activities, vehicles, categories, and clients/i,
       }),
     ).toBeInTheDocument();
-    expect(await screen.findByText('IT Contracting')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'IT Contracting' }),
+    ).toBeInTheDocument();
     expect(await screen.findByText('ABC123')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /add activity/i }),
@@ -482,7 +551,7 @@ describe('App', () => {
 
   it('keeps setup read-only for accountants', async () => {
     currentRole = 'ACCOUNTANT';
-    renderApp('/setup');
+    renderApp('/app/businesses/business-activity-contracting/settings');
 
     expect(
       await screen.findByText(/only the owner can change it/i),
@@ -493,7 +562,7 @@ describe('App', () => {
   });
 
   it('renders calculated mileage and owner entry controls', async () => {
-    renderApp('/mileage');
+    renderApp('/app/businesses/business-activity-contracting/mileage');
 
     expect(
       await screen.findByRole('heading', { name: /work sessions/i }),
@@ -506,7 +575,7 @@ describe('App', () => {
   });
 
   it('renders parking and general expense entry workflows', async () => {
-    renderApp('/records');
+    renderApp('/app/businesses/business-activity-contracting/expenses');
     expect(
       await screen.findByRole('heading', {
         name: /parking and general expenses/i,
@@ -522,7 +591,7 @@ describe('App', () => {
 
   it('keeps mileage entry read-only for accountants', async () => {
     currentRole = 'ACCOUNTANT';
-    renderApp('/mileage');
+    renderApp('/app/businesses/business-activity-contracting/mileage');
 
     expect(
       await screen.findByText(/only the owner can change them/i),
@@ -533,7 +602,7 @@ describe('App', () => {
   });
 
   it('renders fuel receipts and owner entry controls', async () => {
-    renderApp('/fuel');
+    renderApp('/app/businesses/business-activity-contracting/expenses/fuel');
     expect(
       await screen.findByRole('heading', { name: /fuel records/i }),
     ).toBeInTheDocument();
@@ -544,7 +613,9 @@ describe('App', () => {
   });
 
   it('keeps full insurance premiums separate from allocations', async () => {
-    renderApp('/insurance');
+    renderApp(
+      '/app/businesses/business-activity-contracting/expenses/insurance',
+    );
     expect(
       await screen.findByRole('heading', {
         name: /insurance and allocations/i,
@@ -559,7 +630,9 @@ describe('App', () => {
 
   it('limits accountants to attributed insurance allocation adjustments', async () => {
     currentRole = 'ACCOUNTANT';
-    renderApp('/insurance');
+    renderApp(
+      '/app/businesses/business-activity-contracting/expenses/insurance',
+    );
     expect(
       await screen.findByText(/only the owner can change the source policy/i),
     ).toBeInTheDocument();
@@ -572,7 +645,7 @@ describe('App', () => {
   });
 
   it('renders contract income with payment tracking and reconciliation', async () => {
-    renderApp('/income');
+    renderApp('/app/businesses/business-activity-contracting/income');
     expect(
       await screen.findByRole('heading', { name: /^income$/i }),
     ).toBeInTheDocument();
@@ -594,7 +667,7 @@ describe('App', () => {
 
   it('keeps income source records read-only for accountants', async () => {
     currentRole = 'ACCOUNTANT';
-    renderApp('/income');
+    renderApp('/app/businesses/business-activity-contracting/income');
     expect(
       await screen.findByText(/Accountants can view and reconcile income/i),
     ).toBeInTheDocument();
@@ -611,7 +684,7 @@ describe('App', () => {
   });
 
   it('renders the searchable transaction and receipt workspace', async () => {
-    renderApp('/transactions');
+    renderApp('/app/businesses/business-activity-contracting/transactions');
     expect(
       await screen.findByRole('heading', {
         name: /transactions and receipts/i,
@@ -632,7 +705,7 @@ describe('App', () => {
   });
 
   it('shows retention-protected trash and read-only audit history', async () => {
-    renderApp('/governance');
+    renderApp('/app/businesses/business-activity-contracting/governance');
     expect(
       await screen.findByRole('heading', {
         name: /audit, trash, and retention/i,

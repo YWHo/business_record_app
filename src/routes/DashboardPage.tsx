@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../features/auth/AuthContext';
 import { BackupReminder } from '../features/exports/BackupReminder';
 import { DashboardMetricCard } from '../components/DashboardMetricCard';
@@ -77,6 +77,8 @@ const number = (value: number, suffix = '') =>
   `${value.toLocaleString('en-NZ', { maximumFractionDigits: 2 })}${suffix}`;
 
 export function DashboardPage() {
+  const { businessId } = useParams();
+  const businessBase = businessId ? `/app/businesses/${businessId}` : '/app';
   const [dashboard, setDashboard] = useState<DashboardData | null>(null),
     [activities, setActivities] = useState<Activity[]>([]),
     [taxYear, setTaxYear] = useState(''),
@@ -138,7 +140,7 @@ export function DashboardPage() {
             not final accounting profit or tax treatment.
           </p>
         </div>
-        <Link className="button-link" to="/records">
+        <Link className="button-link" to={`${businessBase}/expenses`}>
           Add record
         </Link>
       </div>
@@ -241,7 +243,9 @@ export function DashboardPage() {
                   <dd>{dashboard.review.readyForReviewCount}</dd>
                 </div>
               </dl>
-              <Link to="/transactions">Open review workspace</Link>
+              <Link to={`${businessBase}/transactions`}>
+                Open review workspace
+              </Link>
             </section>
             <section className="panel">
               <h2>Fuel and parking</h2>

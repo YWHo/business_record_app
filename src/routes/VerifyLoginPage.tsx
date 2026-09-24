@@ -46,7 +46,7 @@ export function VerifyLoginPage() {
       <section className="auth-card">
         <h1>Verify sign-in</h1>
         <p role="status">{status}</p>
-        <Link to="/">Continue</Link>
+        <Link to="/app/businesses">Continue</Link>
       </section>
     </main>
   );

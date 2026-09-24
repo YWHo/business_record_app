@@ -46,7 +46,7 @@ describe('reusable presentation components', () => {
     expect(screen.getByText('Local backup due')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back up now' })).toHaveAttribute(
       'href',
-      '/exports',
+      '/app/reports',
     );
 
     rerender(

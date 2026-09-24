@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../auth/AuthContext';
 
 export interface BackupStatus {
@@ -20,6 +20,10 @@ export function BackupReminder() {
 }
 
 export function BackupReminderView({ backup }: { backup: BackupStatus }) {
+  const { businessId } = useParams();
+  const reportsPath = businessId
+    ? `/app/businesses/${businessId}/reports`
+    : '/app/reports';
   return (
     <aside className={`backup-reminder ${backup.due ? 'due' : ''}`}>
       <div>
@@ -33,7 +37,7 @@ export function BackupReminderView({ backup }: { backup: BackupStatus }) {
           Reminder interval: {backup.reminderDays} days.
         </p>
       </div>
-      <Link className="button-link" to="/exports">
+      <Link className="button-link" to={reportsPath}>
         {backup.due ? 'Back up now' : 'Open exports'}
       </Link>
     </aside>

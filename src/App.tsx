@@ -1,108 +1,41 @@
-import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { AccountShell, BusinessShell } from './components/ShellLayouts';
+import { PwaStatus } from './features/pwa/PwaStatus';
 import { useAuth } from './features/auth/AuthContext';
+import { BusinessDirectoryProvider } from './features/business/BusinessDirectoryContext';
 import { AcceptInvitationPage } from './routes/AcceptInvitationPage';
+import { BusinessesPage } from './routes/BusinessesPage';
 import { DashboardPage } from './routes/DashboardPage';
+import { DocumentsPage } from './routes/DocumentsPage';
+import { ExportsPage } from './routes/ExportsPage';
+import { FuelPage } from './routes/FuelPage';
+import { GovernancePage } from './routes/GovernancePage';
+import { IncomePage } from './routes/IncomePage';
+import { InsurancePage } from './routes/InsurancePage';
 import { LoginPage } from './routes/LoginPage';
 import { MileagePage } from './routes/MileagePage';
-import { FuelPage } from './routes/FuelPage';
-import { InsurancePage } from './routes/InsurancePage';
-import { IncomePage } from './routes/IncomePage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { RecordsPage } from './routes/RecordsPage';
 import { SetupPage } from './routes/SetupPage';
-import { UserManagementPage } from './routes/UserManagementPage';
 import { TransactionsPage } from './routes/TransactionsPage';
-import { GovernancePage } from './routes/GovernancePage';
-import { ExportsPage } from './routes/ExportsPage';
+import { UserManagementPage } from './routes/UserManagementPage';
 import { VerifyLoginPage } from './routes/VerifyLoginPage';
-import { PwaStatus } from './features/pwa/PwaStatus';
 
-function WorkspaceLayout() {
-  const { configuration, loading, logout, resetDemo, user } = useAuth();
+function WorkspaceGate() {
+  const { loading, user } = useAuth();
 
-  if (loading) {
+  if (loading)
     return (
       <main className="auth-page">
         <p role="status">Loading secure workspace…</p>
       </main>
     );
-  }
-
   if (!user) return <Navigate to="/login" replace />;
+  return <Outlet />;
+}
 
-  const navItems = [
-    { to: '/', label: 'Dashboard', end: true },
-    { to: '/records', label: 'Records', end: false },
-    { to: '/mileage', label: 'Mileage', end: false },
-    { to: '/fuel', label: 'Fuel', end: false },
-    { to: '/insurance', label: 'Insurance', end: false },
-    { to: '/income', label: 'Income', end: false },
-    { to: '/transactions', label: 'Transactions', end: false },
-    { to: '/governance', label: 'Governance', end: false },
-    { to: '/exports', label: 'Exports', end: false },
-    { to: '/setup', label: 'Setup', end: false },
-    ...(user.role === 'OWNER' && !configuration?.demoHelper
-      ? [{ to: '/settings/users', label: 'Users', end: false }]
-      : []),
-  ];
-
-  return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div>
-          <span className="eyebrow">
-            {configuration?.demoHelper
-              ? 'Public demo · synthetic data'
-              : 'Private workspace'}
-          </span>
-          <strong>Business Records</strong>
-        </div>
-        <div className="account-summary">
-          <span>{user.email}</span>
-          {configuration?.environment === 'demo' ? (
-            <button
-              type="button"
-              className="header-button"
-              title="Clear changes stored only in this browser and restore the synthetic demo"
-              onClick={() => void resetDemo()}
-            >
-              Reset demo data
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="header-button"
-            onClick={() => void logout()}
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
-
-      <nav aria-label="Primary navigation" className="primary-nav">
-        {navItems.map((item) => (
-          <NavLink
-            end={item.end}
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => (isActive ? 'active' : undefined)}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-
-      <main className="page-content">
-        {configuration?.environment === 'demo' ? (
-          <p className="notice">
-            Demo changes are saved only in this browser. Other visitors cannot
-            see them.
-          </p>
-        ) : null}
-        <Outlet />
-      </main>
-    </div>
-  );
+function DirectoryLayout() {
+  return <BusinessDirectoryProvider />;
 }
 
 export function App() {
@@ -113,19 +46,57 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify-login" element={<VerifyLoginPage />} />
         <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
-        <Route element={<WorkspaceLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/records" element={<RecordsPage />} />
-          <Route path="/mileage" element={<MileagePage />} />
-          <Route path="/fuel" element={<FuelPage />} />
-          <Route path="/insurance" element={<InsurancePage />} />
-          <Route path="/income" element={<IncomePage />} />
-          <Route path="/transactions" element={<TransactionsPage />} />
-          <Route path="/governance" element={<GovernancePage />} />
-          <Route path="/exports" element={<ExportsPage />} />
-          <Route path="/setup" element={<SetupPage />} />
-          <Route path="/settings/users" element={<UserManagementPage />} />
-          <Route path="*" element={<NotFoundPage />} />
+
+        <Route element={<WorkspaceGate />}>
+          <Route element={<DirectoryLayout />}>
+            <Route path="/app" element={<AccountShell />}>
+              <Route index element={<Navigate to="businesses" replace />} />
+              <Route path="businesses" element={<BusinessesPage />} />
+              <Route path="transactions" element={<TransactionsPage />} />
+              <Route path="reports" element={<ExportsPage />} />
+              <Route path="settings/account" element={<UserManagementPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+
+            <Route
+              path="/app/businesses/:businessId"
+              element={<BusinessShell />}
+            >
+              <Route index element={<DashboardPage />} />
+              <Route path="transactions" element={<TransactionsPage />} />
+              <Route path="expenses" element={<RecordsPage />} />
+              <Route path="expenses/fuel" element={<FuelPage />} />
+              <Route path="expenses/insurance" element={<InsurancePage />} />
+              <Route path="income" element={<IncomePage />} />
+              <Route path="mileage" element={<MileagePage />} />
+              <Route path="documents" element={<DocumentsPage />} />
+              <Route path="reports" element={<ExportsPage />} />
+              <Route path="settings" element={<SetupPage />} />
+              <Route path="governance" element={<GovernancePage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+          </Route>
+
+          <Route path="/" element={<Navigate to="/app/businesses" replace />} />
+          {[
+            '/records',
+            '/mileage',
+            '/fuel',
+            '/insurance',
+            '/income',
+            '/transactions',
+            '/governance',
+            '/exports',
+            '/setup',
+            '/settings/users',
+          ].map((path) => (
+            <Route
+              key={path}
+              path={path}
+              element={<Navigate to="/app/businesses" replace />}
+            />
+          ))}
+          <Route path="*" element={<Navigate to="/app/businesses" replace />} />
         </Route>
       </Routes>
     </>

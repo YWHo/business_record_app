@@ -41,7 +41,7 @@ describe('LoginPage demo roles', () => {
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<h1>Demo dashboard</h1>} />
+          <Route path="/app/businesses" element={<h1>Demo businesses</h1>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -61,7 +61,7 @@ describe('LoginPage demo roles', () => {
     );
     await waitFor(() => expect(demoLogin).toHaveBeenCalledWith('ACCOUNTANT'));
     expect(
-      await screen.findByRole('heading', { name: 'Demo dashboard' }),
+      await screen.findByRole('heading', { name: 'Demo businesses' }),
     ).toBeVisible();
   });
 });
