@@ -63,6 +63,7 @@ function WorkspaceLayout() {
             <button
               type="button"
               className="header-button"
+              title="Clear changes stored only in this browser and restore the synthetic demo"
               onClick={() => void resetDemo()}
             >
               Reset demo data

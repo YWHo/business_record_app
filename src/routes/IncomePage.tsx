@@ -21,6 +21,8 @@ interface Details {
 }
 interface IncomeRecord {
   id: string;
+  businessId: string;
+  legalEntityId: string;
   businessActivityId: string;
   activityName: string;
   incomeType: IncomeType;
@@ -673,6 +675,7 @@ function ReconcileForm({
       method: 'POST',
       body: JSON.stringify({
         incomeId: record.id,
+        businessId: record.businessId,
         expectedAmount: expected,
         actualAmount: actual,
         notes,

@@ -5,6 +5,8 @@ import { apiRequest, useAuth } from '../features/auth/AuthContext';
 type RecordType = 'EXPENSE' | 'INCOME';
 interface Transaction {
   id: string;
+  businessId: string;
+  legalEntityId: string;
   recordType: RecordType;
   subtype: string;
   transactionDate: string;
@@ -127,6 +129,7 @@ function ReviewPanel({
         body: JSON.stringify({
           recordType: record.recordType,
           recordId: record.id,
+          businessId: record.businessId,
           message,
         }),
       });
@@ -146,6 +149,7 @@ function ReviewPanel({
         body: JSON.stringify({
           recordType: record.recordType,
           recordId: record.id,
+          businessId: record.businessId,
           status,
         }),
       });
@@ -384,6 +388,7 @@ export function TransactionsPage() {
         body: JSON.stringify({
           recordType: record.recordType,
           recordId: record.id,
+          businessId: record.businessId,
         }),
       });
       setMessage('Record moved to trash.');

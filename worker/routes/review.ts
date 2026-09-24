@@ -18,6 +18,7 @@ import {
 import type { Env } from '../types';
 
 const transactionProjection = `SELECT expenses.id, expenses.business_account_id,
+  expenses.business_id, expenses.legal_entity_id,
   'EXPENSE' AS record_type,
   expenses.expense_type AS subtype, substr(expenses.purchase_datetime, 1, 10) AS transaction_date,
   expenses.business_activity_id, business_activities.name AS activity_name,
@@ -41,6 +42,7 @@ const transactionProjection = `SELECT expenses.id, expenses.business_account_id,
   WHERE expenses.deleted_at IS NULL
   UNION ALL
   SELECT income_records.id, income_records.business_account_id,
+  income_records.business_id, income_records.legal_entity_id,
   'INCOME' AS record_type,
   income_records.income_type AS subtype, income_records.transaction_date,
   income_records.business_activity_id, business_activities.name AS activity_name,
@@ -62,6 +64,8 @@ const transactionProjection = `SELECT expenses.id, expenses.business_account_id,
 interface TransactionRow {
   id: string;
   business_account_id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   record_type: 'EXPENSE' | 'INCOME';
   subtype: string;
   transaction_date: string;
@@ -197,6 +201,8 @@ export async function listTransactions(request: Request, env: Env) {
   const result = pageResult(rows.results, pagination);
   const transactions = result.items.map((row) => ({
     id: row.id,
+    businessId: row.business_id,
+    legalEntityId: row.legal_entity_id,
     recordType: row.record_type,
     subtype: row.subtype,
     transactionDate: row.transaction_date,

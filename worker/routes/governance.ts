@@ -36,6 +36,8 @@ function parsedObject(value: string | null): Record<string, unknown> | null {
 
 interface RetainedRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   status: string;
   business_activity_id: string | null;
   deleted_at: string | null;
@@ -51,7 +53,7 @@ async function retainedRecord(
   id: string,
 ) {
   const record = await env.DB.prepare(
-    `SELECT id,status,business_activity_id,deleted_at,retention_until,purge_eligible_at,purged_at FROM ${tables[recordType]} WHERE id=? AND business_account_id=?`,
+    `SELECT id,business_id,legal_entity_id,status,business_activity_id,deleted_at,retention_until,purge_eligible_at,purged_at FROM ${tables[recordType]} WHERE id=? AND business_account_id=?`,
   )
     .bind(id, businessAccountId)
     .first<RetainedRow>();
@@ -142,15 +144,15 @@ export async function listTrash(request: Request, env: Env) {
   const actor = await requireUser(request, env);
   const rows = await env.DB.prepare(
     `SELECT * FROM (
-      SELECT id,'EXPENSE' AS record_type,expense_type AS subtype,merchant_name AS label,
+      SELECT id,business_id,legal_entity_id,'EXPENSE' AS record_type,expense_type AS subtype,merchant_name AS label,
         substr(purchase_datetime,1,10) AS record_date,business_activity_id,status,deleted_at,
         retention_until,purge_eligible_at,purged_at FROM expenses WHERE business_account_id=? AND deleted_at IS NOT NULL
       UNION ALL
-      SELECT id,'INCOME',income_type,COALESCE(received_from,'Income'),transaction_date,
+      SELECT id,business_id,legal_entity_id,'INCOME',income_type,COALESCE(received_from,'Income'),transaction_date,
         business_activity_id,status,deleted_at,retention_until,purge_eligible_at,purged_at
         FROM income_records WHERE business_account_id=? AND deleted_at IS NOT NULL
       UNION ALL
-      SELECT id,'WORK_SESSION','MILEAGE','Work session',substr(started_at,1,10),
+      SELECT id,business_id,legal_entity_id,'WORK_SESSION','MILEAGE','Work session',substr(started_at,1,10),
         business_activity_id,status,deleted_at,retention_until,purge_eligible_at,purged_at
         FROM work_sessions WHERE business_account_id=? AND deleted_at IS NOT NULL
     ) ORDER BY deleted_at DESC,id DESC LIMIT 200`,
@@ -162,6 +164,8 @@ export async function listTrash(request: Request, env: Env) {
     )
     .all<{
       id: string;
+      business_id: string | null;
+      legal_entity_id: string | null;
       record_type: RetainedRecordType;
       subtype: string;
       label: string;
@@ -177,6 +181,8 @@ export async function listTrash(request: Request, env: Env) {
   return json({
     trash: rows.results.map((row) => ({
       id: row.id,
+      businessId: row.business_id,
+      legalEntityId: row.legal_entity_id,
       recordType: row.record_type,
       subtype: row.subtype,
       label: row.label,

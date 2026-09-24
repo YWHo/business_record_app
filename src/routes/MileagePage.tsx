@@ -11,6 +11,8 @@ import {
 
 interface WorkSession {
   id: string;
+  businessId: string;
+  legalEntityId: string;
   businessActivityId: string;
   activityName: string;
   vehicleId: string;
@@ -256,6 +258,7 @@ export function MileagePage() {
         body: JSON.stringify({
           recordType: 'WORK_SESSION',
           recordId: session.id,
+          businessId: session.businessId,
         }),
       });
       setMessage('Work session moved to trash.');

@@ -650,3 +650,28 @@ Acceptance criteria completed:
 Notes: No schema migration is required. Scoped edit/detail APIs and client route
 migration follow with their related feature increments; flat endpoints remain
 available until the upgraded UI no longer depends on them.
+
+## Business-scoped public-demo storage
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Upgraded the browser-local demo database to schema version 2 with separate
+  indexed operation, operating-period, and metadata stores.
+- Scoped local accounting operations by business and record and resolved their
+  legal-entity context from New Zealand effective dates and demo periods.
+- Migrated compatible legacy operations while safely discarding ambiguous
+  record operations that cannot be attributed to a business.
+- Added local-only legal-entity period changes and restored the complete seeded
+  period history when demo data is reset.
+- Preserved local comments, documents, status changes, trash/restore behavior,
+  and account-scoped reference edits without sending mutations to the Worker.
+- Exposed business and legal-entity attribution on cross-business transaction
+  and trash reads so browser operations can remain isolated.
+- Added unit and real-browser coverage for migration, business isolation,
+  persistence, separate browser contexts, period reset, and overlay reset.
+
+Notes: The public-demo Worker and D1 database remain strictly read-only. Local
+storage migration fails closed when old data has insufficient scope, and the
+visible reset action affects only the current browser.

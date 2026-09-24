@@ -218,6 +218,14 @@ versioned, business-scoped IndexedDB overlay. It never gains a server write,
 authentication cookie, R2 binding, invitation path, or arbitrary account
 selection.
 
+Browser schema version 2 stores operations, operating periods, and metadata
+separately. Operations are indexed by business and record and carry resolved
+legal-entity context when the record date identifies exactly one period. The
+upgrade retains legacy operations only when their business can be resolved;
+ambiguous record changes are discarded instead of being assigned across a
+tenancy boundary. Reset clears local operations and restores the synthetic
+period history without changing D1 data.
+
 Private migration is conservative. Existing high-level activities become
 businesses. A verified sole-trader entity may cover known history; a company is
 never inferred. Unknown attribution is retained and marked for review. Legacy

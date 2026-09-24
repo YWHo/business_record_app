@@ -17,6 +17,8 @@ interface Allocation {
 }
 interface InsuranceRecord {
   id: string;
+  businessId: string;
+  legalEntityId: string;
   businessActivityId: string | null;
   activityName: string | null;
   provider: string;
@@ -593,6 +595,7 @@ export function InsurancePage() {
         method: 'PATCH',
         body: JSON.stringify({
           expenseId: record.id,
+          businessId: record.businessId,
           allocatedAmount: amount,
           allocationNotes: notes,
           calculationPeriodStart,

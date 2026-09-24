@@ -3,6 +3,8 @@ import { apiRequest, useAuth } from '../features/auth/AuthContext';
 
 interface TrashItem {
   id: string;
+  businessId: string;
+  legalEntityId: string;
   recordType: 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
   subtype: string;
   label: string;
@@ -122,7 +124,11 @@ export function GovernancePage() {
     setError('');
     await apiRequest('/api/trash/restore', {
       method: 'POST',
-      body: JSON.stringify({ recordType: item.recordType, recordId: item.id }),
+      body: JSON.stringify({
+        recordType: item.recordType,
+        recordId: item.id,
+        businessId: item.businessId,
+      }),
     });
     setMessage('Record restored.');
     await load(filters);
@@ -140,6 +146,7 @@ export function GovernancePage() {
       body: JSON.stringify({
         recordType: item.recordType,
         recordId: item.id,
+        businessId: item.businessId,
         confirmation: 'PERMANENTLY DELETE',
       }),
     });
