@@ -2242,15 +2242,23 @@ expectStatus(
   404,
   'unknown business denial',
 );
-expectStatus(
-  await request(
-    `/api/businesses/${scopedBusinessId}/dashboard`,
-    {},
-    ownerCookie,
-  ),
-  200,
-  'business dashboard',
+const scopedDashboard = await request(
+  `/api/businesses/${scopedBusinessId}/dashboard?taxYear=2027`,
+  {},
+  ownerCookie,
 );
+expectStatus(scopedDashboard, 200, 'business dashboard');
+if (
+  typeof scopedDashboard.body.attention?.missingReceiptCount !== 'number' ||
+  !Array.isArray(scopedDashboard.body.recentTransactions) ||
+  scopedDashboard.body.recentTransactions.some(
+    (transaction) => transaction.businessId !== scopedBusinessId,
+  )
+) {
+  throw new Error(
+    'business dashboard omitted attention or leaked recent transactions',
+  );
+}
 expectStatus(
   await request(
     `/api/businesses/${scopedBusinessId}/expenses`,

@@ -17,7 +17,7 @@ async function login(page: Page, role: 'owner' | 'accountant') {
   ).toBeVisible();
   await page.getByRole('link', { name: 'Open IT Contracting' }).click();
   await expect(
-    page.getByRole('heading', { name: 'Your business at a glance' }),
+    page.getByRole('heading', { name: 'IT Contracting' }),
   ).toBeVisible();
 }
 

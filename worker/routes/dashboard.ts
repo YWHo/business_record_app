@@ -16,6 +16,24 @@ interface SettingsRow {
   tax_year_end_day: number;
 }
 
+interface DashboardReviewRow {
+  record_type: 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
+  status: string;
+  attachment_count: number;
+}
+
+interface RecentTransactionRow {
+  id: string;
+  business_id: string;
+  record_type: 'EXPENSE' | 'INCOME';
+  subtype: string;
+  transaction_date: string;
+  counterparty: string;
+  total_amount_minor: number;
+  currency: string;
+  status: string;
+}
+
 function currentTaxYear(month: number, day: number) {
   const parts = new Intl.DateTimeFormat('en-NZ', {
     timeZone: 'Pacific/Auckland',
@@ -128,6 +146,7 @@ export async function dashboard(
     reviewRows,
     platformIncomeRows,
     insuranceRows,
+    recentTransactionRows,
   ] = await Promise.all([
     env.DB.prepare(
       `SELECT income_records.currency,
@@ -199,10 +218,28 @@ export async function dashboard(
         outstanding_minor: number;
       }>(),
     env.DB.prepare(
-      `SELECT status FROM (
-          SELECT expenses.status FROM expenses WHERE expenses.deleted_at IS NULL AND expenses.purged_at IS NULL AND ${expenseScope.sql}
-          UNION ALL SELECT income_records.status FROM income_records WHERE income_records.deleted_at IS NULL AND income_records.purged_at IS NULL AND ${incomeScope.sql}
-          UNION ALL SELECT work_sessions.status FROM work_sessions WHERE work_sessions.deleted_at IS NULL AND work_sessions.purged_at IS NULL AND ${sessionScope.sql}
+      `SELECT record_type,status,attachment_count FROM (
+          SELECT 'EXPENSE' AS record_type,expenses.status,
+            (SELECT COUNT(*) FROM attachments
+              WHERE attachments.business_account_id=expenses.business_account_id
+                AND attachments.record_type='EXPENSE'
+                AND attachments.record_id=expenses.id
+                AND attachments.is_current=1 AND attachments.purged_at IS NULL) AS attachment_count
+            FROM expenses WHERE expenses.deleted_at IS NULL AND expenses.purged_at IS NULL AND ${expenseScope.sql}
+          UNION ALL SELECT 'INCOME' AS record_type,income_records.status,
+            (SELECT COUNT(*) FROM attachments
+              WHERE attachments.business_account_id=income_records.business_account_id
+                AND attachments.record_type='INCOME'
+                AND attachments.record_id=income_records.id
+                AND attachments.is_current=1 AND attachments.purged_at IS NULL) AS attachment_count
+            FROM income_records WHERE income_records.deleted_at IS NULL AND income_records.purged_at IS NULL AND ${incomeScope.sql}
+          UNION ALL SELECT 'WORK_SESSION' AS record_type,work_sessions.status,
+            (SELECT COUNT(*) FROM attachments
+              WHERE attachments.business_account_id=work_sessions.business_account_id
+                AND attachments.record_type='WORK_SESSION'
+                AND attachments.record_id=work_sessions.id
+                AND attachments.is_current=1 AND attachments.purged_at IS NULL) AS attachment_count
+            FROM work_sessions WHERE work_sessions.deleted_at IS NULL AND work_sessions.purged_at IS NULL AND ${sessionScope.sql}
         )`,
     )
       .bind(
@@ -210,7 +247,7 @@ export async function dashboard(
         ...incomeScope.bindings,
         ...sessionScope.bindings,
       )
-      .all<{ status: string }>(),
+      .all<DashboardReviewRow>(),
     env.DB.prepare(
       `SELECT income_records.business_activity_id,business_activities.name AS activity_name,
           income_records.currency,SUM(income_records.total_amount_minor) AS platform_income_minor
@@ -244,6 +281,33 @@ export async function dashboard(
         currency: string;
         allocated_insurance_minor: number;
       }>(),
+    env.DB.prepare(
+      `SELECT * FROM (
+          SELECT expenses.id,expenses.business_id,'EXPENSE' AS record_type,
+            expenses.expense_type AS subtype,
+            substr(expenses.purchase_datetime,1,10) AS transaction_date,
+            COALESCE(NULLIF(expenses.merchant_name,''),NULLIF(expenses.description,''),'Expense') AS counterparty,
+            expenses.total_amount_minor,expenses.currency,expenses.status
+          FROM expenses
+          WHERE expenses.deleted_at IS NULL AND expenses.purged_at IS NULL
+            AND expenses.status!='VOIDED' AND ${expenseScope.sql}
+          UNION ALL
+          SELECT income_records.id,income_records.business_id,'INCOME' AS record_type,
+            income_records.income_type AS subtype,income_records.transaction_date,
+            COALESCE(platform_income_details.provider_name,clients.name,
+              income_records.received_from,'Income') AS counterparty,
+            income_records.total_amount_minor,income_records.currency,income_records.status
+          FROM income_records
+          LEFT JOIN platform_income_details ON platform_income_details.income_id=income_records.id
+          LEFT JOIN contract_income_details ON contract_income_details.income_id=income_records.id
+          LEFT JOIN clients ON clients.id=contract_income_details.client_id
+            AND clients.business_account_id=income_records.business_account_id
+          WHERE income_records.deleted_at IS NULL AND income_records.purged_at IS NULL
+            AND income_records.status!='VOIDED' AND ${incomeScope.sql}
+        ) ORDER BY transaction_date DESC,id DESC LIMIT 6`,
+    )
+      .bind(...expenseScope.bindings, ...incomeScope.bindings)
+      .all<RecentTransactionRow>(),
   ]);
   const expensesByCurrency = new Map<string, number>();
   const spending = new Map<
@@ -347,6 +411,13 @@ export async function dashboard(
       };
     })
     .sort((a, b) => a.activityName.localeCompare(b.activityName));
+  const unreviewedCount = reviewRows.results.filter(
+    (row) => !['REVIEWED', 'PROCESSED', 'VOIDED'].includes(row.status),
+  ).length;
+  const outstandingInvoiceCount = outstandingRows.results.reduce(
+    (total, row) => total + Number(row.invoice_count),
+    0,
+  );
   return json({
     period: {
       taxYear: requestedTaxYear,
@@ -373,9 +444,7 @@ export async function dashboard(
     })),
     review: {
       totalRecords: reviewRows.results.length,
-      unreviewedCount: reviewRows.results.filter(
-        (row) => !['REVIEWED', 'PROCESSED', 'VOIDED'].includes(row.status),
-      ).length,
+      unreviewedCount,
       missingInformationCount: reviewRows.results.filter(
         (row) => row.status === 'MISSING_INFORMATION',
       ).length,
@@ -383,6 +452,27 @@ export async function dashboard(
         (row) => row.status === 'READY_FOR_REVIEW',
       ).length,
     },
+    attention: {
+      missingReceiptCount: reviewRows.results.filter(
+        (row) =>
+          row.record_type === 'EXPENSE' &&
+          row.status !== 'VOIDED' &&
+          Number(row.attachment_count) === 0,
+      ).length,
+      itemsToReviewCount: unreviewedCount,
+      outstandingInvoiceCount,
+    },
+    recentTransactions: recentTransactionRows.results.map((row) => ({
+      id: row.id,
+      businessId: row.business_id,
+      recordType: row.record_type,
+      subtype: row.subtype,
+      transactionDate: row.transaction_date,
+      counterparty: row.counterparty,
+      totalAmountMinor: row.total_amount_minor,
+      currency: row.currency,
+      status: row.status,
+    })),
     platformActivities,
   });
 }

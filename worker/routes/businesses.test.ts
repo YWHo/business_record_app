@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { Env } from '../types';
 import { createGeneralExpense } from './expenseRecords';
 import { listIncomeRecords } from './incomeRecords';
-import { listBusinessExpenses, listBusinessRecords } from './businesses';
+import {
+  businessDashboard,
+  listBusinessExpenses,
+  listBusinessRecords,
+} from './businesses';
 import { listWorkSessions } from './workSessions';
 
 interface CapturedQuery {
@@ -155,6 +159,71 @@ describe('business-scoped read routes', () => {
       'business-account-primary',
       'business-1',
     ]);
+  });
+
+  it('keeps dashboard attention and recent activity inside the authorized business', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('FROM retention_settings'))
+        return { tax_year_end_month: 3, tax_year_end_day: 31 };
+      if (query.sql.includes('SELECT record_type,status,attachment_count'))
+        return [
+          {
+            record_type: 'EXPENSE',
+            status: 'MISSING_INFORMATION',
+            attachment_count: 0,
+          },
+        ];
+      if (query.sql.includes('payment_status IN'))
+        return [{ currency: 'NZD', invoice_count: 1, outstanding_minor: 5000 }];
+      if (query.sql.includes('ORDER BY transaction_date DESC,id DESC'))
+        return [
+          {
+            id: 'expense-recent',
+            business_id: 'business-1',
+            record_type: 'EXPENSE',
+            subtype: 'GENERAL',
+            transaction_date: '2026-09-20',
+            counterparty: 'Example supplier',
+            total_amount_minor: 2500,
+            currency: 'NZD',
+            status: 'MISSING_INFORMATION',
+          },
+        ];
+      if (query.operation === 'all') return [];
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await businessDashboard(
+      new Request(
+        'https://demo.invalid/api/businesses/business-1/dashboard?taxYear=2027',
+      ),
+      env,
+      { businessId: 'business-1' },
+    );
+
+    expect(await response.json()).toMatchObject({
+      attention: {
+        missingReceiptCount: 1,
+        itemsToReviewCount: 1,
+        outstandingInvoiceCount: 1,
+      },
+      recentTransactions: [
+        {
+          id: 'expense-recent',
+          businessId: 'business-1',
+          counterparty: 'Example supplier',
+        },
+      ],
+    });
+    const dashboardQueries = queries.filter(
+      (query) => query.operation === 'all',
+    );
+    expect(dashboardQueries).not.toHaveLength(0);
+    dashboardQueries.forEach((query) => {
+      expect(query.sql).toContain('.business_id=?');
+      expect(query.values).toContain('business-1');
+    });
   });
 
   it.each([

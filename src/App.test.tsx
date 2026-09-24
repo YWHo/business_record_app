@@ -87,7 +87,7 @@ describe('App', () => {
               turnstileRequired: false,
               turnstileSiteKey: null,
             }
-          : url.includes('/api/dashboard?')
+          : url.includes('/dashboard?')
             ? {
                 period: {
                   taxYear: '2027',
@@ -126,6 +126,24 @@ describe('App', () => {
                   missingInformationCount: 1,
                   readyForReviewCount: 1,
                 },
+                attention: {
+                  missingReceiptCount: 2,
+                  itemsToReviewCount: 3,
+                  outstandingInvoiceCount: 1,
+                },
+                recentTransactions: [
+                  {
+                    id: 'income-recent',
+                    businessId: 'business-activity-contracting',
+                    recordType: 'INCOME',
+                    subtype: 'CONTRACT',
+                    transactionDate: '2026-09-09',
+                    counterparty: 'Example Consulting Client',
+                    totalAmountMinor: 115_000,
+                    currency: 'NZD',
+                    status: 'READY_FOR_REVIEW',
+                  },
+                ],
                 platformActivities: [
                   {
                     activityId: 'activity-delivery',
@@ -481,15 +499,24 @@ describe('App', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: /your business at a glance/i,
+        name: 'IT Contracting',
       }),
     ).toBeInTheDocument();
-    expect(await screen.findByText(/local backup due/i)).toBeInTheDocument();
-    expect(screen.getByText('Net cash movement')).toBeInTheDocument();
     expect(
-      screen.getByText('Direct operating contribution'),
+      screen.getByText(/Local Sole Trader \(Sole trader\)/),
     ).toBeInTheDocument();
-    expect(screen.getByText('$75.00')).toBeInTheDocument();
+    expect(await screen.findByText('Net cash movement')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Needs attention' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2 missing receipts')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Recent transactions' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Example Consulting Client')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Direct operating contribution'),
+    ).not.toBeInTheDocument();
   });
 
   it('separates account and business navigation contexts', async () => {

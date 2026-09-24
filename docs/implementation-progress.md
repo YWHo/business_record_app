@@ -730,3 +730,29 @@ Acceptance criteria completed:
 Notes: Business creation remains outside this increment. The account home is
 now a focused switcher; bookkeeping actions continue only inside a selected
 business workspace.
+
+## Focused business dashboard
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the account-style analytics page with a dashboard dedicated to the
+  business selected in the route and persistent shell selector.
+- Kept the business description, current legal-entity name, and plain-language
+  entity type visible beside the page heading.
+- Reduced the primary financial summary to revenue, expenses, and net cash
+  movement with a compact tax-year selector.
+- Added actionable missing-receipt, review, and outstanding-invoice counts plus
+  the six most recent income and expense records.
+- Applied authenticated account and business predicates to every dashboard
+  projection and verified recent records cannot cross business boundaries.
+- Removed detailed fuel, parking, insurance-allocation, revenue-rate, and
+  operating-contribution analytics from the primary view while preserving the
+  underlying reporting calculations for later report placement.
+- Added unit, component, local-D1 smoke, and phone/tablet/desktop browser
+  coverage for dashboard scoping, content, and overflow.
+
+Notes: Dedicated create-record routes arrive with their corresponding expense,
+income, and mileage redesigns, so this dashboard does not introduce an action
+that would lead back to the legacy multi-form pages.

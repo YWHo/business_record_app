@@ -86,6 +86,16 @@ small-tablet portrait uses the same navigation in a compact column, and phone
 layouts replace it with a four-destination bottom navigation bar while keeping
 the selector in the app header.
 
+The primary dashboard reads only
+`/api/businesses/:businessId/dashboard`. The Worker verifies the selected
+business against the authenticated account and applies the account and
+business predicates independently to income, expenses, sessions, attachments,
+invoices, and recent-transaction projections. The landing view intentionally
+shows only three financial summaries, missing-receipt/review/invoice attention
+counts, and the six most recent income or expense records for the selected tax
+year. Existing detailed operating metrics remain available in the response for
+report migration, but are not mixed into the primary dashboard.
+
 ## Reference data lifecycle
 
 Business activities and vehicles are database-backed reference records exposed through authenticated Worker routes. Both roles may read active and inactive records because historical financial and mileage views need their labels. Every mutation is owner-only and validated again at the Worker boundary.

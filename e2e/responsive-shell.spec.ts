@@ -39,6 +39,29 @@ test('business context remains usable across phone, tablet, and desktop layouts'
   await expect(page.getByLabel('Current business')).toHaveValue(
     'business-activity-contracting',
   );
+  await expect(
+    page.getByRole('heading', { name: 'IT Contracting' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Local Sole Trader \(Sole trader\)/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Needs attention' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Recent transactions' }),
+  ).toBeVisible();
+  await expect(page.getByText('Direct operating contribution')).toHaveCount(0);
+  const dashboardMetrics = page.locator('.dashboard-metrics .metric-card');
+  await expect(dashboardMetrics).toHaveCount(3);
+  const firstPhoneMetric = await dashboardMetrics.nth(0).boundingBox();
+  const secondPhoneMetric = await dashboardMetrics.nth(1).boundingBox();
+  const thirdPhoneMetric = await dashboardMetrics.nth(2).boundingBox();
+  expect(firstPhoneMetric).not.toBeNull();
+  expect(secondPhoneMetric).not.toBeNull();
+  expect(thirdPhoneMetric).not.toBeNull();
+  expect(Math.abs(secondPhoneMetric!.y - firstPhoneMetric!.y)).toBeLessThan(2);
+  expect(thirdPhoneMetric!.y).toBeGreaterThan(firstPhoneMetric!.y);
   await expect(page.locator('.shell-sidebar')).toBeHidden();
   await expect(
     page.getByRole('navigation', { name: 'Mobile navigation' }),
@@ -55,6 +78,14 @@ test('business context remains usable across phone, tablet, and desktop layouts'
     page.getByRole('navigation', { name: 'Mobile navigation' }),
   ).toBeHidden();
   await expect(page.getByLabel('Current business')).toBeVisible();
+  const tabletMetricBoxes = await Promise.all(
+    [0, 1, 2].map((index) => dashboardMetrics.nth(index).boundingBox()),
+  );
+  tabletMetricBoxes.forEach((box) => expect(box).not.toBeNull());
+  expect(
+    Math.max(...tabletMetricBoxes.map((box) => box!.y)) -
+      Math.min(...tabletMetricBoxes.map((box) => box!.y)),
+  ).toBeLessThan(2);
   expect(
     await page.evaluate<boolean>(
       'document.documentElement.scrollWidth <= window.innerWidth',

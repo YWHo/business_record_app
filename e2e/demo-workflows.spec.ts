@@ -16,6 +16,12 @@ const dashboard = {
     missingInformationCount: 0,
     readyForReviewCount: 0,
   },
+  attention: {
+    missingReceiptCount: 0,
+    itemsToReviewCount: 0,
+    outstandingInvoiceCount: 0,
+  },
+  recentTransactions: [],
   platformActivities: [],
 };
 
@@ -34,7 +40,7 @@ async function mockImmutableDemo(page: Page, unsafeRequests: string[]) {
             turnstileRequired: false,
             turnstileSiteKey: null,
           }
-        : path === '/api/dashboard'
+        : path.endsWith('/dashboard')
           ? dashboard
           : path === '/api/businesses'
             ? {

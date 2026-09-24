@@ -1,208 +1,207 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { apiRequest } from '../features/auth/AuthContext';
-import { BackupReminder } from '../features/exports/BackupReminder';
 import { DashboardMetricCard } from '../components/DashboardMetricCard';
+import { apiRequest } from '../features/auth/AuthContext';
+import {
+  type BusinessSummary,
+  useBusinessDirectory,
+} from '../features/business/BusinessDirectoryContext';
 
 interface FinancialTotal {
   currency: string;
   recordedRevenueMinor: number;
-  cashReceivedMinor: number;
   recordedExpensesMinor: number;
   netCashMovementMinor: number;
-  incomeLessRecordedExpensesMinor: number;
 }
-interface Spending {
+
+interface RecentTransaction {
+  id: string;
+  businessId: string;
+  recordType: 'EXPENSE' | 'INCOME';
+  subtype: string;
+  transactionDate: string;
+  counterparty: string;
+  totalAmountMinor: number;
   currency: string;
-  fuelSpendingMinor: number;
-  parkingSpendingMinor: number;
-  fuelLitres: number;
+  status: string;
 }
-interface PlatformActivity {
-  activityId: string;
-  activityName: string;
-  currency: string;
-  sessionCount: number;
-  revenueSessionCount: number;
-  revenueComplete: boolean;
-  durationHours: number;
-  distanceKm: number;
-  sessionRevenueMinor: number | null;
-  revenuePerSessionMinor: number | null;
-  revenuePerHourMinor: number | null;
-  revenuePerKmMinor: number | null;
-  fuelSpendingMinor: number;
-  fuelLitres: number;
-  parkingSpendingMinor: number;
-  directOperatingCostMinor: number;
-  fuelCostPerKmMinor: number | null;
-  directOperatingContributionMinor: number | null;
-  recordedPlatformIncomeMinor: number;
-  allocatedInsuranceMinor: number;
-}
+
 interface DashboardData {
   period: {
     taxYear: string;
     from: string;
     to: string;
-    activityId: string | null;
   };
   financialTotals: FinancialTotal[];
-  spending: Spending[];
-  outstandingInvoices: Array<{
-    currency: string;
-    invoiceCount: number;
-    outstandingMinor: number;
-  }>;
-  review: {
-    totalRecords: number;
-    unreviewedCount: number;
-    missingInformationCount: number;
-    readyForReviewCount: number;
+  attention: {
+    missingReceiptCount: number;
+    itemsToReviewCount: number;
+    outstandingInvoiceCount: number;
   };
-  platformActivities: PlatformActivity[];
-}
-interface Activity {
-  id: string;
-  name: string;
+  recentTransactions: RecentTransaction[];
 }
 
-const money = (minor: number | null, currency: string) =>
-  minor === null
-    ? 'Unavailable'
-    : new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
-        minor / 100,
-      );
-const number = (value: number, suffix = '') =>
-  `${value.toLocaleString('en-NZ', { maximumFractionDigits: 2 })}${suffix}`;
+const entityTypeLabels: Record<
+  NonNullable<BusinessSummary['currentLegalEntity']>['entityType'],
+  string
+> = {
+  SOLE_TRADER: 'Sole trader',
+  LIMITED_COMPANY: 'Limited company',
+  PARTNERSHIP: 'Partnership',
+  TRUST: 'Trust',
+  OTHER: 'Other entity',
+};
+
+const money = (minor: number, currency: string) =>
+  new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
+    minor / 100,
+  );
+
+function dateLabel(value: string): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat('en-NZ', {
+        day: '2-digit',
+        month: 'short',
+        timeZone: 'UTC',
+      }).format(date)
+    : value;
+}
+
+function statusLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
 
 export function DashboardPage() {
-  const { businessId } = useParams();
-  const businessBase = businessId ? `/app/businesses/${businessId}` : '/app';
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null),
-    [activities, setActivities] = useState<Activity[]>([]),
-    [taxYear, setTaxYear] = useState(''),
-    [activityId, setActivityId] = useState(''),
-    [error, setError] = useState('');
-  const load = useCallback(async (year: string, activity: string) => {
-    const query = new URLSearchParams();
-    if (year) query.set('taxYear', year);
-    if (activity) query.set('activityId', activity);
-    const [dashboardResult, activityResult] = await Promise.all([
-      apiRequest<DashboardData>(`/api/dashboard?${query}`),
-      apiRequest<{ activities: Activity[] }>('/api/business-activities'),
-    ]);
-    setDashboard(dashboardResult);
-    setTaxYear(dashboardResult.period.taxYear);
-    setActivities(activityResult.activities);
-  }, []);
+  const { businessId = '' } = useParams();
+  const { businesses } = useBusinessDirectory();
+  const business = businesses.find((candidate) => candidate.id === businessId);
+  const businessBase = `/app/businesses/${businessId}`;
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const requestSequence = useRef(0);
+
+  const load = useCallback(
+    async (taxYear = '') => {
+      const requestId = ++requestSequence.current;
+      setError('');
+      setLoading(true);
+      setDashboard(null);
+      try {
+        const query = new URLSearchParams();
+        if (taxYear) query.set('taxYear', taxYear);
+        const result = await apiRequest<DashboardData>(
+          `/api/businesses/${businessId}/dashboard?${query}`,
+        );
+        if (requestId === requestSequence.current) setDashboard(result);
+      } catch (caught) {
+        if (requestId === requestSequence.current)
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : 'Unable to load this business dashboard.',
+          );
+      } finally {
+        if (requestId === requestSequence.current) setLoading(false);
+      }
+    },
+    [businessId],
+  );
+
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load('', '').catch((caught: unknown) =>
-      setError(
-        caught instanceof Error ? caught.message : 'Unable to load dashboard.',
-      ),
-    );
+    void load();
   }, [load]);
 
-  async function applyFilters() {
-    setError('');
-    try {
-      await load(taxYear, activityId);
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : 'Unable to load dashboard.',
-      );
-    }
-  }
+  const entity = business?.currentLegalEntity;
+  const entityName = entity?.legalName || entity?.tradingName;
+  const context = [
+    business?.description,
+    entityName && entity
+      ? `${entityName} (${entityTypeLabels[entity.entityType]})`
+      : 'Legal entity needs attention',
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const financial = dashboard?.financialTotals.length
     ? dashboard.financialTotals
     : [
         {
-          currency: 'NZD',
+          currency: business?.defaultCurrency ?? 'NZD',
           recordedRevenueMinor: 0,
-          cashReceivedMinor: 0,
           recordedExpensesMinor: 0,
           netCashMovementMinor: 0,
-          incomeLessRecordedExpensesMinor: 0,
         },
       ];
+  const selectedYear = Number(dashboard?.period.taxYear);
+  const taxYears = Number.isFinite(selectedYear)
+    ? [selectedYear - 1, selectedYear, selectedYear + 1]
+    : [];
+  const attention = dashboard?.attention;
+  const hasAttention = Boolean(
+    attention &&
+    (attention.missingReceiptCount ||
+      attention.itemsToReviewCount ||
+      attention.outstandingInvoiceCount),
+  );
 
   return (
     <section aria-labelledby="dashboard-heading">
-      <div className="page-heading">
+      <div className="page-heading business-dashboard-heading">
         <div>
-          <span className="eyebrow">Overview</span>
-          <h1 id="dashboard-heading">Your business at a glance</h1>
-          <p>
-            Recorded income, cash movement, costs, and operating indicators —
-            not final accounting profit or tax treatment.
-          </p>
+          <span className="eyebrow">Business dashboard</span>
+          <h1 id="dashboard-heading">{business?.name ?? 'Dashboard'}</h1>
+          <p>{context}</p>
         </div>
-        <Link className="button-link" to={`${businessBase}/expenses`}>
-          Add record
-        </Link>
-      </div>
-      <section
-        className="panel dashboard-filters"
-        aria-label="Dashboard period"
-      >
-        <div className="form-pair">
-          <label>
-            Tax year ending
-            <input
-              type="number"
-              min="1901"
-              max="9999"
-              value={taxYear}
-              onChange={(event) => setTaxYear(event.target.value)}
-            />
-          </label>
-          <label>
-            Business activity
+        {dashboard ? (
+          <label className="dashboard-period-select">
+            <span>Tax year ending</span>
             <select
-              value={activityId}
-              onChange={(event) => setActivityId(event.target.value)}
+              aria-label="Tax year ending"
+              value={dashboard.period.taxYear}
+              onChange={(event) => void load(event.target.value)}
             >
-              <option value="">All activities</option>
-              {activities.map((activity) => (
-                <option key={activity.id} value={activity.id}>
-                  {activity.name}
+              {taxYears.map((year) => (
+                <option key={year} value={year}>
+                  31 March {year}
                 </option>
               ))}
             </select>
           </label>
-        </div>
-        <button type="button" onClick={() => void applyFilters()}>
-          Update dashboard
-        </button>
-        {dashboard ? (
-          <small>
-            {dashboard.period.from} to {dashboard.period.to}
-          </small>
         ) : null}
-      </section>
+      </div>
+
       {error ? (
-        <p role="alert" className="notice error">
-          {error}
-        </p>
+        <div className="notice error" role="alert">
+          <p>{error}</p>
+          <button type="button" onClick={() => void load()}>
+            Try again
+          </button>
+        </div>
       ) : null}
-      {dashboard ? (
+      {loading ? <p role="status">Loading dashboard…</p> : null}
+
+      {!loading && dashboard ? (
         <>
           <div className="metric-grid dashboard-metrics">
             {financial.flatMap((total) => [
               <DashboardMetricCard
                 key={`revenue-${total.currency}`}
-                label="Recorded revenue"
+                label="Revenue"
                 value={money(total.recordedRevenueMinor, total.currency)}
-                note={`${total.currency} invoice and received income values`}
+                note={`${total.currency} recorded income`}
               />,
               <DashboardMetricCard
                 key={`expenses-${total.currency}`}
-                label="Recorded expenses"
+                label="Expenses"
                 value={money(total.recordedExpensesMinor, total.currency)}
-                note={`${total.currency} retained active records`}
+                note={`${total.currency} recorded expenses`}
               />,
               <DashboardMetricCard
                 key={`cash-${total.currency}`}
@@ -210,201 +209,92 @@ export function DashboardPage() {
                 value={money(total.netCashMovementMinor, total.currency)}
                 note="Cash received less recorded expenses"
               />,
-              <DashboardMetricCard
-                key={`result-${total.currency}`}
-                label="Income less recorded expenses"
-                value={money(
-                  total.incomeLessRecordedExpensesMinor,
-                  total.currency,
-                )}
-                note="Not taxable or final accounting profit"
-              />,
             ])}
           </div>
-          <BackupReminder />
-          <div className="dashboard-columns">
-            <section className="panel">
-              <h2>Review indicators</h2>
-              <dl className="dashboard-list">
-                <div>
-                  <dt>Total records</dt>
-                  <dd>{dashboard.review.totalRecords}</dd>
-                </div>
-                <div>
-                  <dt>Unreviewed</dt>
-                  <dd>{dashboard.review.unreviewedCount}</dd>
-                </div>
-                <div>
-                  <dt>Missing information</dt>
-                  <dd>{dashboard.review.missingInformationCount}</dd>
-                </div>
-                <div>
-                  <dt>Ready for review</dt>
-                  <dd>{dashboard.review.readyForReviewCount}</dd>
-                </div>
-              </dl>
-              <Link to={`${businessBase}/transactions`}>
-                Open review workspace
-              </Link>
-            </section>
-            <section className="panel">
-              <h2>Fuel and parking</h2>
-              {dashboard.spending.length ? (
-                dashboard.spending.map((item) => (
-                  <dl className="dashboard-list" key={item.currency}>
-                    <div>
-                      <dt>Fuel spending</dt>
-                      <dd>{money(item.fuelSpendingMinor, item.currency)}</dd>
-                    </div>
-                    <div>
-                      <dt>Recorded fuel</dt>
-                      <dd>{number(item.fuelLitres, ' L')}</dd>
-                    </div>
-                    <div>
-                      <dt>Parking spending</dt>
-                      <dd>{money(item.parkingSpendingMinor, item.currency)}</dd>
-                    </div>
-                  </dl>
-                ))
+
+          <div className="business-dashboard-columns">
+            <section className="panel needs-attention-panel">
+              <div className="section-heading">
+                <h2>Needs attention</h2>
+              </div>
+              {hasAttention ? (
+                <ul className="attention-list">
+                  {attention?.missingReceiptCount ? (
+                    <li>
+                      <span aria-hidden="true">!</span>
+                      <Link to={`${businessBase}/expenses`}>
+                        {attention.missingReceiptCount} missing receipt
+                        {attention.missingReceiptCount === 1 ? '' : 's'}
+                      </Link>
+                    </li>
+                  ) : null}
+                  {attention?.itemsToReviewCount ? (
+                    <li>
+                      <span aria-hidden="true">!</span>
+                      <Link to={`${businessBase}/transactions`}>
+                        {attention.itemsToReviewCount} item
+                        {attention.itemsToReviewCount === 1 ? '' : 's'} to
+                        review
+                      </Link>
+                    </li>
+                  ) : null}
+                  {attention?.outstandingInvoiceCount ? (
+                    <li>
+                      <span aria-hidden="true">!</span>
+                      <Link to={`${businessBase}/income`}>
+                        {attention.outstandingInvoiceCount} outstanding invoice
+                        {attention.outstandingInvoiceCount === 1 ? '' : 's'}
+                      </Link>
+                    </li>
+                  ) : null}
+                </ul>
               ) : (
-                <p>No fuel or parking costs in this period.</p>
+                <p>No items need attention for this tax year.</p>
               )}
             </section>
-            <section className="panel">
-              <h2>Outstanding contract invoices</h2>
-              {dashboard.outstandingInvoices.length ? (
-                dashboard.outstandingInvoices.map((item) => (
-                  <div key={item.currency}>
-                    <strong>
-                      {money(item.outstandingMinor, item.currency)}
-                    </strong>
-                    <p>
-                      {item.invoiceCount} open invoice
-                      {item.invoiceCount === 1 ? '' : 's'}
-                    </p>
-                  </div>
-                ))
+
+            <section className="panel recent-transactions-panel">
+              <div className="section-heading">
+                <h2>Recent transactions</h2>
+                <Link to={`${businessBase}/transactions`}>View all</Link>
+              </div>
+              {dashboard.recentTransactions.length ? (
+                <ul className="recent-transaction-list">
+                  {dashboard.recentTransactions.map((transaction) => (
+                    <li key={`${transaction.recordType}-${transaction.id}`}>
+                      <time dateTime={transaction.transactionDate}>
+                        {dateLabel(transaction.transactionDate)}
+                      </time>
+                      <span>
+                        <strong>{transaction.counterparty}</strong>
+                        <small>
+                          {statusLabel(transaction.subtype)} ·{' '}
+                          {statusLabel(transaction.status)}
+                        </small>
+                      </span>
+                      <strong
+                        className={
+                          transaction.recordType === 'INCOME'
+                            ? 'money-positive'
+                            : undefined
+                        }
+                      >
+                        {transaction.recordType === 'INCOME' ? '+' : '−'}
+                        {money(
+                          transaction.totalAmountMinor,
+                          transaction.currency,
+                        )}
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <p>No outstanding contract invoices in this period.</p>
+                <p>No transactions recorded for this tax year.</p>
               )}
             </section>
           </div>
-          <section className="panel">
-            <div className="section-heading">
-              <div>
-                <h2>Delivery and ride-hailing operations</h2>
-                <p>
-                  Session revenue less directly recorded fuel and parking only.
-                  Allocated insurance is shown separately.
-                </p>
-              </div>
-              <span className="count-badge">
-                {dashboard.platformActivities.length}
-              </span>
-            </div>
-            <div className="reference-grid">
-              {dashboard.platformActivities.length ? (
-                dashboard.platformActivities.map((item) => (
-                  <article
-                    className="record-card"
-                    key={`${item.activityId}-${item.currency}`}
-                  >
-                    <span className="eyebrow">{item.currency}</span>
-                    <h3>{item.activityName}</h3>
-                    {item.sessionCount === 0 ? (
-                      <p className="notice">
-                        Revenue-derived rates are unavailable because no work
-                        sessions were recorded for this activity and currency.
-                      </p>
-                    ) : !item.revenueComplete ? (
-                      <p className="notice">
-                        Revenue-derived rates are unavailable because at least
-                        one session has no gross revenue.
-                      </p>
-                    ) : null}
-                    <dl className="dashboard-list">
-                      <div>
-                        <dt>Recorded platform income</dt>
-                        <dd>
-                          {money(
-                            item.recordedPlatformIncomeMinor,
-                            item.currency,
-                          )}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Sessions</dt>
-                        <dd>{item.sessionCount}</dd>
-                      </div>
-                      <div>
-                        <dt>Session revenue</dt>
-                        <dd>
-                          {money(item.sessionRevenueMinor, item.currency)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Revenue/session</dt>
-                        <dd>
-                          {money(item.revenuePerSessionMinor, item.currency)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Revenue/hour</dt>
-                        <dd>
-                          {money(item.revenuePerHourMinor, item.currency)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Revenue/km</dt>
-                        <dd>{money(item.revenuePerKmMinor, item.currency)}</dd>
-                      </div>
-                      <div>
-                        <dt>Distance</dt>
-                        <dd>{number(item.distanceKm, ' km')}</dd>
-                      </div>
-                      <div>
-                        <dt>Fuel cost/km</dt>
-                        <dd>{money(item.fuelCostPerKmMinor, item.currency)}</dd>
-                      </div>
-                      <div>
-                        <dt>Parking cost</dt>
-                        <dd>
-                          {money(item.parkingSpendingMinor, item.currency)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Direct operating cost</dt>
-                        <dd>
-                          {money(item.directOperatingCostMinor, item.currency)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Direct operating contribution</dt>
-                        <dd>
-                          {money(
-                            item.directOperatingContributionMinor,
-                            item.currency,
-                          )}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Allocated insurance</dt>
-                        <dd>
-                          {money(item.allocatedInsuranceMinor, item.currency)}
-                        </dd>
-                      </div>
-                    </dl>
-                  </article>
-                ))
-              ) : (
-                <p>No delivery or ride-hailing activity in this period.</p>
-              )}
-            </div>
-          </section>
         </>
-      ) : (
-        <p role="status">Loading dashboard…</p>
-      )}
+      ) : null}
     </section>
   );
 }
