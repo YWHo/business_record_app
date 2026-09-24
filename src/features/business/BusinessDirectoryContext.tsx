@@ -19,6 +19,17 @@ export interface BusinessSummary {
   defaultCurrency: string;
   status: 'ACTIVE' | 'INACTIVE';
   legacyBusinessActivityId: string | null;
+  currentLegalEntity: {
+    id: string;
+    entityType:
+      'SOLE_TRADER' | 'LIMITED_COMPANY' | 'PARTNERSHIP' | 'TRUST' | 'OTHER';
+    legalName: string | null;
+    tradingName: string | null;
+    status: 'ACTIVE' | 'INACTIVE';
+    attributionReviewRequired: boolean;
+  } | null;
+  recordCount: number;
+  lastRecordUpdatedAt: string | null;
 }
 
 interface BusinessDirectoryValue {

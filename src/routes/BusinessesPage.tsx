@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { BusinessCard } from '../components/BusinessCard';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 
 export function BusinessesPage() {
@@ -23,17 +23,9 @@ export function BusinessesPage() {
         </div>
       ) : null}
       {!loading && !error ? (
-        <div className="business-entry-list">
+        <div className="business-card-grid">
           {businesses.map((business) => (
-            <Link key={business.id} to={`/app/businesses/${business.id}`}>
-              <span>
-                <strong>{business.name}</strong>
-                {business.description ? (
-                  <small>{business.description}</small>
-                ) : null}
-              </span>
-              <span aria-hidden="true">→</span>
-            </Link>
+            <BusinessCard business={business} key={business.id} />
           ))}
           {!businesses.length ? (
             <p>No businesses are available for this account.</p>

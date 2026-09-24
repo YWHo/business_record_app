@@ -16,6 +16,20 @@ export interface Business {
   updatedAt: string;
 }
 
+export interface BusinessOverview extends Business {
+  currentLegalEntity: Pick<
+    LegalEntity,
+    | 'id'
+    | 'entityType'
+    | 'legalName'
+    | 'tradingName'
+    | 'status'
+    | 'attributionReviewRequired'
+  > | null;
+  recordCount: number;
+  lastRecordUpdatedAt: string | null;
+}
+
 export interface LegalEntity {
   id: string;
   businessAccountId: string;

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { BackupReminderView } from '../features/exports/BackupReminder';
+import { BusinessCard } from './BusinessCard';
 import { DashboardMetricCard } from './DashboardMetricCard';
 import { StatusBadge } from './StatusBadge';
 
@@ -33,6 +34,44 @@ describe('reusable presentation components', () => {
     expect(
       screen.getByRole('article', { name: 'Net cash movement' }),
     ).toHaveTextContent('$250.00');
+  });
+
+  it('keeps business and current legal entity identity visible', () => {
+    render(
+      <MemoryRouter>
+        <BusinessCard
+          business={{
+            id: 'business-ride',
+            name: 'Uber Ride',
+            description: 'Ride-hailing',
+            businessType: 'PLATFORM_SERVICES',
+            defaultCurrency: 'NZD',
+            status: 'ACTIVE',
+            legacyBusinessActivityId: 'activity-ride',
+            currentLegalEntity: {
+              id: 'entity-taxi',
+              entityType: 'LIMITED_COMPANY',
+              legalName: 'Taxi Limited',
+              tradingName: null,
+              status: 'ACTIVE',
+              attributionReviewRequired: false,
+            },
+            recordCount: 96,
+            lastRecordUpdatedAt: '2026-09-09T00:00:00.000Z',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole('article', { name: 'Uber Ride' }),
+    ).toHaveTextContent('Ride-hailing');
+    expect(screen.getByText('Taxi Limited')).toBeInTheDocument();
+    expect(screen.getByText('Limited company')).toBeInTheDocument();
+    expect(screen.getByText('96 records')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open Uber Ride' }),
+    ).toHaveAttribute('href', '/app/businesses/business-ride');
   });
 
   it('distinguishes due and current backup actions in text', () => {

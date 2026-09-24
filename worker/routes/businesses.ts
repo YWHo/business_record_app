@@ -1,7 +1,7 @@
 import { requireUser } from '../auth/authorization';
 import { HttpError, json, readJsonObject } from '../lib/http';
 import type { RouteParameters } from '../lib/router';
-import { listBusinesses } from '../repositories/businessRepository';
+import { listBusinessOverviews } from '../repositories/businessRepository';
 import { listBusinessEntityPeriods } from '../repositories/businessEntityPeriodRepository';
 import { listLegalEntities } from '../repositories/legalEntityRepository';
 import {
@@ -47,7 +47,10 @@ function businessId(params: RouteParameters): string {
 
 export async function listBusinessRecords(request: Request, env: Env) {
   const actor = await requireUser(request, env);
-  const businesses = await listBusinesses(env.DB, actor.businessAccountId);
+  const businesses = await listBusinessOverviews(
+    env.DB,
+    actor.businessAccountId,
+  );
   return json({ businesses });
 }
 

@@ -592,6 +592,29 @@ export async function applyDemoOverlay<T>(
     applyOperation(copy, operation, path);
   }
   const requestPath = new URL(path, origin()).pathname;
+  if (requestPath === '/api/businesses') {
+    const root = copy as Record<string, unknown>;
+    const businesses = Array.isArray(root.businesses)
+      ? (root.businesses as Array<Record<string, unknown>>)
+      : [];
+    const entities = new Map<string, unknown>();
+    businesses.forEach((business) => {
+      const entity = business.currentLegalEntity as
+        Record<string, unknown> | null | undefined;
+      if (entity?.id) entities.set(stringValue(entity.id), entity);
+    });
+    const localPeriods = await demoBusinessEntityPeriods();
+    businesses.forEach((business) => {
+      const current = localPeriods.find(
+        (period) =>
+          period.businessId === stringValue(business.id) &&
+          period.effectiveTo === null,
+      );
+      if (current)
+        business.currentLegalEntity =
+          entities.get(current.legalEntityId) ?? null;
+    });
+  }
   const businessId = routeBusinessId(requestPath);
   if (businessId && requestPath === `/api/businesses/${businessId}`) {
     const root = copy as Record<string, unknown>;

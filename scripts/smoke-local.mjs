@@ -2212,12 +2212,18 @@ if (
 }
 const businesses = await request('/api/businesses', {}, ownerCookie);
 expectStatus(businesses, 200, 'business list');
-if (
-  !businesses.body.businesses.some(
-    (business) => business.id === scopedBusinessId,
-  )
-) {
+const scopedBusinessOverview = businesses.body.businesses.find(
+  (business) => business.id === scopedBusinessId,
+);
+if (!scopedBusinessOverview) {
   throw new Error('business list omitted the contracting business');
+}
+if (
+  scopedBusinessOverview.currentLegalEntity?.id !== 'business-entity-primary' ||
+  typeof scopedBusinessOverview.recordCount !== 'number' ||
+  !Object.hasOwn(scopedBusinessOverview, 'lastRecordUpdatedAt')
+) {
+  throw new Error('business list omitted its legal-entity or record summary');
 }
 const businessDetails = await request(
   `/api/businesses/${scopedBusinessId}`,

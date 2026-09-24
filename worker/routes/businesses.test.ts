@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Env } from '../types';
 import { createGeneralExpense } from './expenseRecords';
 import { listIncomeRecords } from './incomeRecords';
-import { listBusinessExpenses } from './businesses';
+import { listBusinessExpenses, listBusinessRecords } from './businesses';
 import { listWorkSessions } from './workSessions';
 
 interface CapturedQuery {
@@ -66,6 +66,49 @@ const businessRow = {
 };
 
 describe('business-scoped read routes', () => {
+  it('lists account businesses with their current entity and record summary', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses'))
+        return [
+          {
+            ...businessRow,
+            current_entity_id: 'entity-1',
+            current_entity_type: 'SOLE_TRADER',
+            current_entity_legal_name: 'Example Owner',
+            current_entity_trading_name: null,
+            current_entity_active: 1,
+            current_entity_review_required: 0,
+            expense_record_count: 2,
+            income_record_count: 1,
+            work_session_record_count: 3,
+            expense_updated_at: '2026-09-08T00:00:00.000Z',
+            income_updated_at: null,
+            work_session_updated_at: '2026-09-09T00:00:00.000Z',
+          },
+        ];
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await listBusinessRecords(
+      new Request('https://demo.invalid/api/businesses'),
+      env,
+    );
+
+    expect(await response.json()).toMatchObject({
+      businesses: [
+        {
+          id: 'business-1',
+          recordCount: 6,
+          currentLegalEntity: {
+            legalName: 'Example Owner',
+            entityType: 'SOLE_TRADER',
+          },
+        },
+      ],
+    });
+    expect(queries[0].values).toEqual(['business-account-primary']);
+  });
+
   it('binds both account and business IDs when listing expenses', async () => {
     const expenseRow = {
       id: 'expense-1',

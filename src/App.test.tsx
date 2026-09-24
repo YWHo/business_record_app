@@ -41,6 +41,16 @@ describe('App', () => {
                     defaultCurrency: 'NZD',
                     status: 'ACTIVE',
                     legacyBusinessActivityId: 'activity-contracting',
+                    currentLegalEntity: {
+                      id: 'entity-owner',
+                      entityType: 'SOLE_TRADER',
+                      legalName: 'Local Sole Trader',
+                      tradingName: null,
+                      status: 'ACTIVE',
+                      attributionReviewRequired: false,
+                    },
+                    recordCount: 64,
+                    lastRecordUpdatedAt: '2026-09-08T00:00:00.000Z',
                   },
                   {
                     id: 'business-activity-delivery',
@@ -50,6 +60,16 @@ describe('App', () => {
                     defaultCurrency: 'NZD',
                     status: 'ACTIVE',
                     legacyBusinessActivityId: 'activity-delivery',
+                    currentLegalEntity: {
+                      id: 'entity-owner',
+                      entityType: 'SOLE_TRADER',
+                      legalName: 'Local Sole Trader',
+                      tradingName: null,
+                      status: 'ACTIVE',
+                      attributionReviewRequired: false,
+                    },
+                    recordCount: 128,
+                    lastRecordUpdatedAt: '2026-09-09T00:00:00.000Z',
                   },
                 ],
               }),
@@ -481,6 +501,9 @@ describe('App', () => {
     expect(
       screen.getByRole('navigation', { name: 'Account navigation' }),
     ).toBeInTheDocument();
+    expect(await screen.findAllByText('Local Sole Trader')).toHaveLength(2);
+    expect(screen.getByText('64 records')).toBeInTheDocument();
+    expect(screen.getAllByText('Sole trader')).toHaveLength(2);
     account.unmount();
 
     renderApp('/app/businesses/business-activity-contracting/expenses');

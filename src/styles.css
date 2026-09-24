@@ -307,38 +307,118 @@ select {
   font-size: 1rem;
 }
 
-.business-entry-list {
+.business-card-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-.business-entry-list a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 4.25rem;
+.business-card {
+  min-width: 0;
   border: 1px solid #d9e1e8;
-  border-radius: 0.7rem;
+  border-radius: 0.8rem;
+  background: #fff;
+  box-shadow: 0 4px 16px rgb(31 41 51 / 5%);
+}
+
+.business-card.needs-attention {
+  border-color: #d7b46a;
+}
+
+.business-card > a {
+  display: grid;
+  gap: 1rem;
+  height: 100%;
   padding: 1rem;
   color: #1f2933;
-  background: #fff;
   text-decoration: none;
 }
 
-.business-entry-list a:hover {
+.business-card:hover {
   border-color: #67a9a5;
-  box-shadow: 0 4px 14px rgb(31 41 51 / 7%);
+  box-shadow: 0 7px 20px rgb(31 41 51 / 9%);
 }
 
-.business-entry-list strong,
-.business-entry-list small {
+.business-card-heading {
+  display: grid;
+  grid-template-columns: 2.65rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.business-avatar {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  color: #0e6662;
+  background: #dff5f3;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.business-card-heading h2,
+.business-card-heading small,
+.business-card-entity span,
+.business-card-entity strong,
+.business-card-entity small {
   display: block;
 }
 
-.business-entry-list small {
+.business-card-heading h2 {
+  margin: 0;
+  font-size: 1.12rem;
+}
+
+.business-card-heading small {
   margin-top: 0.2rem;
   color: #66788a;
+}
+
+.business-card-arrow {
+  color: #1f4e78;
+  font-size: 1.25rem;
+}
+
+.business-card-entity {
+  border-radius: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  background: #f5f8fa;
+}
+
+.business-card-entity span {
+  color: #66788a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.business-card-entity strong {
+  margin-top: 0.25rem;
+}
+
+.business-card-entity small {
+  margin-top: 0.15rem;
+  color: #52636d;
+}
+
+.business-card-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
+  color: #52636d;
+  font-size: 0.78rem;
+}
+
+.business-card-summary span:first-child {
+  color: #1f2933;
+  font-weight: 750;
+}
+
+.business-card-summary .status-badge {
+  margin-left: auto;
 }
 
 .app-header {
@@ -1318,7 +1398,7 @@ th {
     padding: 1.5rem 1rem;
   }
 
-  .business-entry-list {
+  .business-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

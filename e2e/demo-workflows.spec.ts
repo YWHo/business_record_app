@@ -47,6 +47,16 @@ async function mockImmutableDemo(page: Page, unsafeRequests: string[]) {
                     defaultCurrency: 'NZD',
                     status: 'ACTIVE',
                     legacyBusinessActivityId: 'demo-activity-delivery',
+                    currentLegalEntity: {
+                      id: 'business-entity-primary',
+                      entityType: 'SOLE_TRADER',
+                      legalName: 'Brian Ho',
+                      tradingName: null,
+                      status: 'ACTIVE',
+                      attributionReviewRequired: false,
+                    },
+                    recordCount: 128,
+                    lastRecordUpdatedAt: '2026-09-08T00:00:00.000Z',
                   },
                   {
                     id: 'business-demo-activity-rideshare',
@@ -56,6 +66,16 @@ async function mockImmutableDemo(page: Page, unsafeRequests: string[]) {
                     defaultCurrency: 'NZD',
                     status: 'ACTIVE',
                     legacyBusinessActivityId: 'demo-activity-rideshare',
+                    currentLegalEntity: {
+                      id: 'demo-entity-taxi-limited',
+                      entityType: 'LIMITED_COMPANY',
+                      legalName: 'Taxi Limited',
+                      tradingName: null,
+                      status: 'ACTIVE',
+                      attributionReviewRequired: false,
+                    },
+                    recordCount: 96,
+                    lastRecordUpdatedAt: '2026-09-09T00:00:00.000Z',
                   },
                 ],
               }
@@ -121,7 +141,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await firstPage
     .getByRole('button', { name: 'Continue as Demo Owner' })
     .click();
-  await firstPage.getByRole('link', { name: 'Uber Eats' }).click();
+  await firstPage.getByRole('link', { name: 'Open Uber Eats' }).click();
   await firstPage.setViewportSize({ width: 320, height: 720 });
   await expect(
     firstPage.getByRole('button', { name: 'Reset demo data' }),
@@ -200,7 +220,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await secondPage
     .getByRole('button', { name: 'Continue as Demo Owner' })
     .click();
-  await secondPage.getByRole('link', { name: 'Uber Eats' }).click();
+  await secondPage.getByRole('link', { name: 'Open Uber Eats' }).click();
   await secondPage.getByRole('link', { name: 'Business settings' }).click();
   await expect(
     secondPage.getByRole('heading', { name: 'Only in this browser' }),

@@ -230,6 +230,31 @@ describe('browser-local public demo overlay', () => {
         }),
       ]),
     );
+    const directory = await applyDemoOverlay(
+      {
+        businesses: [
+          {
+            id: 'business-demo-activity-delivery',
+            currentLegalEntity: {
+              id: 'business-entity-primary',
+              legalName: 'Brian Ho',
+            },
+          },
+          {
+            id: 'business-demo-activity-rideshare',
+            currentLegalEntity: {
+              id: 'demo-entity-taxi-limited',
+              legalName: 'Taxi Limited',
+            },
+          },
+        ],
+      },
+      '/api/businesses',
+    );
+    expect(directory.businesses[0].currentLegalEntity).toMatchObject({
+      id: 'demo-entity-taxi-limited',
+      legalName: 'Taxi Limited',
+    });
 
     await resetDemoData();
     const restored = await demoBusinessEntityPeriods(

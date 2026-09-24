@@ -705,3 +705,28 @@ Notes: My businesses currently provides the functional entry list needed by
 the shell. Its full legal-entity-aware card design is delivered in the next
 increment. Existing feature pages remain mounted under business routes until
 their focused list/create/detail redesign increments.
+
+## Legal-entity-aware business directory
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the temporary account-home links with accessible business cards
+  that enter the selected business workspace.
+- Kept the business name, optional description or type, current legal-entity
+  name, and entity type visible together on every card.
+- Added useful retained-record counts and latest-update summaries without
+  introducing bookkeeping forms on the account home.
+- Derived current legal-entity identity and aggregate summaries in the
+  account-scoped Worker query, excluding permanently purged records and
+  preventing typed detail rows from inflating totals.
+- Preserved browser-local public-demo entity changes by overlaying current
+  operating periods onto the read-only server directory.
+- Added a two-column desktop layout and a stacked phone layout with automated
+  component, route, demo-overlay, local-D1, and responsive browser coverage,
+  plus representative Storybook states.
+
+Notes: Business creation remains outside this increment. The account home is
+now a focused switcher; bookkeeping actions continue only inside a selected
+business workspace.

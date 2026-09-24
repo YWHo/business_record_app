@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { findBusinessById, listBusinesses } from './businessRepository';
+import {
+  findBusinessById,
+  listBusinesses,
+  listBusinessOverviews,
+} from './businessRepository';
 import {
   findBusinessEntityPeriodForDate,
   listBusinessEntityPeriodsForDate,
@@ -81,6 +85,48 @@ describe('business repositories', () => {
       'WHERE business_account_id = ? AND id = ?',
     );
     expect(queries[0].values).toEqual(['account-1', 'business-from-account-2']);
+  });
+
+  it('maps current entities and retained record summaries for account cards', async () => {
+    const { db, queries } = fakeDatabase({
+      ...businessRow,
+      current_entity_id: 'entity-1',
+      current_entity_type: 'LIMITED_COMPANY',
+      current_entity_legal_name: 'Example Limited',
+      current_entity_trading_name: null,
+      current_entity_active: 1,
+      current_entity_review_required: 0,
+      expense_record_count: 4,
+      income_record_count: 3,
+      work_session_record_count: 2,
+      expense_updated_at: '2026-09-08T00:00:00.000Z',
+      income_updated_at: '2026-09-10T00:00:00.000Z',
+      work_session_updated_at: '2026-09-09T00:00:00.000Z',
+    });
+
+    await expect(listBusinessOverviews(db, 'account-1')).resolves.toMatchObject(
+      [
+        {
+          id: 'business-1',
+          recordCount: 9,
+          lastRecordUpdatedAt: '2026-09-10T00:00:00.000Z',
+          currentLegalEntity: {
+            id: 'entity-1',
+            legalName: 'Example Limited',
+            entityType: 'LIMITED_COMPANY',
+            status: 'ACTIVE',
+          },
+        },
+      ],
+    );
+    expect(queries[0].sql).toContain(
+      'WHERE businesses.business_account_id = ?',
+    );
+    expect(queries[0].sql).toContain(
+      'business_entity_periods.effective_to IS NULL',
+    );
+    expect(queries[0].sql).toContain('expenses.purged_at IS NULL');
+    expect(queries[0].values).toEqual(['account-1']);
   });
 
   it('requires account scope when loading a legal entity', async () => {

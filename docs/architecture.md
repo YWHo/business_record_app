@@ -74,6 +74,13 @@ business directory on startup and returns to My businesses when a URL names a
 business the current member can no longer access. Account routes never render a
 business selector. Business routes retain the selector and their business ID
 through normal navigation and business switching clears query parameters.
+The account business directory gets each business's current open-period legal
+entity from the Worker rather than deriving identity in the browser. Its record
+summary counts non-purged expense, income, and work-session roots, so retained
+trash remains represented until permanent deletion while typed detail rows do
+not inflate the total. The latest summary date is the newest update across
+those roots. Public-demo period changes overlay the same server-shaped response
+from the browser-local period store without mutating shared data.
 Desktop and landscape-tablet layouts use a persistent business sidebar,
 small-tablet portrait uses the same navigation in a compact column, and phone
 layouts replace it with a four-destination bottom navigation bar while keeping
