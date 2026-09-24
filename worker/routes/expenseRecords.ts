@@ -5,7 +5,13 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
+import {
+  requireBusinessAccess,
+  requireBusinessScopedReference,
+  resolveLegalEntityForBusinessDate,
+} from '../services/businessContextService';
 import {
   commonExpenseValues,
   parkingDurationMinutes,
@@ -18,6 +24,8 @@ import type { Env } from '../types';
 
 interface ExpenseRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   business_activity_id: string | null;
   activity_name: string | null;
   expense_category_id: string;
@@ -49,7 +57,8 @@ interface RetentionSettings {
   tax_year_end_day: number;
 }
 
-const expenseSelect = `SELECT expenses.id, expenses.business_activity_id,
+const expenseSelect = `SELECT expenses.id, expenses.business_id,
+  expenses.legal_entity_id, expenses.business_activity_id,
   business_activities.name AS activity_name, expenses.expense_category_id,
   expense_categories.name AS category_name, expenses.merchant_name,
   expenses.purchase_datetime, expenses.total_amount_minor, expenses.currency,
@@ -72,6 +81,8 @@ const parkingSelect = `${expenseSelect.replace(
 function serializeExpense(row: ExpenseRow) {
   return {
     id: row.id,
+    businessId: row.business_id,
+    legalEntityId: row.legal_entity_id,
     businessActivityId: row.business_activity_id,
     activityName: row.activity_name,
     expenseCategoryId: row.expense_category_id,
@@ -219,17 +230,22 @@ function insertExpense(
   ownerId: string,
   now: string,
   retention: string,
+  businessId: string | null = null,
+  legalEntityId: string | null = null,
 ) {
   return env.DB.prepare(
     `INSERT INTO expenses
-    (id, business_account_id, business_activity_id, expense_type, expense_category_id, merchant_name,
+    (id, business_account_id, business_id, legal_entity_id,
+     business_activity_id, expense_type, expense_category_id, merchant_name,
      purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
      description, recurrence_type, status, created_by, created_at, updated_at,
      retention_until, purge_eligible_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
   ).bind(
     id,
     businessAccountId,
+    businessId,
+    legalEntityId,
     values.businessActivityId,
     type,
     values.expenseCategoryId,
@@ -291,11 +307,58 @@ export async function listGeneralExpenses(request: Request, env: Env) {
     .all<ExpenseRow>();
   return json({ generalExpenses: rows.results.map(serializeExpense) });
 }
-export async function createGeneralExpense(request: Request, env: Env) {
+export async function createGeneralExpense(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
-  const values = commonExpenseValues(await readJsonObject(request));
+  const body = await readJsonObject(request);
+  const routeBusinessId = params.businessId ?? null;
+  if (
+    routeBusinessId &&
+    body.expenseType !== undefined &&
+    body.expenseType !== 'GENERAL'
+  ) {
+    throw new HttpError(
+      400,
+      'This endpoint currently creates general expenses only.',
+    );
+  }
+  const business = routeBusinessId
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        routeBusinessId,
+        body.purchaseDatetime,
+        { forWrite: true },
+      )
+    : null;
+  if (business && !business.business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
+  const values = commonExpenseValues(
+    business
+      ? {
+          ...body,
+          businessActivityId: business.business.legacyBusinessActivityId,
+        }
+      : body,
+  );
   await assertReferences(env, owner.businessAccountId, values, null);
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'expense_categories',
+      business.business.id,
+      values.expenseCategoryId,
+    );
+  }
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const retention = await retentionDate(
@@ -312,6 +375,8 @@ export async function createGeneralExpense(request: Request, env: Env) {
     owner.id,
     now,
     retention,
+    business?.business.id ?? null,
+    business?.legalEntity.id ?? null,
   ).run();
   await writeAudit(
     env,
@@ -321,6 +386,11 @@ export async function createGeneralExpense(request: Request, env: Env) {
     id,
     'General expense created.',
     values.businessActivityId,
+    null,
+    {
+      businessId: business?.business.id ?? null,
+      legalEntityId: business?.legalEntity.id ?? null,
+    },
   );
   const row = await env.DB.prepare(
     `${expenseSelect} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
@@ -385,23 +455,72 @@ export async function listParkingRecords(request: Request, env: Env) {
     .all<ParkingRow>();
   return json({ parkingRecords: rows.results.map(serializeParking) });
 }
-export async function createParkingRecord(request: Request, env: Env) {
+export async function createParkingRecord(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
   const categoryId = await parkingCategory(env, owner.businessAccountId);
   const provider =
     typeof body.parkingProvider === 'string' ? body.parkingProvider.trim() : '';
   const values = parkingValues(
-    { merchantName: provider || 'Parking', ...body },
+    {
+      merchantName: provider || 'Parking',
+      ...body,
+      ...(business
+        ? { businessActivityId: business.legacyBusinessActivityId }
+        : {}),
+    },
     categoryId,
   );
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.purchaseDatetime,
+        { forWrite: true },
+      )
+    : null;
   await assertReferences(
     env,
     owner.businessAccountId,
     values,
     values.vehicleId,
   );
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'expense_categories',
+      business.id,
+      values.expenseCategoryId,
+    );
+    if (values.vehicleId) {
+      await requireBusinessScopedReference(
+        env.DB,
+        owner,
+        'vehicles',
+        business.id,
+        values.vehicleId,
+      );
+    }
+  }
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const retention = await retentionDate(
@@ -419,14 +538,20 @@ export async function createParkingRecord(request: Request, env: Env) {
       owner.id,
       now,
       retention,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
     ),
     env.DB.prepare(
       `INSERT INTO parking_expense_details
-      (expense_id, business_account_id, vehicle_id, parking_provider, parking_location, parking_start_datetime, parking_end_datetime, parking_reference)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (expense_id, business_account_id, business_id, legal_entity_id,
+       vehicle_id, parking_provider, parking_location, parking_start_datetime,
+       parking_end_datetime, parking_reference)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       id,
       owner.businessAccountId,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
       values.vehicleId,
       values.parkingProvider,
       values.parkingLocation,
@@ -443,6 +568,11 @@ export async function createParkingRecord(request: Request, env: Env) {
     id,
     'Parking expense created.',
     values.businessActivityId,
+    null,
+    {
+      businessId: attribution?.business.id ?? null,
+      legalEntityId: attribution?.legalEntity.id ?? null,
+    },
   );
   const row = await env.DB.prepare(
     `${parkingSelect} WHERE expenses.id = ? AND expenses.business_account_id = ?`,

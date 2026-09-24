@@ -1,4 +1,5 @@
 import { HttpError, json, methodNotAllowed } from './lib/http';
+import { matchRoutePattern, type RouteParameters } from './lib/router';
 import {
   authConfiguration,
   currentUser,
@@ -95,6 +96,15 @@ import {
 } from './routes/governance';
 import { downloadExport, exportStatus } from './routes/exports';
 import { dashboard } from './routes/dashboard';
+import {
+  accountDetails,
+  businessDashboard,
+  businessDetails,
+  createBusinessExpense,
+  listBusinessExpenses,
+  listBusinessRecords,
+  listLegalEntityRecords,
+} from './routes/businesses';
 import type { Env } from './types';
 import { prepareDemoCache } from './services/demoCacheService';
 import {
@@ -106,6 +116,7 @@ import {
 type RouteHandler = (
   request: Request,
   env: Env,
+  params: RouteParameters,
 ) => Response | Promise<Response>;
 
 interface Route {
@@ -121,6 +132,57 @@ const routes: Route[] = [
     handler: (_request, env) => health(env),
   },
   { method: 'GET', pathname: '/api/dashboard', handler: dashboard },
+  { method: 'GET', pathname: '/api/account', handler: accountDetails },
+  {
+    method: 'GET',
+    pathname: '/api/businesses',
+    handler: listBusinessRecords,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/legal-entities',
+    handler: listLegalEntityRecords,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId',
+    handler: businessDetails,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/dashboard',
+    handler: businessDashboard,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/expenses',
+    handler: listBusinessExpenses,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/businesses/:businessId/expenses',
+    handler: createBusinessExpense,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/income',
+    handler: listIncomeRecords,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/businesses/:businessId/income',
+    handler: createIncomeRecord,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/work-sessions',
+    handler: listWorkSessions,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/businesses/:businessId/work-sessions',
+    handler: createWorkSession,
+  },
   { method: 'GET', pathname: '/api/auth/me', handler: currentUser },
   { method: 'GET', pathname: '/api/auth/config', handler: authConfiguration },
   { method: 'POST', pathname: '/api/auth/login', handler: requestLogin },
@@ -400,15 +462,18 @@ async function handleRequest(
     await enforceRateLimit(request, burstLimiter, 'demo-burst', '', 10);
   }
 
-  const matchingPath = routes.filter((route) => route.pathname === pathname);
-  const route = matchingPath.find(
-    (candidate) => candidate.method === request.method,
+  const matchingPath = routes.flatMap((route) => {
+    const match = matchRoutePattern(route.pathname, pathname);
+    return match ? [{ route, params: match.params }] : [];
+  });
+  const match = matchingPath.find(
+    ({ route }) => route.method === request.method,
   );
 
-  if (route) {
+  if (match) {
     const cache = await prepareDemoCache(request, env);
     if (cache?.response) return cache.response;
-    const response = await route.handler(request, env);
+    const response = await match.route.handler(request, env, match.params);
     if (cache) {
       const cacheWrite = cache.store(response.clone());
       if (context) context.waitUntil(cacheWrite);
@@ -419,7 +484,7 @@ async function handleRequest(
   }
 
   if (matchingPath.length > 0) {
-    return methodNotAllowed(matchingPath.map(({ method }) => method));
+    return methodNotAllowed(matchingPath.map(({ route }) => route.method));
   }
 
   return json({ error: 'Not found.' }, { status: 404 });

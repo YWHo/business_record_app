@@ -620,3 +620,33 @@ Acceptance criteria completed:
 Notes: This increment introduces reusable domain services and does not expose
 new API routes or change the current UI. Route integration follows in the next
 increment.
+
+## Business-scoped API foundation
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added a tested parameterized Worker router with decoded-segment validation
+  and correct method-not-allowed behavior for dynamic business paths.
+- Added authenticated account, business-list, business-detail, legal-entity,
+  and business-dashboard endpoints.
+- Added business-scoped expense, income, and work-session list and create
+  endpoints while retaining existing flat routes during client migration.
+- Unified scoped expense creation across general, parking, fuel, and insurance
+  records using their existing validation and warning behavior.
+- Derived business, legacy activity, and effective legal entity exclusively on
+  the server for scoped writes and persisted the attribution on root, typed
+  detail, allocation, and audit rows.
+- Required account and business predicates on scoped reads, verified business
+  ownership before record access, and checked business/shared reference data
+  for categories, vehicles, and contract clients.
+- Added route, scoping, and attribution unit coverage plus real local-D1 smoke
+  coverage for every scoped record family and preserved the legacy API smoke
+  suite.
+- Bounded business and legal-entity collections to 100 records and operational
+  record collections to 200 records.
+
+Notes: No schema migration is required. Scoped edit/detail APIs and client route
+migration follow with their related feature increments; flat endpoints remain
+available until the upgraded UI no longer depends on them.

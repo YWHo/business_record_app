@@ -47,7 +47,8 @@ export async function listLegalEntities(
       `SELECT ${legalEntityColumns}
        FROM business_entities
        WHERE business_account_id = ?
-       ORDER BY COALESCE(legal_name, trading_name, id) COLLATE NOCASE, id`,
+       ORDER BY COALESCE(legal_name, trading_name, id) COLLATE NOCASE, id
+       LIMIT 100`,
     )
     .bind(businessAccountId)
     .all<LegalEntityRow>();

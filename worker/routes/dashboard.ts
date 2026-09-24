@@ -1,5 +1,7 @@
 import { requireUser } from '../auth/authorization';
 import { HttpError, json } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
+import { requireBusinessAccess } from '../services/businessContextService';
 import {
   combineFinancialTotals,
   platformMetrics,
@@ -35,21 +37,30 @@ function scopeClause(
   from: string,
   to: string,
   activityId: string | null,
+  businessId: string | null,
   businessAccountId: string,
 ) {
   return {
-    sql: `${alias}.business_account_id=? AND substr(${alias}.${dateColumn},1,10) BETWEEN ? AND ?${activityId ? ` AND ${alias}.business_activity_id=?` : ''}`,
+    sql: `${alias}.business_account_id=? AND substr(${alias}.${dateColumn},1,10) BETWEEN ? AND ?${businessId ? ` AND ${alias}.business_id=?` : activityId ? ` AND ${alias}.business_activity_id=?` : ''}`,
     bindings: [
       businessAccountId,
       from,
       to,
-      ...(activityId ? [activityId] : []),
+      ...(businessId ? [businessId] : activityId ? [activityId] : []),
     ],
   };
 }
 
-export async function dashboard(request: Request, env: Env) {
+export async function dashboard(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const actor = await requireUser(request, env);
+  const routeBusinessId = params.businessId ?? null;
+  if (routeBusinessId) {
+    await requireBusinessAccess(env.DB, actor, routeBusinessId);
+  }
   const settings = await env.DB.prepare(
     'SELECT tax_year_end_month,tax_year_end_day FROM retention_settings WHERE business_account_id=?',
   )
@@ -67,7 +78,9 @@ export async function dashboard(request: Request, env: Env) {
     settings.tax_year_end_month,
     settings.tax_year_end_day,
   );
-  const activityValue = url.searchParams.get('activityId')?.trim() ?? '';
+  const activityValue = routeBusinessId
+    ? ''
+    : (url.searchParams.get('activityId')?.trim() ?? '');
   if (activityValue.length > 100)
     throw new HttpError(400, 'Business activity filter is invalid.');
   const activityId = activityValue || null;
@@ -86,6 +99,7 @@ export async function dashboard(request: Request, env: Env) {
     period.from!,
     period.to!,
     activityId,
+    routeBusinessId,
     actor.businessAccountId,
   );
   const expenseScope = scopeClause(
@@ -94,6 +108,7 @@ export async function dashboard(request: Request, env: Env) {
     period.from!,
     period.to!,
     activityId,
+    routeBusinessId,
     actor.businessAccountId,
   );
   const sessionScope = scopeClause(
@@ -102,6 +117,7 @@ export async function dashboard(request: Request, env: Env) {
     period.from!,
     period.to!,
     activityId,
+    routeBusinessId,
     actor.businessAccountId,
   );
   const [

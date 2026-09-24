@@ -67,6 +67,7 @@ describe('business repositories', () => {
       },
     ]);
     expect(queries[0].sql).toContain('WHERE business_account_id = ?');
+    expect(queries[0].sql).toContain('LIMIT 100');
     expect(queries[0].values).toEqual(['account-1']);
   });
 

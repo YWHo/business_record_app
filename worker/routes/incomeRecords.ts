@@ -5,7 +5,13 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
+import {
+  requireBusinessAccess,
+  requireBusinessScopedReference,
+  resolveLegalEntityForBusinessDate,
+} from '../services/businessContextService';
 import {
   incomeValues,
   reconciliationValues,
@@ -20,6 +26,8 @@ import type { Env } from '../types';
 
 interface IncomeRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   business_activity_id: string;
   activity_name: string;
   income_type: IncomeType;
@@ -79,7 +87,8 @@ interface Settings {
   tax_year_end_day: number;
 }
 
-const select = `SELECT income_records.id, income_records.business_activity_id,
+const select = `SELECT income_records.id, income_records.business_id,
+  income_records.legal_entity_id, income_records.business_activity_id,
   business_activities.name AS activity_name, income_records.income_type,
   income_records.received_from, income_records.transaction_date,
   income_records.total_amount_minor, income_records.currency, income_records.status,
@@ -124,6 +133,8 @@ const select = `SELECT income_records.id, income_records.business_activity_id,
 function serialize(row: IncomeRow) {
   const common = {
     id: row.id,
+    businessId: row.business_id,
+    legalEntityId: row.legal_entity_id,
     businessActivityId: row.business_activity_id,
     activityName: row.activity_name,
     incomeType: row.income_type,
@@ -314,12 +325,21 @@ function baseInsert(
   creator: string,
   now: string,
   until: string,
+  businessId: string | null = null,
+  legalEntityId: string | null = null,
 ) {
   return env.DB.prepare(
-    `INSERT INTO income_records (id, business_account_id, business_activity_id, income_type, received_from, transaction_date, total_amount_minor, currency, status, notes, created_by, created_at, updated_at, retention_until, purge_eligible_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO income_records
+      (id, business_account_id, business_id, legal_entity_id,
+       business_activity_id, income_type, received_from, transaction_date,
+       total_amount_minor, currency, status, notes, created_by, created_at,
+       updated_at, retention_until, purge_eligible_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?, ?)`,
   ).bind(
     id,
     businessAccountId,
+    businessId,
+    legalEntityId,
     values.businessActivityId,
     values.incomeType,
     values.receivedFrom,
@@ -339,14 +359,18 @@ function detailInsert(
   id: string,
   businessAccountId: string,
   values: IncomeValues,
+  businessId: string | null = null,
+  legalEntityId: string | null = null,
 ) {
   if (values.incomeType === 'PLATFORM') {
     const v = values as PlatformValues;
     return env.DB.prepare(
-      'INSERT INTO platform_income_details (income_id, business_account_id, provider_name, period_start, period_end, payment_date, gross_earnings_minor, tips_minor, bonuses_promotions_minor, flat_rate_credit_minor, platform_fees_minor, other_adjustments_minor, net_payment_received_minor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO platform_income_details (income_id, business_account_id, business_id, legal_entity_id, provider_name, period_start, period_end, payment_date, gross_earnings_minor, tips_minor, bonuses_promotions_minor, flat_rate_credit_minor, platform_fees_minor, other_adjustments_minor, net_payment_received_minor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     ).bind(
       id,
       businessAccountId,
+      businessId,
+      legalEntityId,
       v.providerName,
       v.periodStart,
       v.periodEnd,
@@ -363,10 +387,12 @@ function detailInsert(
   if (values.incomeType === 'CONTRACT') {
     const v = values as ContractValues;
     return env.DB.prepare(
-      'INSERT INTO contract_income_details (income_id, business_account_id, client_id, invoice_number, invoice_date, service_period_start, service_period_end, subtotal_minor, gst_amount_minor, total_minor, due_date, payment_received_date, amount_received_minor, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO contract_income_details (income_id, business_account_id, business_id, legal_entity_id, client_id, invoice_number, invoice_date, service_period_start, service_period_end, subtotal_minor, gst_amount_minor, total_minor, due_date, payment_received_date, amount_received_minor, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     ).bind(
       id,
       businessAccountId,
+      businessId,
+      legalEntityId,
       v.clientId,
       v.invoiceNumber,
       v.invoiceDate,
@@ -384,10 +410,12 @@ function detailInsert(
   if (values.incomeType === 'SUBSCRIPTION') {
     const v = values as SubscriptionValues;
     return env.DB.prepare(
-      'INSERT INTO subscription_income_details (income_id, business_account_id, period_start, period_end, gross_subscription_revenue_minor, refunds_minor, platform_fees_minor, payment_processing_fees_minor, net_payment_received_minor, subscriber_count, new_subscribers, cancelled_subscribers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO subscription_income_details (income_id, business_account_id, business_id, legal_entity_id, period_start, period_end, gross_subscription_revenue_minor, refunds_minor, platform_fees_minor, payment_processing_fees_minor, net_payment_received_minor, subscriber_count, new_subscribers, cancelled_subscribers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     ).bind(
       id,
       businessAccountId,
+      businessId,
+      legalEntityId,
       v.periodStart,
       v.periodEnd,
       v.grossSubscriptionRevenueMinor,
@@ -463,12 +491,23 @@ function detailUpdate(env: Env, id: string, values: IncomeValues) {
   return null;
 }
 
-export async function listIncomeRecords(request: Request, env: Env) {
+export async function listIncomeRecords(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const actor = await requireUser(request, env);
+  const routeBusinessId = params.businessId ?? null;
+  if (routeBusinessId) {
+    await requireBusinessAccess(env.DB, actor, routeBusinessId);
+  }
   const rows = await env.DB.prepare(
-    `${select} WHERE income_records.business_account_id = ? AND income_records.deleted_at IS NULL ORDER BY income_records.transaction_date DESC, income_records.created_at DESC LIMIT 200`,
+    `${select} WHERE income_records.business_account_id = ?${routeBusinessId ? ' AND income_records.business_id = ?' : ''} AND income_records.deleted_at IS NULL ORDER BY income_records.transaction_date DESC, income_records.created_at DESC LIMIT 200`,
   )
-    .bind(actor.businessAccountId)
+    .bind(
+      actor.businessAccountId,
+      ...(routeBusinessId ? [routeBusinessId] : []),
+    )
     .all<IncomeRow>();
   const totals = new Map<string, number>();
   for (const row of rows.results)
@@ -487,12 +526,50 @@ export async function listIncomeRecords(request: Request, env: Env) {
     },
   });
 }
-export async function createIncomeRecord(request: Request, env: Env) {
+export async function createIncomeRecord(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
-  const values = incomeValues(body);
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
+  const values = incomeValues(
+    business
+      ? { ...body, businessActivityId: business.legacyBusinessActivityId }
+      : body,
+  );
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.transactionDate,
+        { forWrite: true },
+      )
+    : null;
   await references(env, owner.businessAccountId, values);
+  if (business && values.incomeType === 'CONTRACT') {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'clients',
+      business.id,
+      (values as ContractValues).clientId,
+    );
+  }
   if (values.incomeType === 'CONTRACT') {
     const duplicate = await env.DB.prepare(
       `SELECT contract_income_details.income_id
@@ -521,9 +598,26 @@ export async function createIncomeRecord(request: Request, env: Env) {
       owner.businessAccountId,
       values.transactionDate,
     );
-  const detail = detailInsert(env, id, owner.businessAccountId, values);
+  const detail = detailInsert(
+    env,
+    id,
+    owner.businessAccountId,
+    values,
+    attribution?.business.id ?? null,
+    attribution?.legalEntity.id ?? null,
+  );
   const statements = [
-    baseInsert(env, id, owner.businessAccountId, values, owner.id, now, until),
+    baseInsert(
+      env,
+      id,
+      owner.businessAccountId,
+      values,
+      owner.id,
+      now,
+      until,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
+    ),
     ...(detail ? [detail] : []),
   ];
   await env.DB.batch(statements);
@@ -535,6 +629,11 @@ export async function createIncomeRecord(request: Request, env: Env) {
     id,
     `${values.incomeType} income created.`,
     values.businessActivityId,
+    null,
+    {
+      businessId: attribution?.business.id ?? null,
+      legalEntityId: attribution?.legalEntity.id ?? null,
+    },
   );
   const row = await env.DB.prepare(
     `${select} WHERE income_records.id=? AND income_records.business_account_id=?`,

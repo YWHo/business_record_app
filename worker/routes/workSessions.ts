@@ -5,7 +5,13 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
+import {
+  requireBusinessAccess,
+  requireBusinessScopedReference,
+  resolveLegalEntityForBusinessDate,
+} from '../services/businessContextService';
 import { calculateFuelMetrics } from '../services/fuelService';
 import {
   calculateRetentionDate,
@@ -17,6 +23,8 @@ import type { Env } from '../types';
 
 interface WorkSessionRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   business_activity_id: string;
   activity_name: string;
   vehicle_id: string;
@@ -51,7 +59,8 @@ interface RetentionSettings {
   tax_year_end_day: number;
 }
 
-const sessionSelect = `SELECT work_sessions.id, work_sessions.business_activity_id,
+const sessionSelect = `SELECT work_sessions.id, work_sessions.business_id,
+  work_sessions.legal_entity_id, work_sessions.business_activity_id,
   business_activities.name AS activity_name, work_sessions.vehicle_id,
   vehicles.registration AS vehicle_registration, work_sessions.started_at,
   work_sessions.ended_at, work_sessions.odometer_start_km,
@@ -82,6 +91,8 @@ function serialize(row: WorkSessionRow) {
     row.ending_fill_type === 'FULL';
   return {
     id: row.id,
+    businessId: row.business_id,
+    legalEntityId: row.legal_entity_id,
     businessActivityId: row.business_activity_id,
     activityName: row.activity_name,
     vehicleId: row.vehicle_id,
@@ -241,12 +252,20 @@ function summarize(rows: WorkSessionRow[]) {
 export async function listWorkSessions(
   request: Request,
   env: Env,
+  params: RouteParameters = {},
 ): Promise<Response> {
   const actor = await requireUser(request, env);
+  const routeBusinessId = params.businessId ?? null;
+  if (routeBusinessId) {
+    await requireBusinessAccess(env.DB, actor, routeBusinessId);
+  }
   const result = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.business_account_id = ? ORDER BY work_sessions.started_at DESC LIMIT 200`,
+    `${sessionSelect} WHERE work_sessions.business_account_id = ?${routeBusinessId ? ' AND work_sessions.business_id = ?' : ''} ORDER BY work_sessions.started_at DESC LIMIT 200`,
   )
-    .bind(actor.businessAccountId)
+    .bind(
+      actor.businessAccountId,
+      ...(routeBusinessId ? [routeBusinessId] : []),
+    )
     .all<WorkSessionRow>();
   return json({
     sessions: result.results.map(serialize),
@@ -257,11 +276,47 @@ export async function listWorkSessions(
 export async function createWorkSession(
   request: Request,
   env: Env,
+  params: RouteParameters = {},
 ): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
-  const values = workSessionValues(await readJsonObject(request));
+  const body = await readJsonObject(request);
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
+  const values = workSessionValues(
+    business
+      ? { ...body, businessActivityId: business.legacyBusinessActivityId }
+      : body,
+  );
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.startedAt,
+        { forWrite: true },
+      )
+    : null;
   await assertReferences(env, owner.businessAccountId, values);
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'vehicles',
+      business.id,
+      values.vehicleId,
+    );
+  }
   const retentionUntil = await retentionDate(
     env,
     owner.businessAccountId,
@@ -271,14 +326,17 @@ export async function createWorkSession(
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO work_sessions
-      (id, business_account_id, business_activity_id, vehicle_id, started_at, ended_at,
+      (id, business_account_id, business_id, legal_entity_id,
+       business_activity_id, vehicle_id, started_at, ended_at,
        odometer_start_km, odometer_end_km, gross_revenue_minor, currency, notes,
        status, created_by, created_at, updated_at, retention_until, purge_eligible_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
       owner.businessAccountId,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
       values.businessActivityId,
       values.vehicleId,
       values.startedAt,
@@ -303,6 +361,11 @@ export async function createWorkSession(
     id,
     'Work session created.',
     values.businessActivityId,
+    null,
+    {
+      businessId: attribution?.business.id ?? null,
+      legalEntityId: attribution?.legalEntity.id ?? null,
+    },
   );
   const row = await env.DB.prepare(
     `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,

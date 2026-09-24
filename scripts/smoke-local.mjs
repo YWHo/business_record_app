@@ -2201,6 +2201,247 @@ const revokedSession = await request(
 );
 expectStatus(revokedSession, 401, 'disabled accountant session revocation');
 
+const scopedBusinessId = 'business-activity-contracting';
+const account = await request('/api/account', {}, ownerCookie);
+expectStatus(account, 200, 'account details');
+if (
+  account.body.account.id !== 'business-account-primary' ||
+  account.body.membership.role !== 'OWNER'
+) {
+  throw new Error('account details did not use the authenticated membership');
+}
+const businesses = await request('/api/businesses', {}, ownerCookie);
+expectStatus(businesses, 200, 'business list');
+if (
+  !businesses.body.businesses.some(
+    (business) => business.id === scopedBusinessId,
+  )
+) {
+  throw new Error('business list omitted the contracting business');
+}
+const businessDetails = await request(
+  `/api/businesses/${scopedBusinessId}`,
+  {},
+  ownerCookie,
+);
+expectStatus(businessDetails, 200, 'business details');
+if (
+  businessDetails.body.currentLegalEntity?.id !== 'business-entity-primary' ||
+  businessDetails.body.operatingPeriods.length !== 1
+) {
+  throw new Error('business details omitted current legal attribution');
+}
+expectStatus(
+  await request('/api/businesses/not-in-this-account', {}, ownerCookie),
+  404,
+  'unknown business denial',
+);
+expectStatus(
+  await request(
+    `/api/businesses/${scopedBusinessId}/dashboard`,
+    {},
+    ownerCookie,
+  ),
+  200,
+  'business dashboard',
+);
+expectStatus(
+  await request(
+    `/api/businesses/${scopedBusinessId}/expenses`,
+    {},
+    accountantCookie,
+  ),
+  200,
+  'business expense list',
+);
+expectStatus(
+  await request(
+    `/api/businesses/${scopedBusinessId}/income`,
+    {},
+    accountantCookie,
+  ),
+  200,
+  'business income list',
+);
+expectStatus(
+  await request(
+    `/api/businesses/${scopedBusinessId}/work-sessions`,
+    {},
+    accountantCookie,
+  ),
+  200,
+  'business work-session list',
+);
+
+const scopedExpense = await request(
+  `/api/businesses/${scopedBusinessId}/expenses`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      expenseType: 'GENERAL',
+      businessActivityId: 'untrusted-browser-activity',
+      legalEntityId: 'untrusted-browser-entity',
+      expenseCategoryId: categoryId,
+      merchantName: 'Scoped Supplier',
+      purchaseDatetime: '2026-09-12T10:00:00.000+12:00',
+      totalAmount: '12.50',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedExpense, 201, 'business expense create');
+if (
+  scopedExpense.body.generalExpense.businessId !== scopedBusinessId ||
+  scopedExpense.body.generalExpense.legalEntityId !==
+    'business-entity-primary' ||
+  scopedExpense.body.generalExpense.businessActivityId !==
+    'activity-contracting'
+) {
+  throw new Error('business expense accepted browser-provided attribution');
+}
+
+const scopedIncome = await request(
+  `/api/businesses/${scopedBusinessId}/income`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      incomeType: 'GENERAL',
+      businessActivityId: 'untrusted-browser-activity',
+      legalEntityId: 'untrusted-browser-entity',
+      receivedFrom: 'Scoped Customer',
+      transactionDate: '2026-09-12',
+      totalAmount: '25.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedIncome, 201, 'business income create');
+if (
+  scopedIncome.body.incomeRecord.businessId !== scopedBusinessId ||
+  scopedIncome.body.incomeRecord.legalEntityId !== 'business-entity-primary' ||
+  scopedIncome.body.incomeRecord.businessActivityId !== 'activity-contracting'
+) {
+  throw new Error('business income accepted browser-provided attribution');
+}
+
+const scopedSession = await request(
+  `/api/businesses/${scopedBusinessId}/work-sessions`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      businessActivityId: 'untrusted-browser-activity',
+      legalEntityId: 'untrusted-browser-entity',
+      vehicleId,
+      startedAt: '2026-09-12T10:00:00.000+12:00',
+      endedAt: '2026-09-12T11:00:00.000+12:00',
+      odometerStartKm: 2000,
+      odometerEndKm: 2020,
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedSession, 201, 'business work-session create');
+if (
+  scopedSession.body.session.businessId !== scopedBusinessId ||
+  scopedSession.body.session.legalEntityId !== 'business-entity-primary' ||
+  scopedSession.body.session.businessActivityId !== 'activity-contracting'
+) {
+  throw new Error(
+    'business work session accepted browser-provided attribution',
+  );
+}
+
+const scopedParking = await request(
+  `/api/businesses/${scopedBusinessId}/expenses`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      expenseType: 'PARKING',
+      vehicleId,
+      parkingProvider: 'Scoped Parking',
+      parkingLocation: 'Wellington',
+      purchaseDatetime: '2026-09-12T12:00:00.000+12:00',
+      parkingStartDatetime: '2026-09-12T12:00:00.000+12:00',
+      parkingEndDatetime: '2026-09-12T12:30:00.000+12:00',
+      totalAmount: '8.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedParking, 201, 'business parking expense create');
+if (
+  scopedParking.body.parkingRecord.businessId !== scopedBusinessId ||
+  scopedParking.body.parkingRecord.legalEntityId !== 'business-entity-primary'
+) {
+  throw new Error('business parking attribution was not persisted');
+}
+
+const scopedFuel = await request(
+  `/api/businesses/${scopedBusinessId}/expenses`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      expenseType: 'FUEL',
+      vehicleId,
+      merchantName: 'Scoped Fuel',
+      purchaseDatetime: '2026-09-12T13:00:00.000+12:00',
+      totalAmount: '50.00',
+      fuelPricePerLitre: '2.500000',
+      fuelLitres: 20,
+      odometerKm: 2030,
+      fillType: 'FULL',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedFuel, 201, 'business fuel expense create');
+if (
+  scopedFuel.body.fuelRecord.businessId !== scopedBusinessId ||
+  scopedFuel.body.fuelRecord.legalEntityId !== 'business-entity-primary'
+) {
+  throw new Error('business fuel attribution was not persisted');
+}
+
+const scopedInsurance = await request(
+  `/api/businesses/${scopedBusinessId}/expenses`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      expenseType: 'INSURANCE',
+      insuranceType: 'PROFESSIONAL_LIABILITY',
+      provider: 'Scoped Cover',
+      policyNumber: 'SCOPED-1',
+      policyPeriodStart: '2026-04-01',
+      policyPeriodEnd: '2027-03-31',
+      purchaseDatetime: '2026-09-12T14:00:00.000+12:00',
+      totalAmount: '240.00',
+      currency: 'NZD',
+      gstStatus: 'NO_GST',
+      allocationMethod: '100_PERCENT_BUSINESS',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedInsurance, 201, 'business insurance expense create');
+if (
+  scopedInsurance.body.insuranceRecord.businessId !== scopedBusinessId ||
+  scopedInsurance.body.insuranceRecord.legalEntityId !==
+    'business-entity-primary'
+) {
+  throw new Error('business insurance attribution was not persisted');
+}
+
 const storageWrite = await request(
   '/api/dev/storage-probe',
   { method: 'PUT' },
@@ -2216,5 +2457,5 @@ if (!storageRead.body.exists) {
 }
 
 globalThis.console.log(
-  'Local smoke passed: authentication, records, review, retention, exports, backup reminders, dashboard analytics, mobile capture metadata, revocation, and R2.',
+  'Local smoke passed: authentication, business-scoped records, review, retention, exports, backup reminders, dashboard analytics, mobile capture metadata, revocation, and R2.',
 );

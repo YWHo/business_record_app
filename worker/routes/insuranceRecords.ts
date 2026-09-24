@@ -5,6 +5,7 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
 import {
   allocationSummary,
   allocationValues,
@@ -12,6 +13,11 @@ import {
   type AllocationValues,
 } from '../services/allocationService';
 import { writeAudit } from '../services/auditService';
+import {
+  requireBusinessAccess,
+  requireBusinessScopedReference,
+  resolveLegalEntityForBusinessDate,
+} from '../services/businessContextService';
 import {
   insuranceValues,
   type InsuranceType,
@@ -22,6 +28,8 @@ import type { Env } from '../types';
 
 interface InsuranceRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   business_activity_id: string | null;
   activity_name: string | null;
   expense_category_id: string;
@@ -60,7 +68,8 @@ interface Settings {
   tax_year_end_day: number;
 }
 
-const select = `SELECT expenses.id, expenses.business_activity_id,
+const select = `SELECT expenses.id, expenses.business_id,
+  expenses.legal_entity_id, expenses.business_activity_id,
   business_activities.name AS activity_name, expenses.expense_category_id,
   expense_categories.name AS category_name, expenses.merchant_name,
   expenses.purchase_datetime, expenses.total_amount_minor, expenses.currency,
@@ -85,6 +94,8 @@ const select = `SELECT expenses.id, expenses.business_activity_id,
 function serialize(row: InsuranceRow) {
   return {
     id: row.id,
+    businessId: row.business_id,
+    legalEntityId: row.legal_entity_id,
     businessActivityId: row.business_activity_id,
     activityName: row.activity_name,
     expenseCategoryId: row.expense_category_id,
@@ -238,17 +249,22 @@ function expenseInsert(
   creator: string,
   now: string,
   until: string,
+  businessId: string | null = null,
+  legalEntityId: string | null = null,
 ) {
   return env.DB.prepare(
     `INSERT INTO expenses
-    (id, business_account_id, business_activity_id, expense_type, expense_category_id, merchant_name,
+    (id, business_account_id, business_id, legal_entity_id,
+     business_activity_id, expense_type, expense_category_id, merchant_name,
      purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
      description, recurrence_type, status, created_by, created_at, updated_at,
      retention_until, purge_eligible_at)
-    VALUES (?, ?, ?, 'INSURANCE', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?, 'INSURANCE', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
   ).bind(
     id,
     businessAccountId,
+    businessId,
+    legalEntityId,
     values.businessActivityId,
     values.expenseCategoryId,
     values.provider,
@@ -275,15 +291,20 @@ function allocationStatement(
   values: AllocationValues,
   reviewer: string | null,
   now: string,
+  businessId: string | null = null,
+  legalEntityId: string | null = null,
 ) {
   return env.DB.prepare(
     `INSERT INTO expense_allocations
-    (id, business_account_id, expense_id, business_activity_id, allocation_method, percentage_basis_points,
+    (id, business_account_id, business_id, legal_entity_id,
+     expense_id, business_activity_id, allocation_method, percentage_basis_points,
      allocated_amount_minor, calculation_period_start, calculation_period_end, notes,
-     reviewed_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     reviewed_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     id,
     businessAccountId,
+    businessId,
+    legalEntityId,
     expenseId,
     activityId,
     values.allocationMethod,
@@ -307,10 +328,26 @@ export async function listInsuranceRecords(request: Request, env: Env) {
     .all<InsuranceRow>();
   return json({ insuranceRecords: rows.results.map(serialize) });
 }
-export async function createInsuranceRecord(request: Request, env: Env) {
+export async function createInsuranceRecord(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
   const rawType = body.insuranceType;
   if (
     typeof rawType !== 'string' ||
@@ -324,10 +361,39 @@ export async function createInsuranceRecord(request: Request, env: Env) {
     );
   }
   const values = insuranceValues(
-    body,
+    business
+      ? { ...body, businessActivityId: business.legacyBusinessActivityId }
+      : body,
     await categoryId(env, owner.businessAccountId, rawType as InsuranceType),
   );
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.purchaseDatetime,
+        { forWrite: true },
+      )
+    : null;
   await assertReferences(env, owner.businessAccountId, values);
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'expense_categories',
+      business.id,
+      values.expenseCategoryId,
+    );
+    if (values.vehicleId) {
+      await requireBusinessScopedReference(
+        env.DB,
+        owner,
+        'vehicles',
+        business.id,
+        values.vehicleId,
+      );
+    }
+  }
   const allocation = allocationValues(body, values.totalAmountMinor);
   const id = crypto.randomUUID();
   const allocationId = crypto.randomUUID();
@@ -346,14 +412,20 @@ export async function createInsuranceRecord(request: Request, env: Env) {
       owner.id,
       now,
       until,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
     ),
     env.DB.prepare(
       `INSERT INTO insurance_expense_details
-      (expense_id, business_account_id, insurance_type, provider, policy_number, policy_period_start, policy_period_end, vehicle_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (expense_id, business_account_id, business_id, legal_entity_id,
+       insurance_type, provider, policy_number, policy_period_start,
+       policy_period_end, vehicle_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       id,
       owner.businessAccountId,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
       values.insuranceType,
       values.provider,
       values.policyNumber,
@@ -370,6 +442,8 @@ export async function createInsuranceRecord(request: Request, env: Env) {
       allocation,
       null,
       now,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
     ),
   ]);
   await writeAudit(
@@ -380,6 +454,11 @@ export async function createInsuranceRecord(request: Request, env: Env) {
     id,
     `Insurance created with allocation: ${allocationSummary(allocation)}.`,
     values.businessActivityId,
+    null,
+    {
+      businessId: attribution?.business.id ?? null,
+      legalEntityId: attribution?.legalEntity.id ?? null,
+    },
   );
   const row = await env.DB.prepare(
     `${select} WHERE expenses.id = ? AND expenses.business_account_id = ?`,

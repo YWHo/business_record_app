@@ -42,7 +42,8 @@ export async function listBusinesses(
       `SELECT ${businessColumns}
        FROM businesses
        WHERE business_account_id = ?
-       ORDER BY name COLLATE NOCASE, id`,
+       ORDER BY name COLLATE NOCASE, id
+       LIMIT 100`,
     )
     .bind(businessAccountId)
     .all<BusinessRow>();

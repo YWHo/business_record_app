@@ -186,6 +186,19 @@ Business reference data may be assigned to that business or deliberately
 shared at account scope; arbitrary table names and browser-provided legal
 entity IDs are not authorization inputs.
 
+The Worker router supports named path segments and now exposes authenticated
+account, business-list, business-detail, legal-entity, dashboard, expense,
+income, and work-session reads under explicit business context. Scoped record
+creation derives the legacy compatibility activity and effective legal entity
+from the route business; browser-provided account, business, activity, and
+legal-entity attribution cannot override it. Existing flat endpoints remain as
+temporary compatibility routes while the client moves to business URLs.
+
+The unified scoped expense endpoint dispatches general, parking, fuel, and
+insurance creation through their existing validation services. Root and typed
+detail/allocation rows receive the same business and legal-entity attribution,
+and audit events record both scopes.
+
 ## UI context
 
 Account context contains My Businesses, cross-business transactions/reports,

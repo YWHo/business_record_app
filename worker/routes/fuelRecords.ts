@@ -5,7 +5,13 @@ import {
   json,
   readJsonObject,
 } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
+import {
+  requireBusinessAccess,
+  requireBusinessScopedReference,
+  resolveLegalEntityForBusinessDate,
+} from '../services/businessContextService';
 import {
   confirmedWarningCodes,
   fuelValues,
@@ -17,6 +23,8 @@ import type { Env } from '../types';
 
 interface FuelRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   business_activity_id: string | null;
   activity_name: string | null;
   vehicle_id: string;
@@ -46,7 +54,8 @@ interface RetentionSettings {
   tax_year_end_day: number;
 }
 
-const fuelSelect = `SELECT expenses.id, expenses.business_activity_id,
+const fuelSelect = `SELECT expenses.id, expenses.business_id,
+  expenses.legal_entity_id, expenses.business_activity_id,
   business_activities.name AS activity_name, fuel_expense_details.vehicle_id,
   vehicles.registration AS vehicle_registration, expenses.merchant_name,
   expenses.purchase_datetime, expenses.total_amount_minor, expenses.currency,
@@ -66,6 +75,8 @@ const fuelSelect = `SELECT expenses.id, expenses.business_activity_id,
 function serialize(row: FuelRow) {
   return {
     id: row.id,
+    businessId: row.business_id,
+    legalEntityId: row.legal_entity_id,
     businessActivityId: row.business_activity_id,
     activityName: row.activity_name,
     vehicleId: row.vehicle_id,
@@ -203,12 +214,47 @@ export async function listFuelRecords(
 export async function createFuelRecord(
   request: Request,
   env: Env,
+  params: RouteParameters = {},
 ): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const input = await readJsonObject(request);
-  const values = fuelValues(input);
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
+  const values = fuelValues(
+    business
+      ? { ...input, businessActivityId: business.legacyBusinessActivityId }
+      : input,
+  );
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.purchaseDatetime,
+        { forWrite: true },
+      )
+    : null;
   await assertReferences(env, owner.businessAccountId, values);
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'vehicles',
+      business.id,
+      values.vehicleId,
+    );
+  }
   const warningResponse = confirmationRequired(values, input);
   if (warningResponse) return warningResponse;
   const category = await env.DB.prepare(
@@ -218,6 +264,15 @@ export async function createFuelRecord(
     .first<{ id: string }>();
   if (!category)
     throw new HttpError(503, 'Fuel expense category is unavailable.');
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'expense_categories',
+      business.id,
+      category.id,
+    );
+  }
   const retentionUntil = await retentionDate(
     env,
     owner.businessAccountId,
@@ -228,14 +283,17 @@ export async function createFuelRecord(
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO expenses
-        (id, business_account_id, business_activity_id, expense_type, expense_category_id, merchant_name,
+        (id, business_account_id, business_id, legal_entity_id,
+         business_activity_id, expense_type, expense_category_id, merchant_name,
          purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
          description, recurrence_type, status, created_by, created_at, updated_at,
          retention_until, purge_eligible_at)
-       VALUES (?, ?, ?, 'FUEL', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'FUEL', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?, ?, ?)`,
     ).bind(
       id,
       owner.businessAccountId,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
       values.businessActivityId,
       category.id,
       values.merchantName,
@@ -254,12 +312,15 @@ export async function createFuelRecord(
     ),
     env.DB.prepare(
       `INSERT INTO fuel_expense_details
-        (expense_id, business_account_id, vehicle_id, fuel_station, fuel_price_micros_per_litre,
+        (expense_id, business_account_id, business_id, legal_entity_id,
+         vehicle_id, fuel_station, fuel_price_micros_per_litre,
          fuel_litres, odometer_km, fill_type, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       id,
       owner.businessAccountId,
+      attribution?.business.id ?? null,
+      attribution?.legalEntity.id ?? null,
       values.vehicleId,
       values.fuelStation,
       values.fuelPriceMicrosPerLitre,
@@ -277,6 +338,11 @@ export async function createFuelRecord(
     id,
     'Fuel expense created.',
     values.businessActivityId,
+    null,
+    {
+      businessId: attribution?.business.id ?? null,
+      legalEntityId: attribution?.legalEntity.id ?? null,
+    },
   );
   const row = await env.DB.prepare(
     `${fuelSelect} AND expenses.id = ? AND expenses.business_account_id = ?`,
