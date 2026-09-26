@@ -1229,6 +1229,117 @@ th {
   color: #18794e;
 }
 
+.expense-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d9e1e8;
+  border-radius: 0.8rem;
+  padding: 0.85rem;
+  background: #fff;
+}
+
+.expense-filter-bar .filter-search {
+  grid-column: span 2;
+}
+
+.responsive-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #d9e1e8;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.responsive-record-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+}
+
+.responsive-record-table th,
+.responsive-record-table td {
+  border-bottom: 1px solid #e4e9ed;
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.responsive-record-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.responsive-record-table td small {
+  display: block;
+  max-width: 24rem;
+  margin-top: 0.2rem;
+  color: #66788a;
+}
+
+.focused-form-panel {
+  max-width: 56rem;
+}
+
+.expense-type-selector {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 20rem;
+  font-weight: 700;
+}
+
+.context-chip {
+  width: fit-content;
+  margin: 0 0 1rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  color: #0e6662;
+  background: #dff5f3;
+  font-weight: 700;
+}
+
+.expense-detail-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.expense-detail-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.expense-detail-amount > span:first-child {
+  color: #66788a;
+}
+
+.expense-detail-amount > strong {
+  font-size: 1.8rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.detail-grid > div {
+  border-radius: 0.55rem;
+  padding: 0.75rem;
+  background: #f5f8fa;
+}
+
+.detail-grid dt {
+  color: #66788a;
+  font-size: 0.75rem;
+}
+
+.detail-grid dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+}
+
 .dashboard-list {
   display: grid;
   gap: 0.55rem;
@@ -1332,6 +1443,63 @@ th {
 
 .story-record-card {
   max-width: 42rem;
+}
+
+@media (max-width: 43.99rem) {
+  .expense-filter-bar,
+  .expense-filter-bar .filter-search {
+    grid-template-columns: 1fr;
+    grid-column: auto;
+  }
+
+  .responsive-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .responsive-record-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .responsive-record-table thead {
+    display: none;
+  }
+
+  .responsive-record-table tbody,
+  .responsive-record-table tr,
+  .responsive-record-table td {
+    display: block;
+  }
+
+  .responsive-record-table tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .responsive-record-table tr {
+    border: 1px solid #d9e1e8;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    background: #fff;
+  }
+
+  .responsive-record-table td {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.2fr);
+    gap: 0.75rem;
+    border: 0;
+    padding: 0.3rem 0;
+    overflow-wrap: anywhere;
+  }
+
+  .responsive-record-table td::before {
+    content: attr(data-label);
+    color: #66788a;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
 }
 
 @media (min-width: 44rem) {

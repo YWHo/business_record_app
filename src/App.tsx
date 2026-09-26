@@ -1,4 +1,4 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import { AccountShell, BusinessShell } from './components/ShellLayouts';
 import { PwaStatus } from './features/pwa/PwaStatus';
 import { useAuth } from './features/auth/AuthContext';
@@ -7,15 +7,15 @@ import { AcceptInvitationPage } from './routes/AcceptInvitationPage';
 import { BusinessesPage } from './routes/BusinessesPage';
 import { DashboardPage } from './routes/DashboardPage';
 import { DocumentsPage } from './routes/DocumentsPage';
+import { ExpenseDetailPage } from './routes/ExpenseDetailPage';
+import { ExpenseFormPage } from './routes/ExpenseFormPage';
+import { ExpensesPage } from './routes/ExpensesPage';
 import { ExportsPage } from './routes/ExportsPage';
-import { FuelPage } from './routes/FuelPage';
 import { GovernancePage } from './routes/GovernancePage';
 import { IncomePage } from './routes/IncomePage';
-import { InsurancePage } from './routes/InsurancePage';
 import { LoginPage } from './routes/LoginPage';
 import { MileagePage } from './routes/MileagePage';
 import { NotFoundPage } from './routes/NotFoundPage';
-import { RecordsPage } from './routes/RecordsPage';
 import { SetupPage } from './routes/SetupPage';
 import { TransactionsPage } from './routes/TransactionsPage';
 import { UserManagementPage } from './routes/UserManagementPage';
@@ -36,6 +36,16 @@ function WorkspaceGate() {
 
 function DirectoryLayout() {
   return <BusinessDirectoryProvider />;
+}
+
+function LegacyExpenseFilterRedirect({ type }: { type: string }) {
+  const { businessId = '' } = useParams();
+  return (
+    <Navigate
+      replace
+      to={`/app/businesses/${businessId}/expenses?type=${type}`}
+    />
+  );
 }
 
 export function App() {
@@ -64,9 +74,27 @@ export function App() {
             >
               <Route index element={<DashboardPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
-              <Route path="expenses" element={<RecordsPage />} />
-              <Route path="expenses/fuel" element={<FuelPage />} />
-              <Route path="expenses/insurance" element={<InsurancePage />} />
+              <Route path="expenses" element={<ExpensesPage />} />
+              <Route
+                path="expenses/new"
+                element={<ExpenseFormPage mode="create" />}
+              />
+              <Route
+                path="expenses/:expenseId"
+                element={<ExpenseDetailPage />}
+              />
+              <Route
+                path="expenses/:expenseId/edit"
+                element={<ExpenseFormPage mode="edit" />}
+              />
+              <Route
+                path="expenses/fuel"
+                element={<LegacyExpenseFilterRedirect type="FUEL" />}
+              />
+              <Route
+                path="expenses/insurance"
+                element={<LegacyExpenseFilterRedirect type="INSURANCE" />}
+              />
               <Route path="income" element={<IncomePage />} />
               <Route path="mileage" element={<MileagePage />} />
               <Route path="documents" element={<DocumentsPage />} />

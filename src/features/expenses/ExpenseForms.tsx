@@ -15,33 +15,37 @@ function CommonFields<T extends ExpenseDraft>({
   activities,
   categories,
   showCategory = true,
+  showActivity = true,
 }: {
   draft: T;
   setDraft: (draft: T) => void;
   activities: ReferenceOption[];
   categories: ReferenceOption[];
   showCategory?: boolean;
+  showActivity?: boolean;
 }) {
   const field = (key: keyof T) => (event: InputEvent) =>
     setDraft({ ...draft, [key]: event.target.value });
   return (
     <>
       <div className="form-pair">
-        <label>
-          Business activity (optional)
-          <select
-            value={draft.businessActivityId}
-            onChange={field('businessActivityId')}
-          >
-            <option value="">Unallocated</option>
-            {activities.map((item) => (
-              <option key={item.id} value={item.id} disabled={!item.active}>
-                {item.label}
-                {item.active ? '' : ' (inactive)'}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showActivity ? (
+          <label>
+            Business activity (optional)
+            <select
+              value={draft.businessActivityId}
+              onChange={field('businessActivityId')}
+            >
+              <option value="">Unallocated</option>
+              {activities.map((item) => (
+                <option key={item.id} value={item.id} disabled={!item.active}>
+                  {item.label}
+                  {item.active ? '' : ' (inactive)'}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         {showCategory ? (
           <label>
             Expense category
@@ -149,6 +153,7 @@ export function GeneralExpenseForm({
   submitLabel,
   onSubmit,
   onCancel,
+  showActivity = true,
 }: {
   initial: ExpenseDraft;
   activities: ReferenceOption[];
@@ -156,6 +161,7 @@ export function GeneralExpenseForm({
   submitLabel: string;
   onSubmit: (draft: ExpenseDraft) => Promise<void>;
   onCancel?: () => void;
+  showActivity?: boolean;
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -191,6 +197,7 @@ export function GeneralExpenseForm({
         setDraft={setDraft}
         activities={activities}
         categories={categories}
+        showActivity={showActivity}
       />
       <Actions saving={saving} submitLabel={submitLabel} onCancel={onCancel} />
     </form>
@@ -204,6 +211,7 @@ export function ParkingForm({
   submitLabel,
   onSubmit,
   onCancel,
+  showActivity = true,
 }: {
   initial: ParkingDraft;
   activities: ReferenceOption[];
@@ -211,6 +219,7 @@ export function ParkingForm({
   submitLabel: string;
   onSubmit: (draft: ParkingDraft) => Promise<void>;
   onCancel?: () => void;
+  showActivity?: boolean;
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -262,6 +271,7 @@ export function ParkingForm({
         activities={activities}
         categories={[]}
         showCategory={false}
+        showActivity={showActivity}
       />
       <label>
         Vehicle (optional)

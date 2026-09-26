@@ -101,9 +101,11 @@ import {
   businessDashboard,
   businessDetails,
   createBusinessExpense,
+  getBusinessExpense,
   listBusinessExpenses,
   listBusinessRecords,
   listLegalEntityRecords,
+  updateBusinessExpense,
 } from './routes/businesses';
 import type { Env } from './types';
 import { prepareDemoCache } from './services/demoCacheService';
@@ -162,6 +164,16 @@ const routes: Route[] = [
     method: 'POST',
     pathname: '/api/businesses/:businessId/expenses',
     handler: createBusinessExpense,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/expenses/:expenseId',
+    handler: getBusinessExpense,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/businesses/:businessId/expenses/:expenseId',
+    handler: updateBusinessExpense,
   },
   {
     method: 'GET',

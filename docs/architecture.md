@@ -120,6 +120,17 @@ The full-tank workflow updates the existing work session rather than copying fue
 
 Parking and general expenses share the authoritative `expenses` write path and tax-year retention calculation. All financial values reach D1 as integer minor units with uppercase currency. References must be active for new selections, while edits may retain a reference that became inactive. Successful mutations create activity-aware audit events.
 
+The business workspace exposes expenses through list, detail, create, and edit
+routes scoped by both the authenticated account and the business ID in the
+URL. The list is the primary landing screen and combines general, parking,
+fuel, and insurance records into one filterable projection. Create and edit
+render exactly one subtype form per page; business identity is fixed by the
+route, and the Worker derives legal-entity attribution from the effective
+purchase date. Moving an edited record across an operating-period boundary
+requires explicit confirmation and updates the root, typed detail, and
+allocation attribution together. Scoped category and vehicle references are
+validated again at the Worker boundary.
+
 Parking writes its common expense and one-to-one detail row as a D1 batch. Start and end must be timezone-qualified instants in chronological order. Duration is calculated only for responses and UI display, never accepted or stored as an independent source value.
 
 General expenses deliberately have no detail row. Their configurable category and common description support new cost types without arbitrary JSON or immediate migrations. Category lifecycle mutations are owner-only, case-insensitively unique, and non-destructive. Categories required by specialised fuel, parking, and insurance creation cannot be deactivated because those routes depend on their stable system keys.

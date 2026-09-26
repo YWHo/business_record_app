@@ -1,13 +1,14 @@
+/* eslint-disable react-refresh/only-export-components */
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
-interface Option {
+export interface FuelOption {
   id: string;
   label: string;
   active: boolean;
 }
-interface FuelRecord {
+export interface FuelRecord {
   id: string;
   businessActivityId: string | null;
   activityName: string | null;
@@ -28,7 +29,7 @@ interface FuelRecord {
   fillType: string;
   notes: string | null;
 }
-interface Draft {
+export interface FuelDraft {
   businessActivityId: string;
   vehicleId: string;
   merchantName: string;
@@ -57,7 +58,7 @@ function dateTimeValue(value = new Date().toISOString()) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
-function emptyDraft(): Draft {
+export function emptyFuelDraft(): FuelDraft {
   return {
     businessActivityId: '',
     vehicleId: '',
@@ -78,7 +79,7 @@ function emptyDraft(): Draft {
   };
 }
 
-function fromRecord(record: FuelRecord): Draft {
+export function fuelDraftFrom(record: FuelRecord): FuelDraft {
   return {
     businessActivityId: record.businessActivityId ?? '',
     vehicleId: record.vehicleId,
@@ -105,7 +106,10 @@ function fromRecord(record: FuelRecord): Draft {
   };
 }
 
-function body(draft: Draft, confirmedWarnings: string[] = []) {
+export function fuelRequestBody(
+  draft: FuelDraft,
+  confirmedWarnings: string[] = [],
+) {
   return {
     ...draft,
     purchaseDatetime: new Date(draft.purchaseDatetime).toISOString(),
@@ -121,25 +125,27 @@ function money(minor: number, currency: string) {
   );
 }
 
-function FuelForm({
+export function FuelForm({
   initial,
   activities,
   vehicles,
   submitLabel,
   onSubmit,
   onCancel,
+  showActivity = true,
 }: {
-  initial: Draft;
-  activities: Option[];
-  vehicles: Option[];
+  initial: FuelDraft;
+  activities: FuelOption[];
+  vehicles: FuelOption[];
   submitLabel: string;
-  onSubmit: (draft: Draft) => Promise<void>;
+  onSubmit: (draft: FuelDraft) => Promise<void>;
   onCancel?: () => void;
+  showActivity?: boolean;
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
   const field =
-    (key: keyof Draft) =>
+    (key: keyof FuelDraft) =>
     (
       event: React.ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -151,7 +157,7 @@ function FuelForm({
     setSaving(true);
     try {
       await onSubmit(draft);
-      if (!onCancel) setDraft(emptyDraft());
+      if (!onCancel) setDraft(emptyFuelDraft());
     } catch {
       /* parent displays */
     } finally {
@@ -164,27 +170,29 @@ function FuelForm({
       onSubmit={(event) => void submit(event)}
     >
       <div className="form-pair">
-        <div>
-          <label>Business activity (optional)</label>
-          <select
-            value={draft.businessActivityId}
-            onChange={field('businessActivityId')}
-          >
-            <option value="">Unallocated</option>
-            {activities.map((item) => (
-              <option
-                key={item.id}
-                value={item.id}
-                disabled={
-                  !item.active && initial.businessActivityId !== item.id
-                }
-              >
-                {item.label}
-                {item.active ? '' : ' (inactive)'}
-              </option>
-            ))}
-          </select>
-        </div>
+        {showActivity ? (
+          <div>
+            <label>Business activity (optional)</label>
+            <select
+              value={draft.businessActivityId}
+              onChange={field('businessActivityId')}
+            >
+              <option value="">Unallocated</option>
+              {activities.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}
+                  disabled={
+                    !item.active && initial.businessActivityId !== item.id
+                  }
+                >
+                  {item.label}
+                  {item.active ? '' : ' (inactive)'}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         <div>
           <label>Vehicle</label>
           <select
@@ -333,11 +341,11 @@ export function FuelPage() {
   const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [records, setRecords] = useState<FuelRecord[]>([]);
-  const [activities, setActivities] = useState<Option[]>([]);
-  const [vehicles, setVehicles] = useState<Option[]>([]);
+  const [activities, setActivities] = useState<FuelOption[]>([]);
+  const [vehicles, setVehicles] = useState<FuelOption[]>([]);
   const [editing, setEditing] = useState<FuelRecord | null>(null);
   const [pending, setPending] = useState<{
-    draft: Draft;
+    draft: FuelDraft;
     editingId: string | null;
     warnings: Warning[];
   } | null>(null);
@@ -382,7 +390,7 @@ export function FuelPage() {
   }, [load]);
 
   async function save(
-    draft: Draft,
+    draft: FuelDraft,
     editingId: string | null,
     confirmed: string[] = [],
   ) {
@@ -393,7 +401,7 @@ export function FuelPage() {
         method: editingId ? 'PATCH' : 'POST',
         body: JSON.stringify({
           ...(editingId ? { id: editingId } : {}),
-          ...body(draft, confirmed),
+          ...fuelRequestBody(draft, confirmed),
         }),
       });
       setPending(null);
@@ -477,7 +485,7 @@ export function FuelPage() {
           <h2>Add fuel expense</h2>
           <FuelForm
             key={records.length}
-            initial={emptyDraft()}
+            initial={emptyFuelDraft()}
             activities={activities}
             vehicles={vehicles}
             submitLabel="Add fuel expense"
@@ -510,7 +518,7 @@ export function FuelPage() {
               <article className="session-card" key={record.id}>
                 {editing?.id === record.id ? (
                   <FuelForm
-                    initial={fromRecord(record)}
+                    initial={fuelDraftFrom(record)}
                     activities={activities}
                     vehicles={vehicles}
                     submitLabel="Save changes"

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
@@ -6,7 +7,7 @@ import {
   type ReferenceOption,
 } from '../features/expenses/expenseModel';
 
-interface Allocation {
+export interface InsuranceAllocation {
   method: string;
   percentageBasisPoints: number | null;
   allocatedAmountMinor: number | null;
@@ -15,7 +16,7 @@ interface Allocation {
   notes: string | null;
   reviewerEmail: string | null;
 }
-interface InsuranceRecord {
+export interface InsuranceRecord {
   id: string;
   businessId: string;
   legalEntityId: string;
@@ -35,9 +36,9 @@ interface InsuranceRecord {
   policyPeriodEnd: string;
   vehicleId: string | null;
   vehicleRegistration: string | null;
-  allocation: Allocation;
+  allocation: InsuranceAllocation;
 }
-interface Draft {
+export interface InsuranceDraft {
   insuranceType: string;
   businessActivityId: string;
   vehicleId: string;
@@ -60,7 +61,7 @@ interface Draft {
   allocationNotes: string;
 }
 const today = () => new Date().toISOString().slice(0, 10);
-function emptyDraft(): Draft {
+export function emptyInsuranceDraft(): InsuranceDraft {
   return {
     insuranceType: 'PROFESSIONAL_LIABILITY',
     businessActivityId: '',
@@ -84,7 +85,7 @@ function emptyDraft(): Draft {
     allocationNotes: '',
   };
 }
-function fromRecord(record: InsuranceRecord): Draft {
+export function insuranceDraftFrom(record: InsuranceRecord): InsuranceDraft {
   return {
     insuranceType: record.insuranceType,
     businessActivityId: record.businessActivityId ?? '',
@@ -117,7 +118,7 @@ function fromRecord(record: InsuranceRecord): Draft {
     allocationNotes: record.allocation.notes ?? '',
   };
 }
-function requestBody(draft: Draft) {
+export function insuranceRequestBody(draft: InsuranceDraft) {
   return {
     ...draft,
     purchaseDatetime: new Date(draft.purchaseDatetime).toISOString(),
@@ -144,25 +145,27 @@ function methodLabel(method: string) {
   );
 }
 
-function InsuranceForm({
+export function InsuranceForm({
   initial,
   activities,
   vehicles,
   submitLabel,
   onSubmit,
   onCancel,
+  showActivity = true,
 }: {
-  initial: Draft;
+  initial: InsuranceDraft;
   activities: ReferenceOption[];
   vehicles: ReferenceOption[];
   submitLabel: string;
-  onSubmit: (draft: Draft) => Promise<void>;
+  onSubmit: (draft: InsuranceDraft) => Promise<void>;
   onCancel?: () => void;
+  showActivity?: boolean;
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
   const field =
-    (key: keyof Draft) =>
+    (key: keyof InsuranceDraft) =>
     (
       event: React.ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -211,29 +214,33 @@ function InsuranceForm({
         </label>
       </div>
       <div className="form-pair">
-        <label>
-          Business activity{' '}
-          {draft.insuranceType === 'PROFESSIONAL_LIABILITY' ? '' : '(optional)'}
-          <select
-            required={draft.insuranceType === 'PROFESSIONAL_LIABILITY'}
-            value={draft.businessActivityId}
-            onChange={field('businessActivityId')}
-          >
-            <option value="">Unallocated</option>
-            {activities.map((item) => (
-              <option
-                key={item.id}
-                value={item.id}
-                disabled={
-                  !item.active && initial.businessActivityId !== item.id
-                }
-              >
-                {item.label}
-                {item.active ? '' : ' (inactive)'}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showActivity ? (
+          <label>
+            Business activity{' '}
+            {draft.insuranceType === 'PROFESSIONAL_LIABILITY'
+              ? ''
+              : '(optional)'}
+            <select
+              required={draft.insuranceType === 'PROFESSIONAL_LIABILITY'}
+              value={draft.businessActivityId}
+              onChange={field('businessActivityId')}
+            >
+              <option value="">Unallocated</option>
+              {activities.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}
+                  disabled={
+                    !item.active && initial.businessActivityId !== item.id
+                  }
+                >
+                  {item.label}
+                  {item.active ? '' : ' (inactive)'}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label>
           Vehicle {draft.insuranceType === 'VEHICLE' ? '' : '(optional)'}
           <select
@@ -563,12 +570,15 @@ export function InsurancePage() {
       ),
     );
   }, [load]);
-  async function save(draft: Draft, id?: string) {
+  async function save(draft: InsuranceDraft, id?: string) {
     setError('');
     try {
       await apiRequest('/api/insurance-records', {
         method: id ? 'PATCH' : 'POST',
-        body: JSON.stringify({ ...(id ? { id } : {}), ...requestBody(draft) }),
+        body: JSON.stringify({
+          ...(id ? { id } : {}),
+          ...insuranceRequestBody(draft),
+        }),
       });
       setEditing(null);
       setMessage(id ? 'Insurance updated.' : 'Insurance added.');
@@ -637,7 +647,7 @@ export function InsurancePage() {
           <h2>Add insurance</h2>
           <InsuranceForm
             key={records.length}
-            initial={emptyDraft()}
+            initial={emptyInsuranceDraft()}
             activities={activities}
             vehicles={vehicles}
             submitLabel="Add insurance"
@@ -670,7 +680,7 @@ export function InsurancePage() {
               <article className="session-card" key={record.id}>
                 {editing?.id === record.id ? (
                   <InsuranceForm
-                    initial={fromRecord(record)}
+                    initial={insuranceDraftFrom(record)}
                     activities={activities}
                     vehicles={vehicles}
                     submitLabel="Save changes"

@@ -689,8 +689,8 @@ Acceptance criteria completed:
 - Added safe fallback to My businesses when a selected business is unavailable
   or no longer authorized; legacy ambiguous feature URLs also return to the
   account landing page.
-- Added account and business sidebars with clear context labels, subordinate
-  fuel and insurance expense links, and owner-only account settings access.
+- Added account and business sidebars with clear context labels, a unified
+  expense destination, and owner-only account settings access.
 - Added a compact smartphone header and bottom navigation for Dashboard,
   Expenses, Income, and Business settings.
 - Added compact persistent navigation for small-tablet portrait and a wider
@@ -756,3 +756,32 @@ Acceptance criteria completed:
 Notes: Dedicated create-record routes arrive with their corresponding expense,
 income, and mileage redesigns, so this dashboard does not introduce an action
 that would lead back to the legacy multi-form pages.
+
+## List-first business expense workflow
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the multi-form expense landing page with a business-scoped list of
+  general, parking, fuel, and insurance expenses.
+- Added search, date, category/type, and workflow-status filters while keeping
+  the responsive desktop table readable as compact record cards on phones.
+- Added dedicated create, detail, and edit routes, each preserving the selected
+  business context and rendering only one subtype form at a time.
+- Removed editable business, legal-entity, and activity selectors from scoped
+  expense forms; the Worker now treats the route business as authoritative and
+  derives legal-entity attribution from the effective purchase date.
+- Preserved the specialized fuel, parking, and insurance fields, structured
+  confirmation warnings, supporting-document panel, and owner/accountant
+  permission boundary.
+- Added scoped detail and update APIs with account, business, record, vehicle,
+  and category checks, including confirmation before a date edit changes legal
+  entity.
+- Updated browser-local demo overlays, component tests, Worker route tests,
+  local-D1 smoke coverage, and the critical browser workflow for the new route
+  model.
+
+Notes: Legacy flat expense endpoints remain available for compatibility, but
+the business workspace no longer mounts their multi-form pages. Historical
+fuel and insurance URLs redirect to the corresponding subtype filter.

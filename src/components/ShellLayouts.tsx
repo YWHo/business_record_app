@@ -72,18 +72,6 @@ export function BusinessShell() {
     { to: base, label: 'Dashboard', icon: '⌂', end: true },
     { to: `${base}/transactions`, label: 'Transactions', icon: '▤' },
     { to: `${base}/expenses`, label: 'Expenses', icon: '▣', end: true },
-    {
-      to: `${base}/expenses/fuel`,
-      label: 'Fuel',
-      icon: '·',
-      subItem: true,
-    },
-    {
-      to: `${base}/expenses/insurance`,
-      label: 'Insurance',
-      icon: '·',
-      subItem: true,
-    },
     { to: `${base}/income`, label: 'Income', icon: '$' },
     { to: `${base}/mileage`, label: 'Mileage', icon: '◇' },
     { to: `${base}/documents`, label: 'Documents', icon: '▧' },
@@ -156,7 +144,7 @@ export function BusinessShell() {
       mobileNavigation={[
         navigation[0],
         navigation[2],
-        navigation[5],
+        navigation[3],
         settings[0],
       ]}
     />

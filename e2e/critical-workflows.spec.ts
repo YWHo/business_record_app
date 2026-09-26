@@ -25,6 +25,19 @@ function cardWith(page: Page, content: string): Locator {
   return page.locator('article').filter({ hasText: content }).first();
 }
 
+function formControl(form: Locator, label: string): Locator {
+  const exactLabel = new RegExp(
+    `^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
+  );
+  const adjacentControl = form
+    .locator('label')
+    .filter({ hasText: exactLabel })
+    .locator(
+      'xpath=following-sibling::*[self::input or self::select or self::textarea][1]',
+    );
+  return form.getByLabel(label, { exact: true }).or(adjacentControl).first();
+}
+
 test.describe.serial('critical business workflows', () => {
   test('owner and accountant authentication enforce authorization', async ({
     browser,
@@ -129,65 +142,68 @@ test.describe.serial('critical business workflows', () => {
     await expect(page.getByText(/Work session added/)).toBeVisible();
     await expect(cardWith(page, 'E2E work session')).toContainText('42 km');
 
-    await page.getByRole('link', { name: 'Fuel' }).click();
-    const fuelForm = page
-      .getByRole('heading', { name: 'Add fuel expense' })
-      .locator('..');
-    await fuelForm
-      .locator('select')
-      .nth(0)
-      .selectOption({ label: activityName });
-    await fuelForm.locator('select').nth(1).selectOption({
+    await page.getByRole('link', { name: 'Expenses', exact: true }).click();
+    await page.getByRole('link', { name: 'Add expense' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Add expense' }),
+    ).toBeVisible();
+    await page.getByLabel('Expense type').selectOption('FUEL');
+    const fuelForm = page.locator('form');
+    await formControl(fuelForm, 'Vehicle').selectOption({
       label: vehicleRegistration,
     });
-    await fuelForm.locator('input').nth(0).fill('E2E Fuel Stop');
-    await fuelForm.locator('input').nth(1).fill('2026-09-01T12:00');
-    await fuelForm.locator('input').nth(2).fill('100.00');
-    await fuelForm.locator('input').nth(3).fill('13.04');
-    await fuelForm.locator('select').nth(2).selectOption('GST_INCLUDED');
-    await fuelForm.locator('input').nth(4).fill('E2E Fuel Stop');
-    await fuelForm.locator('input').nth(5).fill('2.50');
-    await fuelForm.locator('input').nth(6).fill('40');
-    await fuelForm.locator('input').nth(7).fill('12042');
-    await fuelForm.getByRole('button', { name: 'Add fuel expense' }).click();
-    await expect(page.getByText('Fuel expense added.')).toBeVisible();
-    await expect(cardWith(page, 'E2E Fuel Stop')).toContainText('$100.00');
+    await formControl(fuelForm, 'Merchant').fill('E2E Fuel Stop');
+    await formControl(fuelForm, 'Purchase date and time').fill(
+      '2026-09-01T12:00',
+    );
+    await formControl(fuelForm, 'Total amount').fill('100.00');
+    await formControl(fuelForm, 'GST amount (optional)').fill('13.04');
+    await formControl(fuelForm, 'GST status').selectOption('GST_INCLUDED');
+    await formControl(fuelForm, 'Fuel station (optional)').fill(
+      'E2E Fuel Stop',
+    );
+    await formControl(fuelForm, 'Price per litre (optional)').fill('2.50');
+    await formControl(fuelForm, 'Litres (optional)').fill('40');
+    await formControl(fuelForm, 'Odometer (km, optional)').fill('12042');
+    await fuelForm.getByRole('button', { name: 'Save expense' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'E2E Fuel Stop' }),
+    ).toBeVisible();
+    await expect(page.getByText('$100.00')).toBeVisible();
 
     await page.getByRole('link', { name: 'Expenses', exact: true }).click();
-    const parkingForm = page
-      .getByRole('heading', { name: 'Add parking' })
-      .locator('..');
-    await parkingForm.getByLabel('Provider (optional)').fill(parkingProvider);
-    await parkingForm.getByLabel('Location').fill('E2E Waterfront Garage');
-    await parkingForm
-      .getByLabel('Business activity (optional)')
-      .selectOption({ label: activityName });
-    await parkingForm
-      .getByLabel('Purchase date and time')
-      .fill('2026-09-01T13:00');
-    await parkingForm.getByLabel('Total amount').fill('18.00');
-    await parkingForm.getByLabel('GST status').selectOption('GST_INCLUDED');
-    await parkingForm.getByLabel('Vehicle (optional)').selectOption({
+    await page.getByRole('link', { name: 'Add expense' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Add expense' }),
+    ).toBeVisible();
+    await page.getByLabel('Expense type').selectOption('PARKING');
+    const parkingForm = page.locator('form');
+    await formControl(parkingForm, 'Provider (optional)').fill(parkingProvider);
+    await formControl(parkingForm, 'Location').fill('E2E Waterfront Garage');
+    await formControl(parkingForm, 'Purchase date and time').fill(
+      '2026-09-01T13:00',
+    );
+    await formControl(parkingForm, 'Total amount').fill('18.00');
+    await parkingForm.locator('select').nth(0).selectOption('GST_INCLUDED');
+    await parkingForm.locator('select').nth(2).selectOption({
       label: vehicleRegistration,
     });
-    await parkingForm
-      .getByLabel('Reference / ticket number (optional)')
-      .fill('E2E-PARK-001');
-    await parkingForm
-      .getByRole('button', { name: 'Add parking expense' })
-      .click();
-    await expect(page.getByText('Expense added.')).toBeVisible();
-
-    const parkingCard = cardWith(page, parkingProvider);
-    await expect(parkingCard).toContainText('E2E Waterfront Garage');
-    await parkingCard.getByLabel('Choose existing photo or PDF').setInputFiles({
+    await formControl(parkingForm, 'Reference / ticket number (optional)').fill(
+      'E2E-PARK-001',
+    );
+    await parkingForm.getByRole('button', { name: 'Save expense' }).click();
+    await expect(
+      page.getByRole('heading', { name: parkingProvider }),
+    ).toBeVisible();
+    await expect(page.getByText('E2E Waterfront Garage')).toBeVisible();
+    await page.getByLabel('Choose existing photo or PDF').setInputFiles({
       name: 'e2e-receipt.pdf',
       mimeType: 'application/pdf',
       buffer: Buffer.from('%PDF-1.7\n%%EOF\n'),
     });
-    await parkingCard.getByRole('button', { name: 'Upload document' }).click();
+    await page.getByRole('button', { name: 'Upload document' }).click();
     await expect(
-      parkingCard.getByRole('link', { name: 'e2e-receipt.pdf' }),
+      page.getByRole('link', { name: 'e2e-receipt.pdf' }),
     ).toBeVisible();
   });
 

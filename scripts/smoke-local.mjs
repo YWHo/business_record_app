@@ -2398,6 +2398,48 @@ if (
   throw new Error('business parking attribution was not persisted');
 }
 
+const scopedParkingId = scopedParking.body.parkingRecord.id;
+const scopedParkingDetail = await request(
+  `/api/businesses/${scopedBusinessId}/expenses/${scopedParkingId}`,
+  {},
+  ownerCookie,
+);
+expectStatus(scopedParkingDetail, 200, 'business expense detail');
+if (
+  scopedParkingDetail.body.expense.id !== scopedParkingId ||
+  scopedParkingDetail.body.expense.expenseType !== 'PARKING' ||
+  scopedParkingDetail.body.expense.parkingLocation !== 'Wellington'
+) {
+  throw new Error('business expense detail did not preserve parking data');
+}
+
+const scopedParkingUpdate = await request(
+  `/api/businesses/${scopedBusinessId}/expenses/${scopedParkingId}`,
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      vehicleId,
+      parkingProvider: 'Scoped Parking Updated',
+      parkingLocation: 'Lower Hutt',
+      purchaseDatetime: '2026-09-12T12:15:00.000+12:00',
+      parkingStartDatetime: '2026-09-12T12:15:00.000+12:00',
+      parkingEndDatetime: '2026-09-12T12:45:00.000+12:00',
+      totalAmount: '9.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedParkingUpdate, 200, 'business expense update');
+if (
+  scopedParkingUpdate.body.parkingRecord.id !== scopedParkingId ||
+  scopedParkingUpdate.body.parkingRecord.businessId !== scopedBusinessId ||
+  scopedParkingUpdate.body.parkingRecord.parkingLocation !== 'Lower Hutt'
+) {
+  throw new Error('business expense update lost scoped parking data');
+}
+
 const scopedFuel = await request(
   `/api/businesses/${scopedBusinessId}/expenses`,
   {

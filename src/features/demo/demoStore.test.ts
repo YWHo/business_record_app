@@ -141,8 +141,10 @@ describe('browser-local public demo overlay', () => {
       {
         method: 'POST',
         body: JSON.stringify({
+          expenseType: 'PARKING',
           merchantName: 'Local ride expense',
           purchaseDatetime: '2026-07-02T10:00:00.000+12:00',
+          totalAmount: '18.50',
         }),
       },
     );
@@ -159,6 +161,9 @@ describe('browser-local public demo overlay', () => {
     expect(ride.expenses[0]).toMatchObject({
       businessId: 'business-demo-activity-rideshare',
       legalEntityId: 'demo-entity-taxi-limited',
+      expenseType: 'PARKING',
+      totalAmountMinor: 1850,
+      categoryName: 'Parking',
     });
     expect(delivery.expenses).toEqual([]);
     await expect(demoStorageSnapshot()).resolves.toMatchObject({
@@ -171,6 +176,60 @@ describe('browser-local public demo overlay', () => {
           legalEntityId: 'demo-entity-taxi-limited',
         },
       ],
+    });
+  });
+
+  it('applies scoped expense edits to list and detail representations', async () => {
+    const list = {
+      expenses: [
+        {
+          id: 'expense-seed',
+          businessId: 'business-demo-activity-delivery',
+          merchantName: 'Old merchant',
+          totalAmountMinor: 1000,
+        },
+      ],
+    };
+    await applyDemoOverlay(
+      list,
+      '/api/businesses/business-demo-activity-delivery/expenses',
+    );
+    await recordDemoMutation(
+      '/api/businesses/business-demo-activity-delivery/expenses/expense-seed',
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          expenseType: 'GENERAL',
+          merchantName: 'Updated merchant',
+          totalAmount: '25.00',
+        }),
+      },
+    );
+
+    await expect(
+      applyDemoOverlay(
+        list,
+        '/api/businesses/business-demo-activity-delivery/expenses',
+      ),
+    ).resolves.toMatchObject({
+      expenses: [
+        {
+          id: 'expense-seed',
+          merchantName: 'Updated merchant',
+          totalAmountMinor: 2500,
+        },
+      ],
+    });
+    await expect(
+      applyDemoOverlay(
+        { expense: list.expenses[0] },
+        '/api/businesses/business-demo-activity-delivery/expenses/expense-seed',
+      ),
+    ).resolves.toMatchObject({
+      expense: {
+        merchantName: 'Updated merchant',
+        totalAmountMinor: 2500,
+      },
     });
   });
 

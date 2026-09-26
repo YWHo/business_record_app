@@ -4,6 +4,7 @@ import { createGeneralExpense } from './expenseRecords';
 import { listIncomeRecords } from './incomeRecords';
 import {
   businessDashboard,
+  getBusinessExpense,
   listBusinessExpenses,
   listBusinessRecords,
 } from './businesses';
@@ -158,6 +159,58 @@ describe('business-scoped read routes', () => {
     expect(listQuery?.values).toEqual([
       'business-account-primary',
       'business-1',
+    ]);
+  });
+
+  it('loads an expense detail only through account and business scope', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('FROM expenses'))
+        return {
+          id: 'expense-1',
+          business_id: 'business-1',
+          legal_entity_id: 'entity-1',
+          expense_type: 'GENERAL',
+          expense_category_id: 'category-1',
+          category_name: 'Equipment',
+          merchant_name: 'Officeworks',
+          purchase_datetime: '2026-09-20T10:00:00.000+12:00',
+          total_amount_minor: 8990,
+          currency: 'NZD',
+          gst_amount_minor: 1173,
+          gst_status: 'GST_INCLUDED',
+          description: 'Office equipment',
+          recurrence_type: 'ONE_OFF',
+          status: 'NEW',
+          created_at: '2026-09-20T00:00:00.000Z',
+          updated_at: '2026-09-20T00:00:00.000Z',
+        };
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await getBusinessExpense(
+      new Request(
+        'https://demo.invalid/api/businesses/business-1/expenses/expense-1',
+      ),
+      env,
+      { businessId: 'business-1', expenseId: 'expense-1' },
+    );
+
+    expect(await response.json()).toMatchObject({
+      expense: {
+        id: 'expense-1',
+        businessId: 'business-1',
+        merchantName: 'Officeworks',
+        totalAmountMinor: 8990,
+      },
+    });
+    const detailQuery = queries.find((query) =>
+      query.sql.includes('parking_expense_details'),
+    );
+    expect(detailQuery?.values).toEqual([
+      'business-account-primary',
+      'business-1',
+      'expense-1',
     ]);
   });
 

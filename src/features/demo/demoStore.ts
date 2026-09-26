@@ -155,7 +155,10 @@ function resourceForPath(pathname: string): string {
   const scoped = pathname.match(/^\/api\/businesses\/[^/]+\/(.+)$/);
   if (scoped) {
     const resource = scoped[1].replace(/^\/+|\/+$/g, '');
-    return resource === 'income' ? 'income-records' : resource;
+    const root = resource.split('/')[0];
+    if (root === 'income') return 'income-records';
+    if (['expenses', 'work-sessions'].includes(root)) return root;
+    return resource;
   }
   return pathname.replace(/^\/api\//, '').replace(/^\/+|\/+$/g, '');
 }
@@ -438,6 +441,34 @@ function itemMatchesScope(
   return !itemBusinessId || itemBusinessId === operation.businessId;
 }
 
+function expensePresentation(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const amount = Number(body.totalAmount);
+  const expenseType = stringValue(body.expenseType || 'GENERAL');
+  const categoryLabels: Record<string, string> = {
+    GENERAL: 'General',
+    PARKING: 'Parking',
+    FUEL: 'Fuel',
+    INSURANCE: 'Insurance',
+  };
+  return {
+    ...body,
+    expenseType,
+    merchantName: stringValue(
+      body.merchantName || body.parkingProvider || body.provider || 'Expense',
+    ),
+    purchaseDatetime: stringValue(body.purchaseDatetime),
+    ...(Number.isFinite(amount)
+      ? { totalAmountMinor: Math.round(amount * 100) }
+      : {}),
+    categoryName:
+      stringValue(body.categoryName) ||
+      categoryLabels[expenseType] ||
+      'Expense',
+  };
+}
+
 function applyOperation(
   payload: unknown,
   operation: DemoOperation,
@@ -462,6 +493,10 @@ function applyOperation(
   )
     return;
   const recordId = operation.recordId ?? operation.id;
+  const operationBody =
+    operation.resource === 'expenses'
+      ? expensePresentation(operation.body)
+      : operation.body;
   if (Array.isArray((payload as Record<string, unknown>).trash) && isRestore) {
     const trash = (payload as Record<string, unknown>).trash as Array<
       Record<string, unknown>
@@ -526,7 +561,7 @@ function applyOperation(
       if ('deletedAt' in item) item.deletedAt = null;
       if ('deleted_at' in item) item.deleted_at = null;
     } else if (operation.method === 'PUT' || operation.method === 'PATCH')
-      Object.assign(item, operation.body);
+      Object.assign(item, operationBody);
   });
 
   if (
@@ -540,7 +575,7 @@ function applyOperation(
     Array<Record<string, unknown>> | undefined;
   if (!firstArray) return;
   let local: Record<string, unknown> = {
-    ...operation.body,
+    ...operationBody,
     id: operation.id,
     businessId: operation.businessId,
     legalEntityId: operation.legalEntityId,
