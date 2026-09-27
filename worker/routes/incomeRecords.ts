@@ -9,7 +9,9 @@ import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
 import {
   requireBusinessAccess,
+  requireBusinessScopedRecord,
   requireBusinessScopedReference,
+  requiresLegalEntityChangeConfirmation,
   resolveLegalEntityForBusinessDate,
 } from '../services/businessContextService';
 import {
@@ -129,6 +131,12 @@ const select = `SELECT income_records.id, income_records.business_id,
     SELECT latest.id FROM income_reconciliations AS latest
     WHERE latest.income_id = income_records.id ORDER BY latest.created_at DESC, latest.id DESC LIMIT 1)
   LEFT JOIN users AS reconcilers ON reconcilers.id = income_reconciliations.reconciled_by`;
+
+function routeIncomeId(params: RouteParameters): string {
+  const value = params.incomeId;
+  if (!value) throw new HttpError(400, 'Income record is required.');
+  return value;
+}
 
 function serialize(row: IncomeRow) {
   const common = {
@@ -526,6 +534,35 @@ export async function listIncomeRecords(
     },
   });
 }
+
+export async function getIncomeRecord(
+  request: Request,
+  env: Env,
+  params: RouteParameters,
+) {
+  const actor = await requireUser(request, env);
+  const routeBusinessId = params.businessId;
+  if (!routeBusinessId) throw new HttpError(400, 'Business is required.');
+  const business = await requireBusinessAccess(env.DB, actor, routeBusinessId);
+  const id = routeIncomeId(params);
+  await requireBusinessScopedRecord(
+    env.DB,
+    actor,
+    'income_records',
+    business.id,
+    id,
+  );
+  const row = await env.DB.prepare(
+    `${select} WHERE income_records.business_account_id=?
+      AND income_records.business_id=? AND income_records.id=?
+      AND income_records.deleted_at IS NULL`,
+  )
+    .bind(actor.businessAccountId, business.id, id)
+    .first<IncomeRow>();
+  if (!row) throw new HttpError(404, 'Income record not found.');
+  return json({ incomeRecord: serialize(row) });
+}
+
 export async function createIncomeRecord(
   request: Request,
   env: Env,
@@ -643,19 +680,92 @@ export async function createIncomeRecord(
   if (!row) throw new HttpError(500, 'Income record could not be loaded.');
   return json({ incomeRecord: serialize(row) }, { status: 201 });
 }
-export async function updateIncomeRecord(request: Request, env: Env) {
+export async function updateIncomeRecord(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
-  const id = getRequiredString(body, 'id');
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
+  const id = params.incomeId
+    ? routeIncomeId(params)
+    : getRequiredString(body, 'id');
+  if (business) {
+    await requireBusinessScopedRecord(
+      env.DB,
+      owner,
+      'income_records',
+      business.id,
+      id,
+    );
+  }
   const row = await env.DB.prepare(
-    `${select} WHERE income_records.id=? AND income_records.business_account_id=?`,
+    `${select} WHERE income_records.id=? AND income_records.business_account_id=?${business ? ' AND income_records.business_id=?' : ''}`,
   )
-    .bind(id, owner.businessAccountId)
+    .bind(id, owner.businessAccountId, ...(business ? [business.id] : []))
     .first<IncomeRow>();
   if (!row) throw new HttpError(404, 'Income record not found.');
-  const values = incomeValues(body, current(row));
+  const values = incomeValues(
+    business
+      ? { ...body, businessActivityId: business.legacyBusinessActivityId }
+      : body,
+    current(row),
+  );
   await references(env, owner.businessAccountId, values, row);
+  if (business && values.incomeType === 'CONTRACT') {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'clients',
+      business.id,
+      (values as ContractValues).clientId,
+    );
+  }
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.transactionDate,
+        { forWrite: true },
+      )
+    : null;
+  const confirmedWarnings = new Set(
+    Array.isArray(body.confirmedWarnings)
+      ? body.confirmedWarnings.filter(
+          (value): value is string => typeof value === 'string',
+        )
+      : [],
+  );
+  const attributionWarning = attribution
+    ? requiresLegalEntityChangeConfirmation(
+        row.legal_entity_id,
+        attribution,
+        confirmedWarnings,
+      )
+    : null;
+  if (attributionWarning) {
+    return json(
+      {
+        error: 'Review the legal-entity change before saving.',
+        warnings: [attributionWarning],
+      },
+      { status: 409 },
+    );
+  }
   if (values.incomeType === 'CONTRACT') {
     const v = values as ContractValues;
     const duplicate = await env.DB.prepare(
@@ -699,6 +809,46 @@ export async function updateIncomeRecord(request: Request, env: Env) {
       owner.businessAccountId,
     ),
     ...(detail ? [detail] : []),
+    ...(attribution && business
+      ? [
+          env.DB.prepare(
+            `UPDATE income_records SET legal_entity_id=?
+              WHERE business_account_id=? AND business_id=? AND id=?`,
+          ).bind(
+            attribution.legalEntity.id,
+            owner.businessAccountId,
+            business.id,
+            id,
+          ),
+          env.DB.prepare(
+            `UPDATE platform_income_details SET legal_entity_id=?
+              WHERE business_account_id=? AND business_id=? AND income_id=?`,
+          ).bind(
+            attribution.legalEntity.id,
+            owner.businessAccountId,
+            business.id,
+            id,
+          ),
+          env.DB.prepare(
+            `UPDATE contract_income_details SET legal_entity_id=?
+              WHERE business_account_id=? AND business_id=? AND income_id=?`,
+          ).bind(
+            attribution.legalEntity.id,
+            owner.businessAccountId,
+            business.id,
+            id,
+          ),
+          env.DB.prepare(
+            `UPDATE subscription_income_details SET legal_entity_id=?
+              WHERE business_account_id=? AND business_id=? AND income_id=?`,
+          ).bind(
+            attribution.legalEntity.id,
+            owner.businessAccountId,
+            business.id,
+            id,
+          ),
+        ]
+      : []),
   ];
   await env.DB.batch(statements);
   await writeAudit(
@@ -716,7 +866,9 @@ export async function updateIncomeRecord(request: Request, env: Env) {
     .bind(id, owner.businessAccountId)
     .first<IncomeRow>();
   if (!updated) throw new HttpError(500, 'Income record could not be loaded.');
-  return json({ incomeRecord: serialize(updated) });
+  const serialized = serialize(updated);
+  if (attribution) serialized.legalEntityId = attribution.legalEntity.id;
+  return json({ incomeRecord: serialized });
 }
 export async function reconcileIncome(request: Request, env: Env) {
   const actor = await requireUser(request, env);

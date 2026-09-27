@@ -12,7 +12,9 @@ import { ExpenseFormPage } from './routes/ExpenseFormPage';
 import { ExpensesPage } from './routes/ExpensesPage';
 import { ExportsPage } from './routes/ExportsPage';
 import { GovernancePage } from './routes/GovernancePage';
-import { IncomePage } from './routes/IncomePage';
+import { IncomeDetailPage } from './routes/IncomeDetailPage';
+import { IncomeFormPage } from './routes/IncomeFormPage';
+import { IncomeListPage } from './routes/IncomeListPage';
 import { LoginPage } from './routes/LoginPage';
 import { MileagePage } from './routes/MileagePage';
 import { NotFoundPage } from './routes/NotFoundPage';
@@ -95,7 +97,16 @@ export function App() {
                 path="expenses/insurance"
                 element={<LegacyExpenseFilterRedirect type="INSURANCE" />}
               />
-              <Route path="income" element={<IncomePage />} />
+              <Route path="income" element={<IncomeListPage />} />
+              <Route
+                path="income/new"
+                element={<IncomeFormPage mode="create" />}
+              />
+              <Route path="income/:incomeId" element={<IncomeDetailPage />} />
+              <Route
+                path="income/:incomeId/edit"
+                element={<IncomeFormPage mode="edit" />}
+              />
               <Route path="mileage" element={<MileagePage />} />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="reports" element={<ExportsPage />} />

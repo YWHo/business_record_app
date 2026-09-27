@@ -2342,6 +2342,45 @@ if (
   throw new Error('business income accepted browser-provided attribution');
 }
 
+const scopedIncomeId = scopedIncome.body.incomeRecord.id;
+const scopedIncomeDetail = await request(
+  `/api/businesses/${scopedBusinessId}/income/${scopedIncomeId}`,
+  {},
+  ownerCookie,
+);
+expectStatus(scopedIncomeDetail, 200, 'business income detail');
+if (
+  scopedIncomeDetail.body.incomeRecord.id !== scopedIncomeId ||
+  scopedIncomeDetail.body.incomeRecord.receivedFrom !== 'Scoped Customer'
+) {
+  throw new Error('business income detail did not preserve source data');
+}
+
+const scopedIncomeUpdate = await request(
+  `/api/businesses/${scopedBusinessId}/income/${scopedIncomeId}`,
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      receivedFrom: 'Scoped Customer Updated',
+      transactionDate: '2026-09-13',
+      totalAmount: '30.00',
+      currency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedIncomeUpdate, 200, 'business income update');
+if (
+  scopedIncomeUpdate.body.incomeRecord.id !== scopedIncomeId ||
+  scopedIncomeUpdate.body.incomeRecord.businessId !== scopedBusinessId ||
+  scopedIncomeUpdate.body.incomeRecord.receivedFrom !==
+    'Scoped Customer Updated' ||
+  scopedIncomeUpdate.body.incomeRecord.totalAmountMinor !== 3000
+) {
+  throw new Error('business income update lost scoped source data');
+}
+
 const scopedSession = await request(
   `/api/businesses/${scopedBusinessId}/work-sessions`,
   {

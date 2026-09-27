@@ -233,6 +233,65 @@ describe('browser-local public demo overlay', () => {
     });
   });
 
+  it('presents scoped income creates and edits in list and detail views', async () => {
+    await recordDemoMutation(
+      '/api/businesses/business-demo-activity-delivery/income',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          incomeType: 'PLATFORM',
+          providerName: 'Local platform',
+          paymentDate: '2026-07-04',
+          periodStart: '2026-07-01',
+          periodEnd: '2026-07-04',
+          grossEarnings: '120.00',
+          platformFees: '20.00',
+          netPaymentReceived: '100.00',
+          currency: 'NZD',
+        }),
+      },
+    );
+    const list = await applyDemoOverlay(
+      { incomeRecords: [] as Array<Record<string, unknown>> },
+      '/api/businesses/business-demo-activity-delivery/income',
+    );
+    expect(list.incomeRecords[0]).toMatchObject({
+      incomeType: 'PLATFORM',
+      transactionDate: '2026-07-04',
+      totalAmountMinor: 10000,
+      details: {
+        providerName: 'Local platform',
+        netPaymentReceivedMinor: 10000,
+      },
+    });
+
+    const id = String(list.incomeRecords[0].id);
+    await recordDemoMutation(
+      `/api/businesses/business-demo-activity-delivery/income/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          incomeType: 'PLATFORM',
+          providerName: 'Updated platform',
+          paymentDate: '2026-07-05',
+          netPaymentReceived: '105.00',
+        }),
+      },
+    );
+    await expect(
+      applyDemoOverlay(
+        { incomeRecord: list.incomeRecords[0] },
+        `/api/businesses/business-demo-activity-delivery/income/${id}`,
+      ),
+    ).resolves.toMatchObject({
+      incomeRecord: {
+        transactionDate: '2026-07-05',
+        totalAmountMinor: 10500,
+        details: { providerName: 'Updated platform' },
+      },
+    });
+  });
+
   it('migrates resolvable version-one operations and discards ambiguous ones', () => {
     const migrated = migrateLegacyDemoOperations([
       {

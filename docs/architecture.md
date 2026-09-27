@@ -145,6 +145,16 @@ Owners control source policy and premium fields. Both roles may read insurance, 
 
 Every income write starts with a common `income_records` row and, except for general income, a one-to-one typed detail row written in the same D1 batch. The shared amount deliberately follows each record's reporting meaning: platform and subscription net payment, contract invoice total, or general income total. Platform providers and business activities are configuration data rather than code enums. Contract invoices reference lifecycle-managed clients and remain unique per client and invoice number. Subscription details contain only period aggregates and never subscriber identities.
 
+The business workspace exposes income through separate list, create, detail,
+and edit routes. The selected business is authoritative and is never an
+editable form field. One progressive form reveals only the fields for the
+selected platform, contract, subscription, or general subtype; existing record
+subtypes cannot be changed. The Worker scopes detail and update access by
+account, business, and record, validates contract clients within that business,
+and derives legal-entity attribution from the effective transaction date. A
+date edit that crosses an operating-period boundary requires explicit
+confirmation before root and typed detail attribution are updated.
+
 Owners create and update income source records; accountants have read access. A separate reconciliation endpoint is available to both roles and appends expected and actual integer minor-unit values with actor attribution. D1 generates the difference while the Worker derives the exact-match flag. Reconciliation does not mutate the source income row or imply a bank integration.
 
 ## Private document storage

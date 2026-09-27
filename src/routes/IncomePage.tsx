@@ -1,14 +1,15 @@
+/* eslint-disable react-refresh/only-export-components */
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
-type IncomeType = 'PLATFORM' | 'CONTRACT' | 'SUBSCRIPTION' | 'GENERAL';
-interface Reference {
+export type IncomeType = 'PLATFORM' | 'CONTRACT' | 'SUBSCRIPTION' | 'GENERAL';
+export interface IncomeReference {
   id: string;
   name: string;
   active: boolean;
 }
-interface Reconciliation {
+export interface IncomeReconciliation {
   expectedAmountMinor: number;
   actualAmountMinor: number;
   differenceAmountMinor: number;
@@ -16,10 +17,10 @@ interface Reconciliation {
   notes: string | null;
   reconcilerEmail: string;
 }
-interface Details {
+export interface IncomeDetails {
   [key: string]: string | number | null;
 }
-interface IncomeRecord {
+export interface IncomeRecord {
   id: string;
   businessId: string;
   legalEntityId: string;
@@ -30,11 +31,14 @@ interface IncomeRecord {
   transactionDate: string;
   totalAmountMinor: number;
   currency: string;
+  status: string;
   notes: string | null;
-  details: Details | null;
-  reconciliation: Reconciliation | null;
+  createdAt?: string;
+  updatedAt?: string;
+  details: IncomeDetails | null;
+  reconciliation: IncomeReconciliation | null;
 }
-interface Draft {
+export interface IncomeDraft {
   incomeType: IncomeType;
   businessActivityId: string;
   currency: string;
@@ -75,7 +79,7 @@ interface Draft {
 const today = () => new Date().toISOString().slice(0, 10);
 const amount = (minor: unknown) =>
   typeof minor === 'number' ? (minor / 100).toFixed(2) : '';
-function emptyDraft(): Draft {
+export function emptyIncomeDraft(): IncomeDraft {
   const date = today();
   return {
     incomeType: 'PLATFORM',
@@ -116,8 +120,8 @@ function emptyDraft(): Draft {
     cancelledSubscribers: '',
   };
 }
-function fromRecord(record: IncomeRecord): Draft {
-  const draft = emptyDraft(),
+export function incomeDraftFrom(record: IncomeRecord): IncomeDraft {
+  const draft = emptyIncomeDraft(),
     details = record.details ?? {};
   return {
     ...draft,
@@ -163,25 +167,29 @@ const money = (minor: number, currency: string) =>
   new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
-function IncomeForm({
+export function IncomeForm({
   initial,
   activities,
   clients,
   submitLabel,
   onSubmit,
   onCancel,
+  showActivity = true,
+  lockType = false,
 }: {
-  initial: Draft;
-  activities: Reference[];
-  clients: Reference[];
+  initial: IncomeDraft;
+  activities: IncomeReference[];
+  clients: IncomeReference[];
   submitLabel: string;
-  onSubmit: (draft: Draft) => Promise<void>;
+  onSubmit: (draft: IncomeDraft) => Promise<void>;
   onCancel?: () => void;
+  showActivity?: boolean;
+  lockType?: boolean;
 }) {
   const [draft, setDraft] = useState(initial),
     [saving, setSaving] = useState(false);
   const field =
-    (key: keyof Draft) =>
+    (key: keyof IncomeDraft) =>
     (
       event: React.ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -228,7 +236,7 @@ function IncomeForm({
         <label>
           Income type
           <select
-            disabled={Boolean(onCancel)}
+            disabled={lockType || Boolean(onCancel)}
             value={draft.incomeType}
             onChange={field('incomeType')}
           >
@@ -238,26 +246,28 @@ function IncomeForm({
             <option value="GENERAL">General income</option>
           </select>
         </label>
-        <label>
-          Business activity
-          <select
-            required
-            value={draft.businessActivityId}
-            onChange={field('businessActivityId')}
-          >
-            <option value="">Select activity</option>
-            {activities
-              .filter(
-                (item) => item.active || item.id === draft.businessActivityId,
-              )
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {item.active ? '' : ' (inactive)'}
-                </option>
-              ))}
-          </select>
-        </label>
+        {showActivity ? (
+          <label>
+            Business activity
+            <select
+              required
+              value={draft.businessActivityId}
+              onChange={field('businessActivityId')}
+            >
+              <option value="">Select activity</option>
+              {activities
+                .filter(
+                  (item) => item.active || item.id === draft.businessActivityId,
+                )
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                    {item.active ? '' : ' (inactive)'}
+                  </option>
+                ))}
+            </select>
+          </label>
+        ) : null}
       </div>
       {draft.incomeType === 'PLATFORM' ? (
         <>
@@ -658,7 +668,7 @@ function IncomeForm({
     </form>
   );
 }
-function ReconcileForm({
+export function ReconcileForm({
   record,
   onSaved,
 }: {
@@ -741,8 +751,8 @@ export function IncomePage() {
   const { configuration, user } = useAuth(),
     canManage = user?.role === 'OWNER';
   const [records, setRecords] = useState<IncomeRecord[]>([]),
-    [activities, setActivities] = useState<Reference[]>([]),
-    [clients, setClients] = useState<Reference[]>([]),
+    [activities, setActivities] = useState<IncomeReference[]>([]),
+    [clients, setClients] = useState<IncomeReference[]>([]),
     [summary, setSummary] = useState<
       { currency: string; totalAmountMinor: number }[]
     >([]),
@@ -757,8 +767,8 @@ export function IncomePage() {
           totalsByCurrency: { currency: string; totalAmountMinor: number }[];
         };
       }>('/api/income-records'),
-      apiRequest<{ activities: Reference[] }>('/api/business-activities'),
-      apiRequest<{ clients: Reference[] }>('/api/clients'),
+      apiRequest<{ activities: IncomeReference[] }>('/api/business-activities'),
+      apiRequest<{ clients: IncomeReference[] }>('/api/clients'),
     ]);
     setRecords(income.incomeRecords);
     setSummary(income.summary.totalsByCurrency);
@@ -774,7 +784,7 @@ export function IncomePage() {
       ),
     );
   }, [load]);
-  async function save(draft: Draft, id?: string) {
+  async function save(draft: IncomeDraft, id?: string) {
     setError('');
     try {
       await apiRequest('/api/income-records', {
@@ -833,7 +843,7 @@ export function IncomePage() {
         <section className="panel">
           <h2>Add income</h2>
           <IncomeForm
-            initial={emptyDraft()}
+            initial={emptyIncomeDraft()}
             activities={activities}
             clients={clients}
             submitLabel="Add income"
@@ -857,7 +867,7 @@ export function IncomePage() {
             <article className="record-card" key={record.id}>
               {edit?.id === record.id ? (
                 <IncomeForm
-                  initial={fromRecord(record)}
+                  initial={incomeDraftFrom(record)}
                   activities={activities}
                   clients={clients}
                   submitLabel="Save changes"

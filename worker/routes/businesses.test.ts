@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Env } from '../types';
 import { createGeneralExpense } from './expenseRecords';
-import { listIncomeRecords } from './incomeRecords';
+import { getIncomeRecord, listIncomeRecords } from './incomeRecords';
 import {
   businessDashboard,
   getBusinessExpense,
@@ -211,6 +211,60 @@ describe('business-scoped read routes', () => {
       'business-account-primary',
       'business-1',
       'expense-1',
+    ]);
+  });
+
+  it('loads an income detail only through account and business scope', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.startsWith('SELECT id FROM income_records')) {
+        return { id: 'income-1' };
+      }
+      if (query.sql.includes('FROM income_records')) {
+        return {
+          id: 'income-1',
+          business_id: 'business-1',
+          legal_entity_id: 'entity-1',
+          business_activity_id: 'activity-derived',
+          activity_name: 'Uber Ride',
+          income_type: 'GENERAL',
+          received_from: 'Customer',
+          transaction_date: '2026-09-20',
+          total_amount_minor: 5000,
+          currency: 'NZD',
+          status: 'NEW',
+          notes: null,
+          created_at: '2026-09-20T00:00:00.000Z',
+          updated_at: '2026-09-20T00:00:00.000Z',
+          reconciliation_id: null,
+        };
+      }
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await getIncomeRecord(
+      new Request(
+        'https://demo.invalid/api/businesses/business-1/income/income-1',
+      ),
+      env,
+      { businessId: 'business-1', incomeId: 'income-1' },
+    );
+
+    expect(await response.json()).toMatchObject({
+      incomeRecord: {
+        id: 'income-1',
+        businessId: 'business-1',
+        receivedFrom: 'Customer',
+        totalAmountMinor: 5000,
+      },
+    });
+    const detailQuery = queries.find((query) =>
+      query.sql.includes('LEFT JOIN platform_income_details'),
+    );
+    expect(detailQuery?.values).toEqual([
+      'business-account-primary',
+      'business-1',
+      'income-1',
     ]);
   });
 

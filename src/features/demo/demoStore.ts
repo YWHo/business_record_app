@@ -469,6 +469,77 @@ function expensePresentation(
   };
 }
 
+function incomePresentation(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const incomeType = stringValue(body.incomeType || 'GENERAL');
+  const minor = (value: unknown) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
+  };
+  const total =
+    incomeType === 'PLATFORM' || incomeType === 'SUBSCRIPTION'
+      ? minor(body.netPaymentReceived)
+      : incomeType === 'CONTRACT'
+        ? minor(body.total)
+        : minor(body.totalAmount);
+  const transactionDate =
+    incomeType === 'PLATFORM'
+      ? stringValue(body.paymentDate)
+      : incomeType === 'CONTRACT'
+        ? stringValue(body.invoiceDate)
+        : incomeType === 'SUBSCRIPTION'
+          ? stringValue(body.periodEnd)
+          : stringValue(body.transactionDate);
+  const details =
+    incomeType === 'PLATFORM'
+      ? {
+          providerName: body.providerName,
+          periodStart: body.periodStart,
+          periodEnd: body.periodEnd,
+          paymentDate: body.paymentDate,
+          grossEarningsMinor: minor(body.grossEarnings),
+          platformFeesMinor: minor(body.platformFees),
+          netPaymentReceivedMinor: minor(body.netPaymentReceived),
+        }
+      : incomeType === 'CONTRACT'
+        ? {
+            clientId: body.clientId,
+            invoiceNumber: body.invoiceNumber,
+            invoiceDate: body.invoiceDate,
+            subtotalMinor: minor(body.subtotal),
+            gstAmountMinor: minor(body.gstAmount),
+            totalMinor: minor(body.total),
+            paymentStatus: body.paymentStatus,
+            amountReceivedMinor: minor(body.amountReceived),
+          }
+        : incomeType === 'SUBSCRIPTION'
+          ? {
+              periodStart: body.periodStart,
+              periodEnd: body.periodEnd,
+              grossSubscriptionRevenueMinor: minor(
+                body.grossSubscriptionRevenue,
+              ),
+              refundsMinor: minor(body.refunds),
+              platformFeesMinor: minor(body.platformFees),
+              paymentProcessingFeesMinor: minor(body.paymentProcessingFees),
+              netPaymentReceivedMinor: minor(body.netPaymentReceived),
+              subscriberCount: Number(body.subscriberCount) || null,
+            }
+          : null;
+  return {
+    ...body,
+    incomeType,
+    transactionDate,
+    ...(total !== null ? { totalAmountMinor: total } : {}),
+    receivedFrom:
+      body.receivedFrom ??
+      body.providerName ??
+      (incomeType === 'SUBSCRIPTION' ? 'Subscription platform' : null),
+    details,
+  };
+}
+
 function applyOperation(
   payload: unknown,
   operation: DemoOperation,
@@ -496,7 +567,9 @@ function applyOperation(
   const operationBody =
     operation.resource === 'expenses'
       ? expensePresentation(operation.body)
-      : operation.body;
+      : operation.resource === 'income-records'
+        ? incomePresentation(operation.body)
+        : operation.body;
   if (Array.isArray((payload as Record<string, unknown>).trash) && isRestore) {
     const trash = (payload as Record<string, unknown>).trash as Array<
       Record<string, unknown>

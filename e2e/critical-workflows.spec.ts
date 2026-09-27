@@ -211,14 +211,13 @@ test.describe.serial('critical business workflows', () => {
     page,
   }) => {
     await login(page, 'owner');
-    await page.getByRole('link', { name: 'Income' }).click();
-    const form = page
-      .getByRole('heading', { name: 'Add income' })
-      .locator('..');
-
-    await form.getByLabel('Business activity').selectOption({
+    await page.getByLabel('Current business').selectOption({
       label: 'Delivery Platform',
     });
+    await expect(page).toHaveURL(/business-activity-delivery$/);
+    await page.getByRole('link', { name: 'Income', exact: true }).click();
+    await page.getByRole('link', { name: 'Add income' }).click();
+    let form = page.locator('form');
     await form.getByLabel('Provider').fill(platformProvider);
     await form.getByLabel('Payment date').fill('2026-09-02');
     await form.getByLabel('Earning period start').fill('2026-09-01');
@@ -226,13 +225,20 @@ test.describe.serial('critical business workflows', () => {
     await form.getByLabel('Gross earnings').fill('150.00');
     await form.getByLabel('Platform fees').fill('20.00');
     await form.getByLabel('Net payment received').fill('130.00');
-    await form.getByRole('button', { name: 'Add income' }).click();
-    await expect(cardWith(page, platformProvider)).toContainText('$130.00');
+    await form.getByRole('button', { name: 'Save income' }).click();
+    await expect(
+      page.getByRole('heading', { name: platformProvider }),
+    ).toBeVisible();
+    await expect(page.getByText('$130.00').first()).toBeVisible();
 
-    await form.getByLabel('Income type').selectOption('CONTRACT');
-    await form.getByLabel('Business activity').selectOption({
+    await page.getByLabel('Current business').selectOption({
       label: 'IT Contracting',
     });
+    await expect(page).toHaveURL(/business-activity-contracting$/);
+    await page.getByRole('link', { name: 'Income', exact: true }).click();
+    await page.getByRole('link', { name: 'Add income' }).click();
+    form = page.locator('form');
+    await form.getByLabel('Income type').selectOption('CONTRACT');
     await form.getByLabel('Client').selectOption({
       label: contractClient,
     });
@@ -242,13 +248,20 @@ test.describe.serial('critical business workflows', () => {
     await form.getByLabel('GST').fill('150.00');
     await form.getByLabel('Invoice total').fill('1150.00');
     await form.getByLabel('Payment status').selectOption('ISSUED');
-    await form.getByRole('button', { name: 'Add income' }).click();
-    await expect(cardWith(page, contractInvoice)).toContainText('$1,150.00');
+    await form.getByRole('button', { name: 'Save income' }).click();
+    await expect(
+      page.getByRole('heading', { name: new RegExp(contractInvoice) }),
+    ).toBeVisible();
+    await expect(page.getByText('$1,150.00').first()).toBeVisible();
 
-    await form.getByLabel('Income type').selectOption('SUBSCRIPTION');
-    await form.getByLabel('Business activity').selectOption({
+    await page.getByLabel('Current business').selectOption({
       label: 'SaaS Business',
     });
+    await expect(page).toHaveURL(/business-activity-saas$/);
+    await page.getByRole('link', { name: 'Income', exact: true }).click();
+    await page.getByRole('link', { name: 'Add income' }).click();
+    form = page.locator('form');
+    await form.getByLabel('Income type').selectOption('SUBSCRIPTION');
     await form.getByLabel('Summary period start').fill('2026-09-01');
     await form.getByLabel('Summary period end').fill('2026-09-30');
     await form.getByLabel('Gross revenue').fill('600.00');
@@ -258,8 +271,9 @@ test.describe.serial('critical business workflows', () => {
     await form.getByLabel('Net payment received').fill('510.00');
     await form.getByLabel('Subscriber count').fill('42');
     await form.getByLabel('Notes').fill(subscriptionNotes);
-    await form.getByRole('button', { name: 'Add income' }).click();
-    await expect(cardWith(page, subscriptionNotes)).toContainText('$510.00');
+    await form.getByRole('button', { name: 'Save income' }).click();
+    await expect(page.getByText(subscriptionNotes)).toBeVisible();
+    await expect(page.getByText('$510.00').first()).toBeVisible();
   });
 
   test('accountant reviews records and edits permitted accounting fields', async ({
@@ -313,18 +327,26 @@ test.describe.serial('critical business workflows', () => {
       'reviewed',
     );
 
-    await accountantPage.getByRole('link', { name: 'Income' }).click();
+    await accountantPage.getByLabel('Current business').selectOption({
+      label: 'Delivery Platform',
+    });
+    await expect(accountantPage).toHaveURL(
+      /business-activity-delivery(?:\/|$)/,
+    );
+    await accountantPage
+      .getByRole('link', { name: 'Income', exact: true })
+      .click();
     await expect(
-      accountantPage.getByRole('button', { name: 'Add income' }),
+      accountantPage.getByRole('link', { name: 'Add income' }),
     ).toHaveCount(0);
-    const platformCard = cardWith(accountantPage, platformProvider);
-    await platformCard.getByRole('button', { name: 'Reconcile' }).click();
-    await platformCard.getByLabel('Actual').fill('129.50');
-    await platformCard.getByLabel('Notes').fill('E2E bank reconciliation');
-    await platformCard
+    await accountantPage.getByRole('link', { name: platformProvider }).click();
+    await accountantPage.getByRole('button', { name: 'Reconcile' }).click();
+    await accountantPage.getByLabel('Actual').fill('129.50');
+    await accountantPage.getByLabel('Notes').fill('E2E bank reconciliation');
+    await accountantPage
       .getByRole('button', { name: 'Save reconciliation' })
       .click();
-    await expect(platformCard.getByText('Difference:')).toBeVisible();
+    await expect(accountantPage.getByText('Difference:')).toBeVisible();
     await accountantContext.close();
   });
 

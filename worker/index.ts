@@ -66,6 +66,7 @@ import {
 import { createClient, listClients, updateClient } from './routes/clients';
 import {
   createIncomeRecord,
+  getIncomeRecord,
   listIncomeRecords,
   reconcileIncome,
   updateIncomeRecord,
@@ -184,6 +185,16 @@ const routes: Route[] = [
     method: 'POST',
     pathname: '/api/businesses/:businessId/income',
     handler: createIncomeRecord,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/income/:incomeId',
+    handler: getIncomeRecord,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/businesses/:businessId/income/:incomeId',
+    handler: updateIncomeRecord,
   },
   {
     method: 'GET',

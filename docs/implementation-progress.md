@@ -785,3 +785,29 @@ Acceptance criteria completed:
 Notes: Legacy flat expense endpoints remain available for compatibility, but
 the business workspace no longer mounts their multi-form pages. Historical
 fuel and insurance URLs redirect to the corresponding subtype filter.
+
+## List-first business income workflow
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the combined income creation/history page with a business-scoped,
+  filterable list and responsive phone presentation.
+- Added dedicated create, detail, and edit routes with one progressive form
+  that reveals fields only for platform, contract, subscription, or general
+  income.
+- Removed the editable business-activity and legal-entity selectors from
+  scoped forms; business comes from the route and legal entity is resolved by
+  the Worker from the effective transaction date.
+- Preserved contract payment tracking, manual reconciliation, supporting
+  documents, source notes, and all subtype-specific financial evidence.
+- Added account/business/record scoping for detail and edit APIs, scoped client
+  validation, and explicit confirmation before a date edit changes legal
+  entity.
+- Updated browser-local demo presentation, route/component coverage,
+  local-D1 smoke checks, and critical browser workflows for cross-business
+  income entry and accountant reconciliation.
+
+Notes: The legacy flat income endpoint remains available for compatibility,
+but the business workspace no longer mounts inline create or edit forms.
