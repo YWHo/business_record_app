@@ -615,6 +615,7 @@ function applyOperation(
   if (!crossCutting && requestResource !== operation.resource) return;
   if (
     ['attachments', 'comments'].includes(operation.resource) &&
+    requestResource !== 'documents' &&
     requestUrl.searchParams.get('recordId') !== operation.recordId
   )
     return;
@@ -706,7 +707,10 @@ function applyOperation(
   if (
     operation.method !== 'POST' ||
     nonCreatingCommands.has(operation.resource) ||
-    requestResource !== operation.resource
+    (requestResource !== operation.resource &&
+      !(
+        operation.resource === 'attachments' && requestResource === 'documents'
+      ))
   )
     return;
   const root = payload as Record<string, unknown>;
@@ -729,6 +733,9 @@ function applyOperation(
       mimeType: 'application/octet-stream',
       fileSize: 0,
       createdByEmail: 'browser-local-demo',
+      recordLabel: 'Browser-local demo record',
+      recordDate: operation.createdAt.slice(0, 10),
+      recordStatus: 'NEW',
       versionNumber: 1,
       isCurrent: true,
       displayRotationDegrees: Number(

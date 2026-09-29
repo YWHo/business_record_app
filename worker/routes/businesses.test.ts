@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Env } from '../types';
+import { listBusinessDocuments } from './attachments';
 import { createGeneralExpense } from './expenseRecords';
 import { getIncomeRecord, listIncomeRecords } from './incomeRecords';
+import { listTransactions } from './review';
 import {
   businessDashboard,
   getBusinessExpense,
@@ -422,6 +424,86 @@ describe('business-scoped read routes', () => {
       (query) => query.operation === 'all' && !query.sql.includes('businesses'),
     );
     expect(listQuery?.sql).toContain(predicate);
+    expect(listQuery?.values).toEqual([
+      'business-account-primary',
+      'business-1',
+    ]);
+  });
+
+  it('binds account and business IDs for the transaction workspace', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.operation === 'all') return [];
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await listTransactions(
+      new Request(
+        'https://demo.invalid/api/businesses/business-1/transactions?page=1',
+      ),
+      env,
+      { businessId: 'business-1' },
+    );
+
+    expect(response.status).toBe(200);
+    const listQuery = queries.find((query) =>
+      query.sql.includes('SELECT * FROM'),
+    );
+    expect(listQuery?.sql).toContain('business_id = ?');
+    expect(listQuery?.values.slice(0, 2)).toEqual([
+      'business-account-primary',
+      'business-1',
+    ]);
+  });
+
+  it('lists current documents only inside the selected business', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.operation === 'all')
+        return [
+          {
+            id: 'attachment-1',
+            record_type: 'EXPENSE',
+            record_id: 'expense-1',
+            version_group_id: 'version-1',
+            object_key: 'private/key',
+            original_filename: 'receipt.pdf',
+            mime_type: 'application/pdf',
+            file_size: 1024,
+            sha256: 'abc',
+            created_at: '2026-09-20T00:00:00.000Z',
+            version_number: 1,
+            is_current: 1,
+            display_rotation_degrees: 0,
+            creator_email: 'owner@example.invalid',
+            business_id: 'business-1',
+            legal_entity_id: 'entity-1',
+            record_label: 'Supplier',
+            record_date: '2026-09-20',
+            record_status: 'NEW',
+          },
+        ];
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await listBusinessDocuments(
+      new Request('https://demo.invalid/api/businesses/business-1/documents'),
+      env,
+      { businessId: 'business-1' },
+    );
+
+    expect(await response.json()).toMatchObject({
+      documents: [
+        {
+          id: 'attachment-1',
+          businessId: 'business-1',
+          recordLabel: 'Supplier',
+        },
+      ],
+    });
+    const listQuery = queries.find((query) =>
+      query.sql.includes('FROM attachments JOIN users'),
+    );
     expect(listQuery?.values).toEqual([
       'business-account-primary',
       'business-1',

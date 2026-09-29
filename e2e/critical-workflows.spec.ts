@@ -22,7 +22,7 @@ async function login(page: Page, role: 'owner' | 'accountant') {
 }
 
 function cardWith(page: Page, content: string): Locator {
-  return page.locator('article').filter({ hasText: content }).first();
+  return page.locator('article, tr').filter({ hasText: content }).first();
 }
 
 function formControl(form: Locator, label: string): Locator {
@@ -211,6 +211,16 @@ test.describe.serial('critical business workflows', () => {
     await expect(
       page.getByRole('link', { name: 'e2e-receipt.pdf' }),
     ).toBeVisible();
+    await page.getByRole('link', { name: 'Documents' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Documents' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'e2e-receipt.pdf' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /missing attachments/i }),
+    ).toBeVisible();
   });
 
   test('owner records platform, IT invoice, and SaaS income', async ({
@@ -289,9 +299,7 @@ test.describe.serial('critical business workflows', () => {
     const ownerPage = await ownerContext.newPage();
     await login(ownerPage, 'owner');
     await ownerPage.getByRole('link', { name: 'Transactions' }).click();
-    await ownerPage
-      .getByLabel('Search merchant, client, or type')
-      .fill(contractClient);
+    await ownerPage.getByLabel('Search transactions').fill(contractClient);
     await ownerPage
       .getByRole('button', { name: 'Search', exact: true })
       .click();
@@ -310,9 +318,7 @@ test.describe.serial('critical business workflows', () => {
     const accountantPage = await accountantContext.newPage();
     await login(accountantPage, 'accountant');
     await accountantPage.getByRole('link', { name: 'Transactions' }).click();
-    await accountantPage
-      .getByLabel('Search merchant, client, or type')
-      .fill(contractClient);
+    await accountantPage.getByLabel('Search transactions').fill(contractClient);
     await accountantPage
       .getByRole('button', { name: 'Search', exact: true })
       .click();
@@ -361,13 +367,12 @@ test.describe.serial('critical business workflows', () => {
   }) => {
     await login(page, 'owner');
     await page.getByRole('link', { name: 'Transactions' }).click();
-    await page
-      .getByLabel('Search merchant, client, or type')
-      .fill(parkingProvider);
+    await page.getByLabel('Search transactions').fill(parkingProvider);
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(cardWith(page, parkingProvider)).toBeVisible();
     await page.getByRole('button', { name: 'Clear' }).click();
     await page.getByLabel('Income or expense').selectOption('INCOME');
+    await page.getByText('More filters').click();
     await page.getByLabel('Record type').selectOption('CONTRACT');
     await page.getByLabel('Status').selectOption('REVIEWED');
     await page.getByRole('button', { name: 'Search', exact: true }).click();
@@ -420,9 +425,7 @@ test.describe.serial('critical business workflows', () => {
 
     await login(page, 'owner');
     await page.getByRole('link', { name: 'Transactions' }).click();
-    await page
-      .getByLabel('Search merchant, client, or type')
-      .fill(parkingProvider);
+    await page.getByLabel('Search transactions').fill(parkingProvider);
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     const trashCard = cardWith(page, parkingProvider);
     page.once('dialog', (dialog) => dialog.accept());
@@ -439,9 +442,7 @@ test.describe.serial('critical business workflows', () => {
     await expect(cardWith(page, parkingProvider)).toHaveCount(0);
 
     await page.getByRole('link', { name: 'Transactions' }).click();
-    await page
-      .getByLabel('Search merchant, client, or type')
-      .fill(parkingProvider);
+    await page.getByLabel('Search transactions').fill(parkingProvider);
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(cardWith(page, parkingProvider)).toBeVisible();
   });

@@ -237,422 +237,449 @@ describe('App', () => {
                       },
                       exports: [],
                     }
-                  : url.includes('/api/transactions?') ||
-                      url.includes('/api/receipts?')
+                  : /\/api\/businesses\/[^/]+\/documents$/.test(url)
                     ? {
-                        transactions: [
+                        documents: [
                           {
-                            id: 'income-local',
+                            id: 'document-local',
                             recordType: 'INCOME',
-                            subtype: 'CONTRACT',
-                            transactionDate: '2026-09-01',
-                            businessActivityId: 'activity-contracting',
-                            activityName: 'IT Contracting',
-                            counterparty: 'Example Consulting Client',
-                            totalAmountMinor: 115_000,
-                            currency: 'NZD',
-                            status: 'READY_FOR_REVIEW',
-                            categoryId: null,
-                            categoryName: null,
-                            vehicleId: null,
-                            vehicleRegistration: null,
-                            reviewedBy: null,
-                            reviewerEmail: null,
-                            reviewedAt: null,
-                            attachmentCount: 0,
+                            recordId: 'income-local',
+                            originalFilename: 'invoice-101.pdf',
+                            mimeType: 'application/pdf',
+                            fileSize: 2048,
+                            createdAt: '2026-09-08T03:00:00.000Z',
+                            createdByEmail: 'owner@local.test',
+                            recordLabel: 'Example Consulting Client',
+                            recordDate: '2026-09-01',
+                            recordStatus: 'READY_FOR_REVIEW',
+                            downloadUrl:
+                              '/api/attachments/file?id=document-local',
                           },
                         ],
-                        summary: {
-                          resultCount: 1,
-                          missingAttachmentCount: 1,
-                          unreviewedCount: 1,
-                        },
                       }
-                    : url.includes('/api/saved-filters?')
-                      ? { savedFilters: [] }
-                      : url.includes('/api/audit-log?')
-                        ? {
-                            auditEvents: [
-                              {
-                                id: 'audit-1',
-                                action: 'RECORD_TRASHED',
-                                entityType: 'EXPENSE',
-                                entityId: 'expense-old',
-                                activityName: 'IT Contracting',
-                                summary: 'Record moved to trash.',
-                                createdAt: '2026-09-09T00:00:00.000Z',
-                                userEmail: 'owner@local.test',
-                                userId: 'owner-local',
-                                businessActivityId: 'activity-contracting',
-                              },
-                            ],
-                          }
-                        : url.endsWith('/api/trash')
+                    : /\/api\/(?:businesses\/[^/]+\/)?(?:transactions|receipts)\?/.test(
+                          url,
+                        )
+                      ? {
+                          transactions: [
+                            {
+                              id: 'income-local',
+                              recordType: 'INCOME',
+                              subtype: 'CONTRACT',
+                              transactionDate: '2026-09-01',
+                              businessActivityId: 'activity-contracting',
+                              activityName: 'IT Contracting',
+                              counterparty: 'Example Consulting Client',
+                              totalAmountMinor: 115_000,
+                              currency: 'NZD',
+                              status: 'READY_FOR_REVIEW',
+                              categoryId: null,
+                              categoryName: null,
+                              vehicleId: null,
+                              vehicleRegistration: null,
+                              reviewedBy: null,
+                              reviewerEmail: null,
+                              reviewedAt: null,
+                              attachmentCount: 0,
+                            },
+                          ],
+                          summary: {
+                            resultCount: 1,
+                            missingAttachmentCount: 1,
+                            unreviewedCount: 1,
+                          },
+                        }
+                      : url.includes('/api/saved-filters?')
+                        ? { savedFilters: [] }
+                        : url.includes('/api/audit-log?')
                           ? {
-                              trash: [
+                              auditEvents: [
                                 {
-                                  id: 'expense-old',
-                                  recordType: 'EXPENSE',
-                                  subtype: 'GENERAL',
-                                  label: 'Archived software',
-                                  recordDate: '2026-01-01',
-                                  deletedAt: '2026-09-09T00:00:00.000Z',
-                                  retentionUntil: '2036-03-31T23:59:59.999Z',
-                                  purgeEligibleAt: '2036-03-31T23:59:59.999Z',
-                                  purgeEligible: false,
-                                  purgePending: false,
+                                  id: 'audit-1',
+                                  action: 'RECORD_TRASHED',
+                                  entityType: 'EXPENSE',
+                                  entityId: 'expense-old',
+                                  activityName: 'IT Contracting',
+                                  summary: 'Record moved to trash.',
+                                  createdAt: '2026-09-09T00:00:00.000Z',
+                                  userEmail: 'owner@local.test',
+                                  userId: 'owner-local',
+                                  businessActivityId: 'activity-contracting',
                                 },
                               ],
                             }
-                          : url.endsWith('/api/retention-settings')
+                          : url.endsWith('/api/trash')
                             ? {
-                                retentionSettings: {
-                                  retentionTaxYears: 10,
-                                  taxYearEndMonth: 3,
-                                  taxYearEndDay: 31,
-                                  backupReminderDays: 30,
-                                  updatedAt: '2026-09-09T00:00:00.000Z',
-                                },
+                                trash: [
+                                  {
+                                    id: 'expense-old',
+                                    recordType: 'EXPENSE',
+                                    subtype: 'GENERAL',
+                                    label: 'Archived software',
+                                    recordDate: '2026-01-01',
+                                    deletedAt: '2026-09-09T00:00:00.000Z',
+                                    retentionUntil: '2036-03-31T23:59:59.999Z',
+                                    purgeEligibleAt: '2036-03-31T23:59:59.999Z',
+                                    purgeEligible: false,
+                                    purgePending: false,
+                                  },
+                                ],
                               }
-                            : url.includes('/api/attachments?')
-                              ? { attachments: [] }
-                              : url.endsWith('/api/clients')
-                                ? {
-                                    clients: [
-                                      {
-                                        id: 'client-local',
-                                        name: 'Example Consulting Client',
-                                        active: true,
-                                        notes: null,
-                                      },
-                                    ],
-                                  }
-                                : /\/api\/businesses\/[^/]+\/income\/income-local$/.test(
-                                      url,
-                                    )
+                            : url.endsWith('/api/retention-settings')
+                              ? {
+                                  retentionSettings: {
+                                    retentionTaxYears: 10,
+                                    taxYearEndMonth: 3,
+                                    taxYearEndDay: 31,
+                                    backupReminderDays: 30,
+                                    updatedAt: '2026-09-09T00:00:00.000Z',
+                                  },
+                                }
+                              : url.includes('/api/attachments?')
+                                ? { attachments: [] }
+                                : url.endsWith('/api/clients')
                                   ? {
-                                      incomeRecord: {
-                                        id: 'income-local',
-                                        businessId:
-                                          'business-activity-contracting',
-                                        legalEntityId: 'entity-owner',
-                                        businessActivityId:
-                                          'activity-contracting',
-                                        activityName: 'IT Contracting',
-                                        incomeType: 'CONTRACT',
-                                        receivedFrom: null,
-                                        transactionDate: '2026-09-01',
-                                        totalAmountMinor: 115_000,
-                                        currency: 'NZD',
-                                        status: 'NEW',
-                                        notes: null,
-                                        details: {
-                                          clientId: 'client-local',
-                                          clientName:
-                                            'Example Consulting Client',
-                                          invoiceNumber: 'INV-101',
-                                          invoiceDate: '2026-09-01',
-                                          servicePeriodStart: null,
-                                          servicePeriodEnd: null,
-                                          subtotalMinor: 100_000,
-                                          gstAmountMinor: 15_000,
-                                          totalMinor: 115_000,
-                                          dueDate: '2026-09-20',
-                                          paymentReceivedDate: null,
-                                          amountReceivedMinor: null,
-                                          paymentStatus: 'ISSUED',
-                                          outstandingAmountMinor: 115_000,
+                                      clients: [
+                                        {
+                                          id: 'client-local',
+                                          name: 'Example Consulting Client',
+                                          active: true,
+                                          notes: null,
                                         },
-                                        reconciliation: null,
-                                      },
+                                      ],
                                     }
-                                  : /\/api\/businesses\/[^/]+\/income$/.test(
+                                  : /\/api\/businesses\/[^/]+\/income\/income-local$/.test(
                                         url,
                                       )
                                     ? {
-                                        incomeRecords: [
-                                          {
-                                            id: 'income-local',
-                                            businessId:
-                                              'business-activity-contracting',
-                                            legalEntityId: 'entity-owner',
-                                            businessActivityId:
-                                              'activity-contracting',
-                                            activityName: 'IT Contracting',
-                                            incomeType: 'CONTRACT',
-                                            receivedFrom: null,
-                                            transactionDate: '2026-09-01',
-                                            totalAmountMinor: 115_000,
-                                            currency: 'NZD',
-                                            status: 'NEW',
-                                            notes: null,
-                                            details: {
-                                              clientId: 'client-local',
-                                              clientName:
-                                                'Example Consulting Client',
-                                              invoiceNumber: 'INV-101',
-                                              invoiceDate: '2026-09-01',
-                                              servicePeriodStart: null,
-                                              servicePeriodEnd: null,
-                                              subtotalMinor: 100_000,
-                                              gstAmountMinor: 15_000,
-                                              totalMinor: 115_000,
-                                              dueDate: '2026-09-20',
-                                              paymentReceivedDate: null,
-                                              amountReceivedMinor: null,
-                                              paymentStatus: 'ISSUED',
-                                              outstandingAmountMinor: 115_000,
-                                            },
-                                            reconciliation: null,
+                                        incomeRecord: {
+                                          id: 'income-local',
+                                          businessId:
+                                            'business-activity-contracting',
+                                          legalEntityId: 'entity-owner',
+                                          businessActivityId:
+                                            'activity-contracting',
+                                          activityName: 'IT Contracting',
+                                          incomeType: 'CONTRACT',
+                                          receivedFrom: null,
+                                          transactionDate: '2026-09-01',
+                                          totalAmountMinor: 115_000,
+                                          currency: 'NZD',
+                                          status: 'NEW',
+                                          notes: null,
+                                          details: {
+                                            clientId: 'client-local',
+                                            clientName:
+                                              'Example Consulting Client',
+                                            invoiceNumber: 'INV-101',
+                                            invoiceDate: '2026-09-01',
+                                            servicePeriodStart: null,
+                                            servicePeriodEnd: null,
+                                            subtotalMinor: 100_000,
+                                            gstAmountMinor: 15_000,
+                                            totalMinor: 115_000,
+                                            dueDate: '2026-09-20',
+                                            paymentReceivedDate: null,
+                                            amountReceivedMinor: null,
+                                            paymentStatus: 'ISSUED',
+                                            outstandingAmountMinor: 115_000,
                                           },
-                                        ],
-                                        summary: {
-                                          recordCount: 1,
-                                          totalsByCurrency: [
-                                            {
-                                              currency: 'NZD',
-                                              totalAmountMinor: 115_000,
-                                            },
-                                          ],
+                                          reconciliation: null,
                                         },
                                       }
-                                    : url.endsWith('/api/insurance-records')
+                                    : /\/api\/businesses\/[^/]+\/income$/.test(
+                                          url,
+                                        )
                                       ? {
-                                          insuranceRecords: [
+                                          incomeRecords: [
                                             {
-                                              id: 'insurance-local',
+                                              id: 'income-local',
+                                              businessId:
+                                                'business-activity-contracting',
+                                              legalEntityId: 'entity-owner',
                                               businessActivityId:
                                                 'activity-contracting',
                                               activityName: 'IT Contracting',
-                                              provider: 'Secure Cover',
-                                              purchaseDatetime:
-                                                '2026-09-08T00:00:00.000Z',
-                                              premiumMinor: 20_000,
+                                              incomeType: 'CONTRACT',
+                                              receivedFrom: null,
+                                              transactionDate: '2026-09-01',
+                                              totalAmountMinor: 115_000,
                                               currency: 'NZD',
-                                              gstAmountMinor: null,
-                                              gstStatus: 'NO_GST',
-                                              description: null,
-                                              recurrenceType: 'RECURRING',
-                                              insuranceType:
-                                                'PROFESSIONAL_LIABILITY',
-                                              policyNumber: 'POL-1',
-                                              policyPeriodStart: '2026-04-01',
-                                              policyPeriodEnd: '2027-03-31',
-                                              vehicleId: null,
-                                              vehicleRegistration: null,
-                                              allocation: {
-                                                method: '100_PERCENT_BUSINESS',
-                                                percentageBasisPoints: 10000,
-                                                allocatedAmountMinor: 20_000,
-                                                calculationPeriodStart: null,
-                                                calculationPeriodEnd: null,
-                                                notes: null,
-                                                reviewerEmail: null,
+                                              status: 'NEW',
+                                              notes: null,
+                                              details: {
+                                                clientId: 'client-local',
+                                                clientName:
+                                                  'Example Consulting Client',
+                                                invoiceNumber: 'INV-101',
+                                                invoiceDate: '2026-09-01',
+                                                servicePeriodStart: null,
+                                                servicePeriodEnd: null,
+                                                subtotalMinor: 100_000,
+                                                gstAmountMinor: 15_000,
+                                                totalMinor: 115_000,
+                                                dueDate: '2026-09-20',
+                                                paymentReceivedDate: null,
+                                                amountReceivedMinor: null,
+                                                paymentStatus: 'ISSUED',
+                                                outstandingAmountMinor: 115_000,
                                               },
+                                              reconciliation: null,
                                             },
                                           ],
+                                          summary: {
+                                            recordCount: 1,
+                                            totalsByCurrency: [
+                                              {
+                                                currency: 'NZD',
+                                                totalAmountMinor: 115_000,
+                                              },
+                                            ],
+                                          },
                                         }
-                                      : url.endsWith('/api/parking-records')
-                                        ? { parkingRecords: [] }
-                                        : url.endsWith('/api/general-expenses')
-                                          ? { generalExpenses: [] }
+                                      : url.endsWith('/api/insurance-records')
+                                        ? {
+                                            insuranceRecords: [
+                                              {
+                                                id: 'insurance-local',
+                                                businessActivityId:
+                                                  'activity-contracting',
+                                                activityName: 'IT Contracting',
+                                                provider: 'Secure Cover',
+                                                purchaseDatetime:
+                                                  '2026-09-08T00:00:00.000Z',
+                                                premiumMinor: 20_000,
+                                                currency: 'NZD',
+                                                gstAmountMinor: null,
+                                                gstStatus: 'NO_GST',
+                                                description: null,
+                                                recurrenceType: 'RECURRING',
+                                                insuranceType:
+                                                  'PROFESSIONAL_LIABILITY',
+                                                policyNumber: 'POL-1',
+                                                policyPeriodStart: '2026-04-01',
+                                                policyPeriodEnd: '2027-03-31',
+                                                vehicleId: null,
+                                                vehicleRegistration: null,
+                                                allocation: {
+                                                  method:
+                                                    '100_PERCENT_BUSINESS',
+                                                  percentageBasisPoints: 10000,
+                                                  allocatedAmountMinor: 20_000,
+                                                  calculationPeriodStart: null,
+                                                  calculationPeriodEnd: null,
+                                                  notes: null,
+                                                  reviewerEmail: null,
+                                                },
+                                              },
+                                            ],
+                                          }
+                                        : url.endsWith('/api/parking-records')
+                                          ? { parkingRecords: [] }
                                           : url.endsWith(
-                                                '/api/expense-categories',
+                                                '/api/general-expenses',
                                               )
-                                            ? {
-                                                categories: [
-                                                  {
-                                                    id: 'category-software',
-                                                    name: 'Software',
-                                                    active: true,
-                                                    systemKey: 'SOFTWARE',
-                                                  },
-                                                ],
-                                              }
+                                            ? { generalExpenses: [] }
                                             : url.endsWith(
-                                                  '/api/business-activities',
+                                                  '/api/expense-categories',
                                                 )
                                               ? {
-                                                  activities: [
+                                                  categories: [
                                                     {
-                                                      id: 'activity-contracting',
-                                                      name: 'IT Contracting',
-                                                      activityType:
-                                                        'PROFESSIONAL_SERVICES',
+                                                      id: 'category-software',
+                                                      name: 'Software',
                                                       active: true,
-                                                      startedAt: '2025-04-01',
-                                                      endedAt: null,
+                                                      systemKey: 'SOFTWARE',
                                                     },
                                                   ],
                                                 }
-                                              : url.endsWith('/api/vehicles')
+                                              : url.endsWith(
+                                                    '/api/business-activities',
+                                                  )
                                                 ? {
-                                                    vehicles: [
+                                                    activities: [
                                                       {
-                                                        id: 'vehicle-local',
-                                                        registration: 'ABC123',
-                                                        description:
-                                                          'Work vehicle',
+                                                        id: 'activity-contracting',
+                                                        name: 'IT Contracting',
+                                                        activityType:
+                                                          'PROFESSIONAL_SERVICES',
                                                         active: true,
-                                                        acquiredAt:
-                                                          '2025-01-01',
-                                                        retiredAt: null,
-                                                        notes: null,
+                                                        startedAt: '2025-04-01',
+                                                        endedAt: null,
                                                       },
                                                     ],
                                                   }
-                                                : url.endsWith(
-                                                      '/api/fuel-records',
-                                                    )
+                                                : url.endsWith('/api/vehicles')
                                                   ? {
-                                                      fuelRecords: [
+                                                      vehicles: [
                                                         {
-                                                          id: 'fuel-local',
-                                                          businessActivityId:
-                                                            'activity-contracting',
-                                                          activityName:
-                                                            'IT Contracting',
-                                                          vehicleId:
-                                                            'vehicle-local',
-                                                          vehicleRegistration:
+                                                          id: 'vehicle-local',
+                                                          registration:
                                                             'ABC123',
-                                                          merchantName:
-                                                            'Harbour Fuel',
-                                                          purchaseDatetime:
-                                                            '2026-09-08T03:00:00.000Z',
-                                                          totalAmountMinor: 10_000,
-                                                          currency: 'NZD',
-                                                          gstAmountMinor: null,
-                                                          gstStatus: 'UNKNOWN',
-                                                          description: null,
-                                                          recurrenceType:
-                                                            'ONE_OFF',
-                                                          fuelStation: null,
-                                                          fuelPriceMicrosPerLitre: 2_500_000,
-                                                          fuelLitres: 40,
-                                                          odometerKm: 150,
-                                                          fillType: 'FULL',
+                                                          description:
+                                                            'Work vehicle',
+                                                          active: true,
+                                                          acquiredAt:
+                                                            '2025-01-01',
+                                                          retiredAt: null,
                                                           notes: null,
                                                         },
                                                       ],
                                                     }
-                                                  : /\/api\/businesses\/[^/]+\/work-sessions\/session-local$/.test(
-                                                        url,
+                                                  : url.endsWith(
+                                                        '/api/fuel-records',
                                                       )
                                                     ? {
-                                                        session: {
-                                                          id: 'session-local',
-                                                          businessId:
-                                                            'business-activity-contracting',
-                                                          legalEntityId:
-                                                            'entity-owner',
-                                                          businessActivityId:
-                                                            'activity-contracting',
-                                                          activityName:
-                                                            'IT Contracting',
-                                                          vehicleId:
-                                                            'vehicle-local',
-                                                          vehicleRegistration:
-                                                            'ABC123',
-                                                          startedAt:
-                                                            '2026-09-08T00:00:00.000Z',
-                                                          endedAt:
-                                                            '2026-09-08T02:00:00.000Z',
-                                                          odometerStartKm: 100,
-                                                          odometerEndKm: 150,
-                                                          distanceKm: 50,
-                                                          durationMinutes: 120,
-                                                          durationHours: 2,
-                                                          grossRevenueMinor: 10_000,
-                                                          currency: 'NZD',
-                                                          revenuePerHourMinor: 5000,
-                                                          revenuePerKmMinor: 200,
-                                                          notes:
-                                                            'Airport delivery block',
-                                                          status: 'NEW',
-                                                          tankFullAtStart: true,
-                                                          noPersonalDriving: true,
-                                                          tankFullAtEnd: true,
-                                                          startingFuelExpenseId:
-                                                            null,
-                                                          endingFuelExpenseId:
-                                                            'fuel-local',
-                                                          fuelCalculationStatus:
-                                                            'EXACT',
-                                                          fuelLitresUsed: 40,
-                                                          fuelCostMinor: 10_000,
-                                                          fuelCurrency: 'NZD',
-                                                          kilometresPerLitre: 1.25,
-                                                          fuelCostPerKmMinor: 200,
-                                                        },
+                                                        fuelRecords: [
+                                                          {
+                                                            id: 'fuel-local',
+                                                            businessActivityId:
+                                                              'activity-contracting',
+                                                            activityName:
+                                                              'IT Contracting',
+                                                            vehicleId:
+                                                              'vehicle-local',
+                                                            vehicleRegistration:
+                                                              'ABC123',
+                                                            merchantName:
+                                                              'Harbour Fuel',
+                                                            purchaseDatetime:
+                                                              '2026-09-08T03:00:00.000Z',
+                                                            totalAmountMinor: 10_000,
+                                                            currency: 'NZD',
+                                                            gstAmountMinor:
+                                                              null,
+                                                            gstStatus:
+                                                              'UNKNOWN',
+                                                            description: null,
+                                                            recurrenceType:
+                                                              'ONE_OFF',
+                                                            fuelStation: null,
+                                                            fuelPriceMicrosPerLitre: 2_500_000,
+                                                            fuelLitres: 40,
+                                                            odometerKm: 150,
+                                                            fillType: 'FULL',
+                                                            notes: null,
+                                                          },
+                                                        ],
                                                       }
-                                                    : /\/api\/(?:businesses\/[^/]+\/)?work-sessions$/.test(
+                                                    : /\/api\/businesses\/[^/]+\/work-sessions\/session-local$/.test(
                                                           url,
                                                         )
                                                       ? {
-                                                          sessions: [
-                                                            {
-                                                              id: 'session-local',
-                                                              businessActivityId:
-                                                                'activity-contracting',
-                                                              activityName:
-                                                                'IT Contracting',
-                                                              vehicleId:
-                                                                'vehicle-local',
-                                                              vehicleRegistration:
-                                                                'ABC123',
-                                                              startedAt:
-                                                                '2026-09-08T00:00:00.000Z',
-                                                              endedAt:
-                                                                '2026-09-08T02:00:00.000Z',
-                                                              odometerStartKm: 100,
-                                                              odometerEndKm: 150,
-                                                              distanceKm: 50,
-                                                              durationMinutes: 120,
-                                                              durationHours: 2,
-                                                              grossRevenueMinor: 10_000,
-                                                              currency: 'NZD',
-                                                              revenuePerHourMinor: 5000,
-                                                              revenuePerKmMinor: 200,
-                                                              notes: null,
-                                                              status: 'NEW',
-                                                              tankFullAtStart: true,
-                                                              noPersonalDriving: true,
-                                                              tankFullAtEnd: true,
-                                                              startingFuelExpenseId:
-                                                                null,
-                                                              endingFuelExpenseId:
-                                                                'fuel-local',
-                                                              fuelCalculationStatus:
-                                                                'EXACT',
-                                                              fuelLitresUsed: 40,
-                                                              fuelCostMinor: 10_000,
-                                                              fuelCurrency:
-                                                                'NZD',
-                                                              kilometresPerLitre: 1.25,
-                                                              fuelCostPerKmMinor: 200,
-                                                            },
-                                                          ],
-                                                          summary: {
-                                                            sessionCount: 1,
-                                                            totalDurationHours: 2,
-                                                            totalDistanceKm: 50,
-                                                            totalRevenueMinor: 10_000,
+                                                          session: {
+                                                            id: 'session-local',
+                                                            businessId:
+                                                              'business-activity-contracting',
+                                                            legalEntityId:
+                                                              'entity-owner',
+                                                            businessActivityId:
+                                                              'activity-contracting',
+                                                            activityName:
+                                                              'IT Contracting',
+                                                            vehicleId:
+                                                              'vehicle-local',
+                                                            vehicleRegistration:
+                                                              'ABC123',
+                                                            startedAt:
+                                                              '2026-09-08T00:00:00.000Z',
+                                                            endedAt:
+                                                              '2026-09-08T02:00:00.000Z',
+                                                            odometerStartKm: 100,
+                                                            odometerEndKm: 150,
+                                                            distanceKm: 50,
+                                                            durationMinutes: 120,
+                                                            durationHours: 2,
+                                                            grossRevenueMinor: 10_000,
+                                                            currency: 'NZD',
                                                             revenuePerHourMinor: 5000,
                                                             revenuePerKmMinor: 200,
-                                                            currency: 'NZD',
-                                                            completeRevenueData: true,
+                                                            notes:
+                                                              'Airport delivery block',
+                                                            status: 'NEW',
+                                                            tankFullAtStart: true,
+                                                            noPersonalDriving: true,
+                                                            tankFullAtEnd: true,
+                                                            startingFuelExpenseId:
+                                                              null,
+                                                            endingFuelExpenseId:
+                                                              'fuel-local',
+                                                            fuelCalculationStatus:
+                                                              'EXACT',
+                                                            fuelLitresUsed: 40,
+                                                            fuelCostMinor: 10_000,
+                                                            fuelCurrency: 'NZD',
+                                                            kilometresPerLitre: 1.25,
+                                                            fuelCostPerKmMinor: 200,
                                                           },
                                                         }
-                                                      : {
-                                                          user: {
-                                                            id: 'owner',
-                                                            email:
-                                                              'owner@local.test',
-                                                            role: currentRole,
-                                                            status: 'ACTIVE',
-                                                          },
-                                                        };
+                                                      : /\/api\/(?:businesses\/[^/]+\/)?work-sessions$/.test(
+                                                            url,
+                                                          )
+                                                        ? {
+                                                            sessions: [
+                                                              {
+                                                                id: 'session-local',
+                                                                businessActivityId:
+                                                                  'activity-contracting',
+                                                                activityName:
+                                                                  'IT Contracting',
+                                                                vehicleId:
+                                                                  'vehicle-local',
+                                                                vehicleRegistration:
+                                                                  'ABC123',
+                                                                startedAt:
+                                                                  '2026-09-08T00:00:00.000Z',
+                                                                endedAt:
+                                                                  '2026-09-08T02:00:00.000Z',
+                                                                odometerStartKm: 100,
+                                                                odometerEndKm: 150,
+                                                                distanceKm: 50,
+                                                                durationMinutes: 120,
+                                                                durationHours: 2,
+                                                                grossRevenueMinor: 10_000,
+                                                                currency: 'NZD',
+                                                                revenuePerHourMinor: 5000,
+                                                                revenuePerKmMinor: 200,
+                                                                notes: null,
+                                                                status: 'NEW',
+                                                                tankFullAtStart: true,
+                                                                noPersonalDriving: true,
+                                                                tankFullAtEnd: true,
+                                                                startingFuelExpenseId:
+                                                                  null,
+                                                                endingFuelExpenseId:
+                                                                  'fuel-local',
+                                                                fuelCalculationStatus:
+                                                                  'EXACT',
+                                                                fuelLitresUsed: 40,
+                                                                fuelCostMinor: 10_000,
+                                                                fuelCurrency:
+                                                                  'NZD',
+                                                                kilometresPerLitre: 1.25,
+                                                                fuelCostPerKmMinor: 200,
+                                                              },
+                                                            ],
+                                                            summary: {
+                                                              sessionCount: 1,
+                                                              totalDurationHours: 2,
+                                                              totalDistanceKm: 50,
+                                                              totalRevenueMinor: 10_000,
+                                                              revenuePerHourMinor: 5000,
+                                                              revenuePerKmMinor: 200,
+                                                              currency: 'NZD',
+                                                              completeRevenueData: true,
+                                                            },
+                                                          }
+                                                        : {
+                                                            user: {
+                                                              id: 'owner',
+                                                              email:
+                                                                'owner@local.test',
+                                                              role: currentRole,
+                                                              status: 'ACTIVE',
+                                                            },
+                                                          };
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status: 200,
@@ -955,25 +982,37 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the searchable transaction and receipt workspace', async () => {
+  it('renders the simplified business transaction workspace', async () => {
     renderApp('/app/businesses/business-activity-contracting/transactions');
     expect(
       await screen.findByRole('heading', {
-        name: /transactions and receipts/i,
+        name: /^transactions$/i,
       }),
     ).toBeInTheDocument();
     expect(
       await screen.findByText('Example Consulting Client'),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText(/search transactions/i)).toBeInTheDocument();
     expect(
-      screen.getByLabelText(/search merchant, client/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /receipt log/i }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /receipt log/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /review and comments/i }),
     ).toBeInTheDocument();
+  });
+
+  it('renders business documents and missing-evidence navigation', async () => {
+    renderApp('/app/businesses/business-activity-contracting/documents');
+    expect(
+      await screen.findByRole('heading', { name: 'Documents' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('invoice-101.pdf')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /missing attachments \(1\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'invoice-101.pdf' }),
+    ).toHaveAttribute('href', '/api/attachments/file?id=document-local');
   });
 
   it('shows retention-protected trash and read-only audit history', async () => {

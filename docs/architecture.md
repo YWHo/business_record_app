@@ -192,6 +192,22 @@ Stories exercise presentation boundaries rather than duplicating complete routed
 
 The transaction and receipt APIs query a fixed `UNION ALL` projection over common expense and income fields. Type-specific joins add category, vehicle, and counterparty labels without making the projection an alternative source of truth. Every user filter becomes either a validated enum/date/amount or a bound SQL parameter; record-type-to-table mappings remain fixed in Worker code. Current attachment counts are correlated from D1 metadata so records with missing evidence remain searchable.
 
+Inside a selected business, the transaction route adds an independently bound
+business predicate to the authenticated account predicate. Its initial filter
+surface is limited to search, date, direction, and status; less common record,
+category, attachment, and review filters remain available under More filters.
+Desktop uses a compact table and the shared responsive rules convert each row
+to a labelled card on phones. Review comments and status transitions still use
+their established authorization boundaries.
+
+The Documents destination reads current attachment metadata through a
+business-scoped projection that joins each file to its authoritative expense,
+income, or work-session parent. It exposes controlled download links and a
+separate missing-evidence view backed by the same scoped transaction
+projection. New attachment metadata copies business and legal-entity IDs from
+the validated parent; older rows remain resolvable through their parent joins.
+R2 objects remain private and are never listed directly.
+
 Saved filter criteria are allow-listed string maps stored per user and per log type. Names remain unique within that scope. No saved filter can inject SQL or expose another user's views.
 
 The record-status endpoint owns workflow transitions. Owners prepare, reopen, or void records, while accountants review and process them. `REVIEWED` requires `READY_FOR_REVIEW`, and `PROCESSED` requires `REVIEWED`; `VOIDED` is terminal. Financial review identity/timestamps change atomically with status, and every source-data update returns the record to `NEW` and clears prior review attribution. Comments are append-only rows joined to immutable user identity, with no update or delete route.

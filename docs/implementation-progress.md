@@ -833,3 +833,28 @@ Acceptance criteria completed:
 
 Notes: Legacy flat work-session endpoints remain available for compatibility,
 but the business workspace no longer mounts inline create or edit forms.
+
+## Business documents and transactions
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the Documents placeholder with a business-scoped destination for
+  current evidence files and records that still need attachments.
+- Linked each document and missing-evidence row back to its expense, income,
+  or work-session detail while retaining controlled private downloads.
+- Added business-scoped transaction and receipt APIs with independent account
+  and business predicates.
+- Simplified the selected-business transaction filters and moved uncommon
+  options behind More filters without removing review, comments, or trash.
+- Added a compact desktop transaction table that becomes labelled record cards
+  on phones through the shared responsive table pattern.
+- Persisted business and legal-entity attribution on new attachment metadata,
+  with parent-based fallback for existing rows.
+- Added component, Worker-route, local smoke, and end-to-end coverage for the
+  new business-scoped routes and responsive workflows.
+
+Notes: The account-level transaction/receipt workspace and saved filters remain
+available for cross-business review. Files continue to be uploaded from their
+authoritative record detail rather than directly from the Documents list.

@@ -1,5 +1,6 @@
 import { requireRole, requireUser } from '../auth/authorization';
 import { HttpError, json } from '../lib/http';
+import type { RouteParameters } from '../lib/router';
 import {
   attachmentRecordType,
   attachmentRotation,
@@ -9,12 +10,15 @@ import {
   type AttachmentRecordType,
 } from '../services/attachmentService';
 import { writeAudit } from '../services/auditService';
+import { requireBusinessAccess } from '../services/businessContextService';
 import { requireDocumentStorage } from '../services/documentStorageService';
 import { enforceRateLimit } from '../services/securityService';
 import type { Env } from '../types';
 
 interface ParentRow {
   id: string;
+  business_id: string | null;
+  legal_entity_id: string | null;
   business_activity_id: string | null;
   retention_until: string;
   purge_eligible_at: string;
@@ -35,6 +39,14 @@ interface AttachmentRow {
   is_current: number;
   display_rotation_degrees: number;
   creator_email: string;
+}
+
+interface BusinessDocumentRow extends AttachmentRow {
+  business_id: string | null;
+  legal_entity_id: string | null;
+  record_label: string;
+  record_date: string;
+  record_status: string;
 }
 const attachmentSelect = `SELECT attachments.id, attachments.record_type,
   attachments.record_id, attachments.version_group_id, attachments.object_key,
@@ -72,7 +84,8 @@ async function parent(
     WORK_SESSION: 'work_sessions',
   } as const;
   const row = await env.DB.prepare(
-    `SELECT id, business_activity_id, retention_until, purge_eligible_at, deleted_at
+    `SELECT id, business_id, legal_entity_id, business_activity_id,
+        retention_until, purge_eligible_at, deleted_at
        FROM ${sources[recordType]}
       WHERE id = ? AND business_account_id = ? AND purged_at IS NULL`,
   )
@@ -80,6 +93,76 @@ async function parent(
     .first<ParentRow>();
   if (!row) throw new HttpError(404, 'Record not found.');
   return row;
+}
+
+export async function listBusinessDocuments(
+  request: Request,
+  env: Env,
+  params: RouteParameters,
+) {
+  const actor = await requireUser(request, env);
+  const businessId = params.businessId;
+  if (!businessId) throw new HttpError(400, 'Business is required.');
+  const business = await requireBusinessAccess(env.DB, actor, businessId);
+  const rows = await env.DB.prepare(
+    `SELECT attachments.id, attachments.record_type, attachments.record_id,
+      attachments.version_group_id, attachments.object_key,
+      attachments.original_filename, attachments.mime_type,
+      attachments.file_size, attachments.sha256, attachments.created_at,
+      attachments.version_number, attachments.is_current,
+      attachments.display_rotation_degrees, users.email AS creator_email,
+      COALESCE(attachments.business_id, expenses.business_id,
+        income_records.business_id, work_sessions.business_id) AS business_id,
+      COALESCE(attachments.legal_entity_id, expenses.legal_entity_id,
+        income_records.legal_entity_id, work_sessions.legal_entity_id) AS legal_entity_id,
+      CASE attachments.record_type
+        WHEN 'EXPENSE' THEN COALESCE(expenses.merchant_name, 'Expense')
+        WHEN 'INCOME' THEN COALESCE(platform_income_details.provider_name,
+          clients.name, income_records.received_from, 'Income')
+        ELSE COALESCE(vehicles.registration, 'Work session')
+      END AS record_label,
+      CASE attachments.record_type
+        WHEN 'EXPENSE' THEN substr(expenses.purchase_datetime, 1, 10)
+        WHEN 'INCOME' THEN income_records.transaction_date
+        ELSE substr(work_sessions.started_at, 1, 10)
+      END AS record_date,
+      COALESCE(expenses.status, income_records.status, work_sessions.status) AS record_status
+      FROM attachments JOIN users ON users.id = attachments.created_by
+      LEFT JOIN expenses ON attachments.record_type = 'EXPENSE'
+        AND expenses.id = attachments.record_id
+        AND expenses.business_account_id = attachments.business_account_id
+      LEFT JOIN income_records ON attachments.record_type = 'INCOME'
+        AND income_records.id = attachments.record_id
+        AND income_records.business_account_id = attachments.business_account_id
+      LEFT JOIN platform_income_details
+        ON platform_income_details.income_id = income_records.id
+      LEFT JOIN contract_income_details
+        ON contract_income_details.income_id = income_records.id
+      LEFT JOIN clients ON clients.id = contract_income_details.client_id
+      LEFT JOIN work_sessions ON attachments.record_type = 'WORK_SESSION'
+        AND work_sessions.id = attachments.record_id
+        AND work_sessions.business_account_id = attachments.business_account_id
+      LEFT JOIN vehicles ON vehicles.id = work_sessions.vehicle_id
+      WHERE attachments.business_account_id = ?
+        AND COALESCE(attachments.business_id, expenses.business_id,
+          income_records.business_id, work_sessions.business_id) = ?
+        AND attachments.is_current = 1 AND attachments.purged_at IS NULL
+        AND COALESCE(expenses.deleted_at, income_records.deleted_at,
+          work_sessions.deleted_at) IS NULL
+      ORDER BY attachments.created_at DESC LIMIT 200`,
+  )
+    .bind(actor.businessAccountId, business.id)
+    .all<BusinessDocumentRow>();
+  return json({
+    documents: rows.results.map((row) => ({
+      ...serialize(row),
+      businessId: row.business_id,
+      legalEntityId: row.legal_entity_id,
+      recordLabel: row.record_label,
+      recordDate: row.record_date,
+      recordStatus: row.record_status,
+    })),
+  });
 }
 
 function queryValue(url: URL, name: string) {
@@ -255,10 +338,17 @@ export async function uploadAttachment(request: Request, env: Env) {
           ]
         : []),
       env.DB.prepare(
-        `INSERT INTO attachments (id, business_account_id, record_type, record_id, version_group_id, object_key, original_filename, mime_type, file_size, sha256, created_by, created_at, version_number, is_current, display_rotation_degrees, retention_until, purge_eligible_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        `INSERT INTO attachments (id, business_account_id, business_id,
+          legal_entity_id, record_type, record_id, version_group_id, object_key,
+          original_filename, mime_type, file_size, sha256, created_by, created_at,
+          version_number, is_current, display_rotation_degrees, retention_until,
+          purge_eligible_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       ).bind(
         id,
         actor.businessAccountId,
+        target.business_id,
+        target.legal_entity_id,
         recordType,
         recordId,
         versionGroupId,

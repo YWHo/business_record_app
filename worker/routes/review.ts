@@ -6,7 +6,9 @@ import {
   readJsonObject,
 } from '../lib/http';
 import { pageResult, requestPagination } from '../lib/pagination';
+import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
+import { requireBusinessAccess } from '../services/businessContextService';
 import { expenseText } from '../services/expenseService';
 import {
   ensureStatusPermission,
@@ -106,8 +108,16 @@ function integerMoney(value: string | null, label: string) {
   return minor;
 }
 
-export async function listTransactions(request: Request, env: Env) {
+export async function listTransactions(
+  request: Request,
+  env: Env,
+  params: RouteParameters = {},
+) {
   const actor = await requireUser(request, env);
+  const routeBusinessId = params.businessId ?? null;
+  if (routeBusinessId) {
+    await requireBusinessAccess(env.DB, actor, routeBusinessId);
+  }
   const url = new URL(request.url),
     where: string[] = ['business_account_id = ?'],
     bindings: unknown[] = [actor.businessAccountId];
@@ -115,6 +125,7 @@ export async function listTransactions(request: Request, env: Env) {
     where.push(sql);
     bindings.push(value);
   };
+  if (routeBusinessId) add('business_id = ?', routeBusinessId);
   const q = url.searchParams.get('q')?.trim();
   if (q) {
     add(

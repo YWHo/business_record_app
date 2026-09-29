@@ -74,6 +74,7 @@ import {
 } from './routes/incomeRecords';
 import {
   downloadAttachment,
+  listBusinessDocuments,
   listAttachments,
   uploadAttachment,
 } from './routes/attachments';
@@ -201,6 +202,21 @@ const routes: Route[] = [
     method: 'GET',
     pathname: '/api/businesses/:businessId/work-sessions',
     handler: listWorkSessions,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/transactions',
+    handler: listTransactions,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/receipts',
+    handler: listTransactions,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/documents',
+    handler: listBusinessDocuments,
   },
   {
     method: 'POST',

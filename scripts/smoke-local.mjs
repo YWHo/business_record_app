@@ -2286,6 +2286,32 @@ expectStatus(
   200,
   'business work-session list',
 );
+const scopedTransactions = await request(
+  `/api/businesses/${scopedBusinessId}/transactions?page=1`,
+  {},
+  accountantCookie,
+);
+expectStatus(scopedTransactions, 200, 'business transaction list');
+if (
+  scopedTransactions.body.transactions.some(
+    (transaction) => transaction.businessId !== scopedBusinessId,
+  )
+) {
+  throw new Error('business transaction list crossed the selected business');
+}
+const scopedDocuments = await request(
+  `/api/businesses/${scopedBusinessId}/documents`,
+  {},
+  accountantCookie,
+);
+expectStatus(scopedDocuments, 200, 'business document list');
+if (
+  scopedDocuments.body.documents.some(
+    (document) => document.businessId !== scopedBusinessId,
+  )
+) {
+  throw new Error('business document list crossed the selected business');
+}
 
 const scopedExpense = await request(
   `/api/businesses/${scopedBusinessId}/expenses`,

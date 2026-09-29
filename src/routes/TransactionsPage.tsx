@@ -1,4 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 
@@ -241,6 +242,7 @@ function ReviewPanel({
 }
 
 export function TransactionsPage() {
+  const { businessId = '' } = useParams();
   const { configuration, user } = useAuth();
   const [mode, setMode] = useState<'TRANSACTIONS' | 'RECEIPTS'>('TRANSACTIONS');
   const [filters, setFilters] = useState<Filters>(emptyFilters),
@@ -280,13 +282,16 @@ export function TransactionsPage() {
         if (value) query.set(key, value);
       }
       query.set('page', String(pageNumber));
+      const collection =
+        activeMode === 'RECEIPTS' ? 'receipts' : 'transactions';
+      const endpoint = businessId
+        ? `/api/businesses/${businessId}/${collection}`
+        : `/api/${collection}`;
       const result = await apiRequest<{
         transactions: Transaction[];
         summary: typeof summary;
         page: PageMetadata;
-      }>(
-        `/api/${activeMode === 'RECEIPTS' ? 'receipts' : 'transactions'}?${query}`,
-      );
+      }>(`${endpoint}?${query}`);
       setRecords(result.transactions);
       setSummary(result.summary);
       setPage(
@@ -297,10 +302,18 @@ export function TransactionsPage() {
         },
       );
     },
-    [],
+    [businessId],
   );
   useEffect(() => {
     const load = async () => {
+      if (businessId) {
+        const [, categoryResult] = await Promise.all([
+          search(emptyFilters, 'TRANSACTIONS'),
+          apiRequest<{ categories: Reference[] }>('/api/expense-categories'),
+        ]);
+        setCategories(categoryResult.categories);
+        return;
+      }
       const [activityResult, categoryResult, vehicleResult] = await Promise.all(
         [
           apiRequest<{ activities: Reference[] }>('/api/business-activities'),
@@ -335,7 +348,7 @@ export function TransactionsPage() {
           : 'Unable to load transactions.',
       ),
     );
-  }, [loadSaved, search]);
+  }, [businessId, loadSaved, search]);
   async function changeMode(next: typeof mode) {
     setMode(next);
     setFilters(emptyFilters);
@@ -406,29 +419,34 @@ export function TransactionsPage() {
       <div className="page-heading">
         <div>
           <span className="eyebrow">Find and review</span>
-          <h1 id="transactions-heading">Transactions and receipts</h1>
+          <h1 id="transactions-heading">
+            {businessId ? 'Transactions' : 'Transactions and receipts'}
+          </h1>
           <p>
-            Search income and expenses, find missing evidence, and preserve the
-            review conversation.
+            {businessId
+              ? 'Search this business’s income and expenses and continue the review conversation.'
+              : 'Search income and expenses, find missing evidence, and preserve the review conversation.'}
           </p>
         </div>
       </div>
-      <div className="button-row" role="group" aria-label="Log type">
-        <button
-          type="button"
-          className={mode === 'TRANSACTIONS' ? '' : 'secondary-button'}
-          onClick={() => void changeMode('TRANSACTIONS')}
-        >
-          Transaction log
-        </button>
-        <button
-          type="button"
-          className={mode === 'RECEIPTS' ? '' : 'secondary-button'}
-          onClick={() => void changeMode('RECEIPTS')}
-        >
-          Receipt log
-        </button>
-      </div>
+      {!businessId ? (
+        <div className="button-row" role="group" aria-label="Log type">
+          <button
+            type="button"
+            className={mode === 'TRANSACTIONS' ? '' : 'secondary-button'}
+            onClick={() => void changeMode('TRANSACTIONS')}
+          >
+            Transaction log
+          </button>
+          <button
+            type="button"
+            className={mode === 'RECEIPTS' ? '' : 'secondary-button'}
+            onClick={() => void changeMode('RECEIPTS')}
+          >
+            Receipt log
+          </button>
+        </div>
+      ) : null}
       {error ? (
         <p className="notice error" role="alert">
           {error}
@@ -441,38 +459,28 @@ export function TransactionsPage() {
       ) : null}
       <section className="panel">
         <h2>Filters</h2>
-        <form
-          className="work-session-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void search(filters, mode);
-          }}
-        >
-          <div className="form-pair">
-            <label>
-              Search merchant, client, or type
-              <input value={filters.q} onChange={field('q')} />
+        {businessId ? (
+          <form
+            className="expense-filter-bar"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void search(filters, mode);
+            }}
+          >
+            <label className="filter-search">
+              Search transactions
+              <input
+                placeholder="Merchant, client, or type"
+                value={filters.q}
+                onChange={field('q')}
+              />
             </label>
-            <label>
-              Tax year ending
-              <select value={filters.taxYear} onChange={field('taxYear')}>
-                <option value="">Any tax year</option>
-                {[2025, 2026, 2027, 2028].map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="form-pair">
             <label>
               From
               <input
                 type="date"
                 value={filters.dateFrom}
                 onChange={field('dateFrom')}
-                disabled={Boolean(filters.taxYear)}
               />
             </label>
             <label>
@@ -481,21 +489,7 @@ export function TransactionsPage() {
                 type="date"
                 value={filters.dateTo}
                 onChange={field('dateTo')}
-                disabled={Boolean(filters.taxYear)}
               />
-            </label>
-          </div>
-          <div className="form-pair">
-            <label>
-              Activity
-              <select value={filters.activityId} onChange={field('activityId')}>
-                <option value="">All activities</option>
-                {activities.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
             </label>
             <label>
               Income or expense
@@ -505,38 +499,6 @@ export function TransactionsPage() {
                 <option value="EXPENSE">Expense</option>
               </select>
             </label>
-          </div>
-          <div className="form-pair">
-            <label>
-              Record type
-              <select value={filters.subtype} onChange={field('subtype')}>
-                <option value="">All types</option>
-                {[
-                  'PLATFORM',
-                  'CONTRACT',
-                  'SUBSCRIPTION',
-                  'GENERAL',
-                  'FUEL',
-                  'PARKING',
-                  'INSURANCE',
-                ].map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Expense category
-              <select value={filters.categoryId} onChange={field('categoryId')}>
-                <option value="">All categories</option>
-                {categories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="form-pair">
             <label>
               Status
               <select value={filters.status} onChange={field('status')}>
@@ -549,112 +511,310 @@ export function TransactionsPage() {
                   'PROCESSED',
                   'VOIDED',
                 ].map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Vehicle
-              <select value={filters.vehicleId} onChange={field('vehicleId')}>
-                <option value="">All vehicles</option>
-                {vehicles.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
+                  <option key={item} value={item}>
+                    {statusLabel(item)}
                   </option>
                 ))}
               </select>
             </label>
-          </div>
-          <div className="form-pair">
-            <label>
-              Minimum amount
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={filters.amountMin}
-                onChange={field('amountMin')}
-              />
-            </label>
-            <label>
-              Maximum amount
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={filters.amountMax}
-                onChange={field('amountMax')}
-              />
-            </label>
-          </div>
-          <div className="form-pair">
-            <label>
-              Attachment
-              <select value={filters.attachment} onChange={field('attachment')}>
-                <option value="">Present or missing</option>
-                <option value="PRESENT">Present</option>
-                <option value="MISSING">Missing</option>
-              </select>
-            </label>
-            <label>
-              Review state
-              <select value={filters.review} onChange={field('review')}>
-                <option value="">Reviewed or not</option>
-                <option value="REVIEWED">Reviewed</option>
-                <option value="UNREVIEWED">Unreviewed</option>
-              </select>
-            </label>
-          </div>
-          <div className="button-row">
-            <button>Search</button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                setFilters(emptyFilters);
-                void search(emptyFilters, mode);
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        </form>
-        <form
-          className="inline-form saved-filter-form"
-          onSubmit={(event) => void saveFilter(event)}
-        >
-          <label>
-            Save current filters
-            <input
-              required
-              maxLength={100}
-              placeholder="e.g. Missing delivery receipts"
-              value={filterName}
-              onChange={(event) => setFilterName(event.target.value)}
-            />
-          </label>
-          <button>Save filter</button>
-        </form>
-        <div className="saved-filter-list">
-          {saved.map((item) => (
-            <div key={item.id}>
+            <details className="filter-search">
+              <summary>More filters</summary>
+              <div className="form-pair">
+                <label>
+                  Record type
+                  <select value={filters.subtype} onChange={field('subtype')}>
+                    <option value="">All types</option>
+                    {[
+                      'PLATFORM',
+                      'CONTRACT',
+                      'SUBSCRIPTION',
+                      'GENERAL',
+                      'FUEL',
+                      'PARKING',
+                      'INSURANCE',
+                    ].map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Expense category
+                  <select
+                    value={filters.categoryId}
+                    onChange={field('categoryId')}
+                  >
+                    <option value="">All categories</option>
+                    {categories.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Attachment
+                  <select
+                    value={filters.attachment}
+                    onChange={field('attachment')}
+                  >
+                    <option value="">Present or missing</option>
+                    <option value="PRESENT">Present</option>
+                    <option value="MISSING">Missing</option>
+                  </select>
+                </label>
+                <label>
+                  Review state
+                  <select value={filters.review} onChange={field('review')}>
+                    <option value="">Reviewed or not</option>
+                    <option value="REVIEWED">Reviewed</option>
+                    <option value="UNREVIEWED">Unreviewed</option>
+                  </select>
+                </label>
+              </div>
+            </details>
+            <div className="button-row">
+              <button>Search</button>
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => void applyFilter(item)}
+                onClick={() => {
+                  setFilters(emptyFilters);
+                  void search(emptyFilters, mode);
+                }}
               >
-                {item.name}
-              </button>
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => void removeFilter(item.id)}
-              >
-                Remove
+                Clear
               </button>
             </div>
-          ))}
-        </div>
+          </form>
+        ) : (
+          <form
+            className="work-session-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void search(filters, mode);
+            }}
+          >
+            <div className="form-pair">
+              <label>
+                Search merchant, client, or type
+                <input value={filters.q} onChange={field('q')} />
+              </label>
+              <label>
+                Tax year ending
+                <select value={filters.taxYear} onChange={field('taxYear')}>
+                  <option value="">Any tax year</option>
+                  {[2025, 2026, 2027, 2028].map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="form-pair">
+              <label>
+                From
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={field('dateFrom')}
+                  disabled={Boolean(filters.taxYear)}
+                />
+              </label>
+              <label>
+                To
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={field('dateTo')}
+                  disabled={Boolean(filters.taxYear)}
+                />
+              </label>
+            </div>
+            <div className="form-pair">
+              <label>
+                Activity
+                <select
+                  value={filters.activityId}
+                  onChange={field('activityId')}
+                >
+                  <option value="">All activities</option>
+                  {activities.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Income or expense
+                <select value={filters.direction} onChange={field('direction')}>
+                  <option value="">Both</option>
+                  <option value="INCOME">Income</option>
+                  <option value="EXPENSE">Expense</option>
+                </select>
+              </label>
+            </div>
+            <div className="form-pair">
+              <label>
+                Record type
+                <select value={filters.subtype} onChange={field('subtype')}>
+                  <option value="">All types</option>
+                  {[
+                    'PLATFORM',
+                    'CONTRACT',
+                    'SUBSCRIPTION',
+                    'GENERAL',
+                    'FUEL',
+                    'PARKING',
+                    'INSURANCE',
+                  ].map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Expense category
+                <select
+                  value={filters.categoryId}
+                  onChange={field('categoryId')}
+                >
+                  <option value="">All categories</option>
+                  {categories.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="form-pair">
+              <label>
+                Status
+                <select value={filters.status} onChange={field('status')}>
+                  <option value="">All statuses</option>
+                  {[
+                    'NEW',
+                    'MISSING_INFORMATION',
+                    'READY_FOR_REVIEW',
+                    'REVIEWED',
+                    'PROCESSED',
+                    'VOIDED',
+                  ].map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Vehicle
+                <select value={filters.vehicleId} onChange={field('vehicleId')}>
+                  <option value="">All vehicles</option>
+                  {vehicles.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="form-pair">
+              <label>
+                Minimum amount
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={filters.amountMin}
+                  onChange={field('amountMin')}
+                />
+              </label>
+              <label>
+                Maximum amount
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={filters.amountMax}
+                  onChange={field('amountMax')}
+                />
+              </label>
+            </div>
+            <div className="form-pair">
+              <label>
+                Attachment
+                <select
+                  value={filters.attachment}
+                  onChange={field('attachment')}
+                >
+                  <option value="">Present or missing</option>
+                  <option value="PRESENT">Present</option>
+                  <option value="MISSING">Missing</option>
+                </select>
+              </label>
+              <label>
+                Review state
+                <select value={filters.review} onChange={field('review')}>
+                  <option value="">Reviewed or not</option>
+                  <option value="REVIEWED">Reviewed</option>
+                  <option value="UNREVIEWED">Unreviewed</option>
+                </select>
+              </label>
+            </div>
+            <div className="button-row">
+              <button>Search</button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setFilters(emptyFilters);
+                  void search(emptyFilters, mode);
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </form>
+        )}
+        {!businessId ? (
+          <form
+            className="inline-form saved-filter-form"
+            onSubmit={(event) => void saveFilter(event)}
+          >
+            <label>
+              Save current filters
+              <input
+                required
+                maxLength={100}
+                placeholder="e.g. Missing delivery receipts"
+                value={filterName}
+                onChange={(event) => setFilterName(event.target.value)}
+              />
+            </label>
+            <button>Save filter</button>
+          </form>
+        ) : null}
+        {!businessId ? (
+          <div className="saved-filter-list">
+            {saved.map((item) => (
+              <div key={item.id}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => void applyFilter(item)}
+                >
+                  {item.name}
+                </button>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => void removeFilter(item.id)}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
       <div className="metric-grid">
         <article className="metric-card">
@@ -680,68 +840,139 @@ export function TransactionsPage() {
           </div>
           <span className="count-badge">{records.length}</span>
         </div>
-        <div className="record-list">
-          {records.map((record) => (
-            <article
-              className="record-card"
-              key={`${record.recordType}-${record.id}`}
-            >
-              <div className="record-summary">
-                <div>
-                  <span className="eyebrow">
-                    {record.recordType} · {record.subtype}
-                  </span>
-                  <h3>{record.counterparty}</h3>
-                  <p>
-                    {record.transactionDate} ·{' '}
-                    {record.activityName ?? 'Unallocated'}
-                    {record.categoryName ? ` · ${record.categoryName}` : ''}
-                    {record.vehicleRegistration
-                      ? ` · ${record.vehicleRegistration}`
-                      : ''}
-                  </p>
+        {businessId ? (
+          <div className="responsive-table-wrap">
+            <table className="responsive-record-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Counterparty</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Review</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((record) => {
+                  const collection =
+                    record.recordType === 'EXPENSE' ? 'expenses' : 'income';
+                  return (
+                    <tr key={`${record.recordType}-${record.id}`}>
+                      <td data-label="Date">{record.transactionDate}</td>
+                      <td data-label="Counterparty">
+                        <Link
+                          to={`/app/businesses/${businessId}/${collection}/${record.id}`}
+                        >
+                          {record.counterparty}
+                        </Link>
+                        <small>
+                          {record.attachmentCount} document
+                          {record.attachmentCount === 1 ? '' : 's'}
+                        </small>
+                      </td>
+                      <td data-label="Type">
+                        {record.recordType.toLowerCase()} ·{' '}
+                        {record.subtype.toLowerCase()}
+                      </td>
+                      <td data-label="Amount" className="numeric-cell">
+                        {money(record.totalAmountMinor, record.currency)}
+                      </td>
+                      <td data-label="Status">
+                        <span
+                          className={`status-badge ${record.status.toLowerCase()}`}
+                        >
+                          {statusLabel(record.status)}
+                        </span>
+                      </td>
+                      <td data-label="Review">
+                        <ReviewPanel
+                          record={record}
+                          role={user?.role ?? 'ACCOUNTANT'}
+                          onChanged={() => search(filters, mode)}
+                        />
+                        {user?.role === 'OWNER' ? (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => void moveToTrash(record)}
+                          >
+                            Move to trash
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="record-list">
+            {records.map((record) => (
+              <article
+                className="record-card"
+                key={`${record.recordType}-${record.id}`}
+              >
+                <div className="record-summary">
+                  <div>
+                    <span className="eyebrow">
+                      {record.recordType} · {record.subtype}
+                    </span>
+                    <h3>{record.counterparty}</h3>
+                    <p>
+                      {record.transactionDate} ·{' '}
+                      {record.activityName ?? 'Unallocated'}
+                      {record.categoryName ? ` · ${record.categoryName}` : ''}
+                      {record.vehicleRegistration
+                        ? ` · ${record.vehicleRegistration}`
+                        : ''}
+                    </p>
+                  </div>
+                  <strong>
+                    {money(record.totalAmountMinor, record.currency)}
+                  </strong>
                 </div>
-                <strong>
-                  {money(record.totalAmountMinor, record.currency)}
-                </strong>
-              </div>
-              <div className="button-row">
-                <span className={`status-badge ${record.status.toLowerCase()}`}>
-                  {statusLabel(record.status)}
-                </span>
-                <span>
-                  {record.attachmentCount} document
-                  {record.attachmentCount === 1 ? '' : 's'}
-                </span>
-                {record.reviewerEmail ? (
-                  <span>Reviewed by {record.reviewerEmail}</span>
-                ) : null}
-              </div>
-              <ReviewPanel
-                record={record}
-                role={user?.role ?? 'ACCOUNTANT'}
-                onChanged={() => search(filters, mode)}
-              />
-              {user?.role === 'OWNER' ? (
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => void moveToTrash(record)}
-                >
-                  Move to trash
-                </button>
-              ) : null}
-              {mode === 'RECEIPTS' ? (
-                <AttachmentPanel
-                  recordType={record.recordType}
-                  recordId={record.id}
-                  canManage={user?.role === 'OWNER'}
-                  localOnly={configuration?.environment === 'demo'}
+                <div className="button-row">
+                  <span
+                    className={`status-badge ${record.status.toLowerCase()}`}
+                  >
+                    {statusLabel(record.status)}
+                  </span>
+                  <span>
+                    {record.attachmentCount} document
+                    {record.attachmentCount === 1 ? '' : 's'}
+                  </span>
+                  {record.reviewerEmail ? (
+                    <span>Reviewed by {record.reviewerEmail}</span>
+                  ) : null}
+                </div>
+                <ReviewPanel
+                  record={record}
+                  role={user?.role ?? 'ACCOUNTANT'}
+                  onChanged={() => search(filters, mode)}
                 />
-              ) : null}
-            </article>
-          ))}
-        </div>
+                {user?.role === 'OWNER' ? (
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => void moveToTrash(record)}
+                  >
+                    Move to trash
+                  </button>
+                ) : null}
+                {mode === 'RECEIPTS' ? (
+                  <AttachmentPanel
+                    recordType={record.recordType}
+                    recordId={record.id}
+                    canManage={user?.role === 'OWNER'}
+                    localOnly={configuration?.environment === 'demo'}
+                  />
+                ) : null}
+              </article>
+            ))}
+          </div>
+        )}
         <div className="button-row" aria-label="Transaction pages">
           <button
             type="button"

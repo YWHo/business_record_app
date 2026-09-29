@@ -135,6 +135,42 @@ describe('browser-local public demo overlay', () => {
     ).resolves.toEqual({ comments: [] });
   });
 
+  it('shows browser-local attachments in the scoped document workspace', async () => {
+    const businessId = 'business-demo-activity-delivery';
+    await applyDemoOverlay(
+      {
+        expenses: [
+          {
+            id: 'expense-document-seed',
+            businessId,
+            legalEntityId: 'business-entity-primary',
+          },
+        ],
+      },
+      `/api/businesses/${businessId}/expenses`,
+    );
+    const form = new FormData();
+    form.set('recordType', 'EXPENSE');
+    form.set('recordId', 'expense-document-seed');
+    form.set('file', new File(['demo'], 'browser-receipt.pdf'));
+    await recordDemoMutation('/api/attachments', {
+      method: 'POST',
+      body: form,
+    });
+
+    const result = await applyDemoOverlay(
+      { documents: [] as Array<Record<string, unknown>> },
+      `/api/businesses/${businessId}/documents`,
+    );
+    expect(result.documents[0]).toMatchObject({
+      businessId,
+      recordType: 'EXPENSE',
+      recordId: 'expense-document-seed',
+      originalFilename: 'browser-receipt.pdf',
+      createdByEmail: 'browser-local-demo',
+    });
+  });
+
   it('isolates local creates by route business and resolves legal entity by date', async () => {
     await recordDemoMutation(
       '/api/businesses/business-demo-activity-rideshare/expenses',
