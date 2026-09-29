@@ -157,6 +157,8 @@ function resourceForPath(pathname: string): string {
     const resource = scoped[1].replace(/^\/+|\/+$/g, '');
     const root = resource.split('/')[0];
     if (root === 'income') return 'income-records';
+    if (root === 'work-sessions' && resource.endsWith('/fuel-workflow'))
+      return 'work-sessions/fuel-workflow';
     if (['expenses', 'work-sessions'].includes(root)) return root;
     return resource;
   }
@@ -177,6 +179,7 @@ function recordIdFor(
   ).trim();
   if (explicit) return explicit;
   const segments = pathname.split('/').filter(Boolean);
+  if (segments.at(-1) === 'fuel-workflow') return segments.at(-2) ?? null;
   return segments.length > 4 ? (segments.at(-1) ?? null) : null;
 }
 
@@ -540,6 +543,58 @@ function incomePresentation(
   };
 }
 
+function workSessionPresentation(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const startedAt = stringValue(body.startedAt);
+  const endedAt = stringValue(body.endedAt);
+  const odometerStartKm = Number(body.odometerStartKm);
+  const odometerEndKm = Number(body.odometerEndKm);
+  const distanceKm =
+    Number.isFinite(odometerStartKm) && Number.isFinite(odometerEndKm)
+      ? Math.round((odometerEndKm - odometerStartKm) * 1000) / 1000
+      : 0;
+  const durationMinutes = Math.max(
+    0,
+    Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 60000) || 0,
+  );
+  const revenue = Number(body.grossRevenue);
+  const grossRevenueMinor =
+    body.grossRevenue === '' || body.grossRevenue === null
+      ? null
+      : Number.isFinite(revenue)
+        ? Math.round(revenue * 100)
+        : null;
+  return {
+    ...body,
+    startedAt,
+    endedAt,
+    odometerStartKm,
+    odometerEndKm,
+    distanceKm,
+    durationMinutes,
+    durationHours: Math.round((durationMinutes / 60) * 100) / 100,
+    grossRevenueMinor,
+    currency: stringValue(body.currency) || 'NZD',
+    revenuePerHourMinor:
+      grossRevenueMinor !== null && durationMinutes > 0
+        ? Math.round((grossRevenueMinor * 60) / durationMinutes)
+        : null,
+    revenuePerKmMinor:
+      grossRevenueMinor !== null && distanceKm > 0
+        ? Math.round(grossRevenueMinor / distanceKm)
+        : null,
+    vehicleRegistration:
+      stringValue(body.vehicleRegistration) || 'Selected vehicle',
+    fuelCalculationStatus: body.fuelCalculationStatus ?? 'UNAVAILABLE',
+    fuelLitresUsed: body.fuelLitresUsed ?? null,
+    fuelCostMinor: body.fuelCostMinor ?? null,
+    fuelCurrency: body.fuelCurrency ?? null,
+    kilometresPerLitre: body.kilometresPerLitre ?? null,
+    fuelCostPerKmMinor: body.fuelCostPerKmMinor ?? null,
+  };
+}
+
 function applyOperation(
   payload: unknown,
   operation: DemoOperation,
@@ -569,7 +624,9 @@ function applyOperation(
       ? expensePresentation(operation.body)
       : operation.resource === 'income-records'
         ? incomePresentation(operation.body)
-        : operation.body;
+        : operation.resource === 'work-sessions'
+          ? workSessionPresentation(operation.body)
+          : operation.body;
   if (Array.isArray((payload as Record<string, unknown>).trash) && isRestore) {
     const trash = (payload as Record<string, unknown>).trash as Array<
       Record<string, unknown>
@@ -633,6 +690,15 @@ function applyOperation(
     } else if (isRestore) {
       if ('deletedAt' in item) item.deletedAt = null;
       if ('deleted_at' in item) item.deleted_at = null;
+    } else if (operation.resource === 'work-sessions/fuel-workflow') {
+      Object.assign(item, operationBody, {
+        fuelCalculationStatus:
+          operation.body.tankFullAtStart === true &&
+          operation.body.noPersonalDriving === true &&
+          operation.body.tankFullAtEnd === true
+            ? 'EXACT'
+            : 'ESTIMATE',
+      });
     } else if (operation.method === 'PUT' || operation.method === 'PATCH')
       Object.assign(item, operationBody);
   });

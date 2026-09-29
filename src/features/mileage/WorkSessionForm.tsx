@@ -12,6 +12,7 @@ export function WorkSessionForm({
   submitLabel,
   onSubmit,
   onCancel,
+  showActivity = true,
 }: {
   activities: ReferenceOption[];
   vehicles: ReferenceOption[];
@@ -19,6 +20,7 @@ export function WorkSessionForm({
   submitLabel: string;
   onSubmit: (draft: WorkSessionDraft) => Promise<void>;
   onCancel?: () => void;
+  showActivity?: boolean;
 }) {
   const formId = useId().replaceAll(':', '');
   const [draft, setDraft] = useState(initial);
@@ -42,29 +44,33 @@ export function WorkSessionForm({
       className="work-session-form"
       onSubmit={(event) => void submit(event)}
     >
-      <label htmlFor={`activity-${formId}`}>Business activity</label>
-      <select
-        id={`activity-${formId}`}
-        required
-        value={draft.businessActivityId}
-        onChange={(event) =>
-          setDraft({ ...draft, businessActivityId: event.target.value })
-        }
-      >
-        <option value="">Select an activity</option>
-        {activities.map((activity) => (
-          <option
-            key={activity.id}
-            value={activity.id}
-            disabled={
-              !activity.active && initial.businessActivityId !== activity.id
+      {showActivity ? (
+        <>
+          <label htmlFor={`activity-${formId}`}>Business activity</label>
+          <select
+            id={`activity-${formId}`}
+            required
+            value={draft.businessActivityId}
+            onChange={(event) =>
+              setDraft({ ...draft, businessActivityId: event.target.value })
             }
           >
-            {activity.label}
-            {activity.active ? '' : ' (inactive)'}
-          </option>
-        ))}
-      </select>
+            <option value="">Select an activity</option>
+            {activities.map((activity) => (
+              <option
+                key={activity.id}
+                value={activity.id}
+                disabled={
+                  !activity.active && initial.businessActivityId !== activity.id
+                }
+              >
+                {activity.label}
+                {activity.active ? '' : ' (inactive)'}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : null}
 
       <label htmlFor={`vehicle-${formId}`}>Vehicle</label>
       <select

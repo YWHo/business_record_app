@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
@@ -9,7 +10,7 @@ import {
   type WorkSessionDraft,
 } from '../features/mileage/workSessionModel';
 
-interface WorkSession {
+export interface WorkSession {
   id: string;
   businessId: string;
   legalEntityId: string;
@@ -29,6 +30,7 @@ interface WorkSession {
   revenuePerHourMinor: number | null;
   revenuePerKmMinor: number | null;
   notes: string | null;
+  status: string;
   tankFullAtStart: boolean | null;
   noPersonalDriving: boolean | null;
   tankFullAtEnd: boolean | null;
@@ -42,7 +44,7 @@ interface WorkSession {
   fuelCostPerKmMinor: number | null;
 }
 
-interface FuelOption {
+export interface FuelOption {
   id: string;
   vehicleId: string;
   merchantName: string;
@@ -51,7 +53,7 @@ interface FuelOption {
   fuelLitres: number | null;
 }
 
-interface Summary {
+export interface WorkSessionSummary {
   sessionCount: number;
   totalDurationHours: number;
   totalDistanceKm: number;
@@ -62,7 +64,7 @@ interface Summary {
   completeRevenueData: boolean;
 }
 
-const emptySummary: Summary = {
+export const emptyWorkSessionSummary: WorkSessionSummary = {
   sessionCount: 0,
   totalDurationHours: 0,
   totalDistanceKm: 0,
@@ -73,7 +75,7 @@ const emptySummary: Summary = {
   completeRevenueData: false,
 };
 
-function money(minor: number | null, currency = 'NZD'): string {
+export function sessionMoney(minor: number | null, currency = 'NZD'): string {
   if (minor === null) return '—';
   return new Intl.NumberFormat('en-NZ', {
     style: 'currency',
@@ -81,7 +83,7 @@ function money(minor: number | null, currency = 'NZD'): string {
   }).format(minor / 100);
 }
 
-function draftFrom(session: WorkSession): WorkSessionDraft {
+export function workSessionDraftFrom(session: WorkSession): WorkSessionDraft {
   return {
     businessActivityId: session.businessActivityId,
     vehicleId: session.vehicleId,
@@ -98,7 +100,7 @@ function draftFrom(session: WorkSession): WorkSessionDraft {
   };
 }
 
-function requestBody(draft: WorkSessionDraft) {
+export function workSessionRequestBody(draft: WorkSessionDraft) {
   return {
     ...draft,
     startedAt: new Date(draft.startedAt).toISOString(),
@@ -112,7 +114,7 @@ export function MileagePage() {
   const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [sessions, setSessions] = useState<WorkSession[]>([]);
-  const [summary, setSummary] = useState(emptySummary);
+  const [summary, setSummary] = useState(emptyWorkSessionSummary);
   const [activities, setActivities] = useState<ReferenceOption[]>([]);
   const [vehicles, setVehicles] = useState<ReferenceOption[]>([]);
   const [fuelRecords, setFuelRecords] = useState<FuelOption[]>([]);
@@ -124,7 +126,7 @@ export function MileagePage() {
   const load = useCallback(async () => {
     const [sessionResult, activityResult, vehicleResult, fuelResult] =
       await Promise.all([
-        apiRequest<{ sessions: WorkSession[]; summary: Summary }>(
+        apiRequest<{ sessions: WorkSession[]; summary: WorkSessionSummary }>(
           '/api/work-sessions',
         ),
         apiRequest<{
@@ -176,7 +178,7 @@ export function MileagePage() {
     try {
       await apiRequest('/api/work-sessions', {
         method: 'POST',
-        body: JSON.stringify(requestBody(draft)),
+        body: JSON.stringify(workSessionRequestBody(draft)),
       });
       setMessage(
         'Work session added. Distance and rates were calculated from the source values.',
@@ -199,7 +201,10 @@ export function MileagePage() {
     try {
       await apiRequest('/api/work-sessions', {
         method: 'PATCH',
-        body: JSON.stringify({ id: editing.id, ...requestBody(draft) }),
+        body: JSON.stringify({
+          id: editing.id,
+          ...workSessionRequestBody(draft),
+        }),
       });
       setEditing(null);
       setMessage('Work session updated and metrics recalculated.');
@@ -302,7 +307,9 @@ export function MileagePage() {
         </article>
         <article className="metric-card">
           <span>Revenue per hour</span>
-          <strong>{money(summary.revenuePerHourMinor, summaryCurrency)}</strong>
+          <strong>
+            {sessionMoney(summary.revenuePerHourMinor, summaryCurrency)}
+          </strong>
           <small>
             {summary.completeRevenueData
               ? 'Gross revenue ÷ time'
@@ -311,7 +318,9 @@ export function MileagePage() {
         </article>
         <article className="metric-card">
           <span>Revenue per km</span>
-          <strong>{money(summary.revenuePerKmMinor, summaryCurrency)}</strong>
+          <strong>
+            {sessionMoney(summary.revenuePerKmMinor, summaryCurrency)}
+          </strong>
           <small>
             {summary.completeRevenueData
               ? 'Gross revenue ÷ distance'
@@ -370,7 +379,7 @@ export function MileagePage() {
                   <WorkSessionForm
                     activities={activities}
                     vehicles={vehicles}
-                    initial={draftFrom(session)}
+                    initial={workSessionDraftFrom(session)}
                     submitLabel="Save changes"
                     onSubmit={update}
                     onCancel={() => setEditing(null)}
@@ -399,19 +408,28 @@ export function MileagePage() {
                       <div>
                         <dt>Gross revenue</dt>
                         <dd>
-                          {money(session.grossRevenueMinor, session.currency)}
+                          {sessionMoney(
+                            session.grossRevenueMinor,
+                            session.currency,
+                          )}
                         </dd>
                       </div>
                       <div>
                         <dt>Revenue/hour</dt>
                         <dd>
-                          {money(session.revenuePerHourMinor, session.currency)}
+                          {sessionMoney(
+                            session.revenuePerHourMinor,
+                            session.currency,
+                          )}
                         </dd>
                       </div>
                       <div>
                         <dt>Revenue/km</dt>
                         <dd>
-                          {money(session.revenuePerKmMinor, session.currency)}
+                          {sessionMoney(
+                            session.revenuePerKmMinor,
+                            session.currency,
+                          )}
                         </dd>
                       </div>
                       <div>
@@ -443,7 +461,7 @@ export function MileagePage() {
                       <div>
                         <dt>Fuel cost/km</dt>
                         <dd>
-                          {money(
+                          {sessionMoney(
                             session.fuelCostPerKmMinor,
                             session.fuelCurrency ?? session.currency,
                           )}
@@ -517,7 +535,7 @@ export function MileagePage() {
   );
 }
 
-function FuelWorkflowForm({
+export function FuelWorkflowForm({
   session,
   fuelRecords,
   onSubmit,

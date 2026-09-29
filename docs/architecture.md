@@ -110,6 +110,15 @@ D1 is the authority for `distance_km`, using its generated-column expression `od
 
 Work-session writes receive retention dates from the configured tax-year policy using the New Zealand business date (`Pacific/Auckland`) and activity-linked audit records. Owner-only mutations and accountant read access are enforced by the same backend authorization boundary as other records.
 
+The business workspace exposes mileage as a summary and session list first,
+with separate create, detail, and edit routes. The route business is
+authoritative: scoped forms do not expose activity or legal-entity selectors,
+and the Worker checks account, business, session, and vehicle scope before a
+read or write. Legal entity is resolved from the session start date; moving an
+existing session across an operating-period boundary requires explicit
+confirmation. The detail route retains supporting documents, trash, and the
+full-tank fuel workflow without placing a long form above session history.
+
 ## Fuel evidence and calculations
 
 Fuel data uses the shared `expenses` row for financial and retention fields and `fuel_expense_details` for vehicle and pump measurements. Receipt and GST totals are integer minor units; pump price is integer millionths per litre. The Worker—not the browser—validates both records and writes them as one D1 batch. Fuel price and litres are optional, but incomplete detail and a material price-times-litres mismatch return structured confirmation warnings before any write. A retry must name every current warning code to save deliberately.

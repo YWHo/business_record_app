@@ -35,6 +35,7 @@ import {
 import { createVehicle, listVehicles, updateVehicle } from './routes/vehicles';
 import {
   createWorkSession,
+  getWorkSession,
   listWorkSessions,
   updateFuelWorkflow,
   updateWorkSession,
@@ -205,6 +206,22 @@ const routes: Route[] = [
     method: 'POST',
     pathname: '/api/businesses/:businessId/work-sessions',
     handler: createWorkSession,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/work-sessions/:sessionId',
+    handler: getWorkSession,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/businesses/:businessId/work-sessions/:sessionId',
+    handler: updateWorkSession,
+  },
+  {
+    method: 'PATCH',
+    pathname:
+      '/api/businesses/:businessId/work-sessions/:sessionId/fuel-workflow',
+    handler: updateFuelWorkflow,
   },
   { method: 'GET', pathname: '/api/auth/me', handler: currentUser },
   { method: 'GET', pathname: '/api/auth/config', handler: authConfiguration },

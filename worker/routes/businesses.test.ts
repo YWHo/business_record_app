@@ -8,7 +8,7 @@ import {
   listBusinessExpenses,
   listBusinessRecords,
 } from './businesses';
-import { listWorkSessions } from './workSessions';
+import { getWorkSession, listWorkSessions } from './workSessions';
 
 interface CapturedQuery {
   sql: string;
@@ -265,6 +265,74 @@ describe('business-scoped read routes', () => {
       'business-account-primary',
       'business-1',
       'income-1',
+    ]);
+  });
+
+  it('loads a work-session detail only through account and business scope', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.startsWith('SELECT id FROM work_sessions')) {
+        return { id: 'session-1' };
+      }
+      if (query.sql.includes('FROM work_sessions')) {
+        return {
+          id: 'session-1',
+          business_id: 'business-1',
+          legal_entity_id: 'entity-1',
+          business_activity_id: 'activity-derived',
+          activity_name: 'Uber Ride',
+          vehicle_id: 'vehicle-1',
+          vehicle_registration: 'ABC123',
+          started_at: '2026-09-20T08:00:00.000Z',
+          ended_at: '2026-09-20T10:00:00.000Z',
+          odometer_start_km: 100,
+          odometer_end_km: 150,
+          distance_km: 50,
+          gross_revenue_minor: 10_000,
+          currency: 'NZD',
+          notes: 'Morning work',
+          status: 'NEW',
+          created_at: '2026-09-20T08:00:00.000Z',
+          updated_at: '2026-09-20T10:00:00.000Z',
+          tank_full_at_start: null,
+          no_personal_driving: null,
+          tank_full_at_end: null,
+          starting_fuel_expense_id: null,
+          starting_fuel_merchant: null,
+          ending_fuel_expense_id: null,
+          ending_fuel_merchant: null,
+          ending_fuel_total_minor: null,
+          ending_fuel_currency: null,
+          ending_fuel_litres: null,
+          ending_fill_type: null,
+        };
+      }
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await getWorkSession(
+      new Request(
+        'https://demo.invalid/api/businesses/business-1/work-sessions/session-1',
+      ),
+      env,
+      { businessId: 'business-1', sessionId: 'session-1' },
+    );
+
+    expect(await response.json()).toMatchObject({
+      session: {
+        id: 'session-1',
+        businessId: 'business-1',
+        vehicleRegistration: 'ABC123',
+        distanceKm: 50,
+      },
+    });
+    const detailQuery = queries.find((query) =>
+      query.sql.includes('JOIN business_activities'),
+    );
+    expect(detailQuery?.values).toEqual([
+      'business-account-primary',
+      'business-1',
+      'session-1',
     ]);
   });
 

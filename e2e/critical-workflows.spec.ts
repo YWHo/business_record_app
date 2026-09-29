@@ -126,9 +126,11 @@ test.describe.serial('critical business workflows', () => {
     ).toBeVisible();
 
     await page.getByRole('link', { name: 'Mileage' }).click();
-    await page.getByLabel('Business activity', { exact: true }).selectOption({
-      label: activityName,
-    });
+    await page.getByRole('link', { name: 'Add work session' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Add work session' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Business activity')).toHaveCount(0);
     await page.getByLabel('Vehicle', { exact: true }).selectOption({
       label: vehicleRegistration,
     });
@@ -138,9 +140,13 @@ test.describe.serial('critical business workflows', () => {
     await page.getByLabel('Ending odometer (km)').fill('12042');
     await page.getByLabel('Gross revenue (optional)').fill('126.00');
     await page.getByLabel('Notes (optional)').fill('E2E work session');
-    await page.getByRole('button', { name: 'Add session' }).click();
-    await expect(page.getByText(/Work session added/)).toBeVisible();
-    await expect(cardWith(page, 'E2E work session')).toContainText('42 km');
+    await page.getByRole('button', { name: 'Save work session' }).click();
+    await expect(
+      page.getByRole('heading', {
+        name: `${vehicleRegistration} · 42 km`,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('E2E work session')).toBeVisible();
 
     await page.getByRole('link', { name: 'Expenses', exact: true }).click();
     await page.getByRole('link', { name: 'Add expense' }).click();

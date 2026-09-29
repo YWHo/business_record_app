@@ -16,12 +16,14 @@ import { IncomeDetailPage } from './routes/IncomeDetailPage';
 import { IncomeFormPage } from './routes/IncomeFormPage';
 import { IncomeListPage } from './routes/IncomeListPage';
 import { LoginPage } from './routes/LoginPage';
-import { MileagePage } from './routes/MileagePage';
+import { MileageListPage } from './routes/MileageListPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { SetupPage } from './routes/SetupPage';
 import { TransactionsPage } from './routes/TransactionsPage';
 import { UserManagementPage } from './routes/UserManagementPage';
 import { VerifyLoginPage } from './routes/VerifyLoginPage';
+import { WorkSessionDetailPage } from './routes/WorkSessionDetailPage';
+import { WorkSessionFormPage } from './routes/WorkSessionFormPage';
 
 function WorkspaceGate() {
   const { loading, user } = useAuth();
@@ -107,7 +109,19 @@ export function App() {
                 path="income/:incomeId/edit"
                 element={<IncomeFormPage mode="edit" />}
               />
-              <Route path="mileage" element={<MileagePage />} />
+              <Route path="mileage" element={<MileageListPage />} />
+              <Route
+                path="mileage/new"
+                element={<WorkSessionFormPage mode="create" />}
+              />
+              <Route
+                path="mileage/:sessionId"
+                element={<WorkSessionDetailPage />}
+              />
+              <Route
+                path="mileage/:sessionId/edit"
+                element={<WorkSessionFormPage mode="edit" />}
+              />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="reports" element={<ExportsPage />} />
               <Route path="settings" element={<SetupPage />} />

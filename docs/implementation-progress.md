@@ -811,3 +811,25 @@ Acceptance criteria completed:
 
 Notes: The legacy flat income endpoint remains available for compatibility,
 but the business workspace no longer mounts inline create or edit forms.
+
+## List-first business mileage workflow
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the combined mileage form and history page with a business-scoped
+  summary and responsive work-session list.
+- Added dedicated create, detail, and edit routes with one focused session
+  form and fixed business context.
+- Removed editable business-activity and legal-entity selectors from scoped
+  forms; the Worker derives both from the route business and session date.
+- Preserved odometer-derived distance, duration and revenue rates, supporting
+  documents, trash, and the full-tank fuel evidence workflow.
+- Added account/business/session/vehicle checks for detail, edit, and fuel
+  APIs, including confirmation before a date edit changes legal entity.
+- Updated browser-local demo behavior, component and Worker tests, local-D1
+  smoke checks, and the critical browser workflow for the new route model.
+
+Notes: Legacy flat work-session endpoints remain available for compatibility,
+but the business workspace no longer mounts inline create or edit forms.

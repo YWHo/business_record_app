@@ -2410,6 +2410,44 @@ if (
   );
 }
 
+const scopedSessionId = scopedSession.body.session.id;
+const scopedSessionDetail = await request(
+  `/api/businesses/${scopedBusinessId}/work-sessions/${scopedSessionId}`,
+  {},
+  ownerCookie,
+);
+expectStatus(scopedSessionDetail, 200, 'business work-session detail');
+if (
+  scopedSessionDetail.body.session.id !== scopedSessionId ||
+  scopedSessionDetail.body.session.distanceKm !== 20
+) {
+  throw new Error('business work-session detail lost calculated source data');
+}
+
+const scopedSessionUpdate = await request(
+  `/api/businesses/${scopedBusinessId}/work-sessions/${scopedSessionId}`,
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      endedAt: '2026-09-12T11:30:00.000+12:00',
+      odometerEndKm: 2028,
+      grossRevenue: '84.00',
+      notes: 'Scoped session updated',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(scopedSessionUpdate, 200, 'business work-session update');
+if (
+  scopedSessionUpdate.body.session.id !== scopedSessionId ||
+  scopedSessionUpdate.body.session.businessId !== scopedBusinessId ||
+  scopedSessionUpdate.body.session.distanceKm !== 28 ||
+  scopedSessionUpdate.body.session.notes !== 'Scoped session updated'
+) {
+  throw new Error('business work-session update lost scoped source data');
+}
+
 const scopedParking = await request(
   `/api/businesses/${scopedBusinessId}/expenses`,
   {

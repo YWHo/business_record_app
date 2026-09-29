@@ -536,71 +536,123 @@ describe('App', () => {
                                                         },
                                                       ],
                                                     }
-                                                  : url.endsWith(
-                                                        '/api/work-sessions',
+                                                  : /\/api\/businesses\/[^/]+\/work-sessions\/session-local$/.test(
+                                                        url,
                                                       )
                                                     ? {
-                                                        sessions: [
-                                                          {
-                                                            id: 'session-local',
-                                                            businessActivityId:
-                                                              'activity-contracting',
-                                                            activityName:
-                                                              'IT Contracting',
-                                                            vehicleId:
-                                                              'vehicle-local',
-                                                            vehicleRegistration:
-                                                              'ABC123',
-                                                            startedAt:
-                                                              '2026-09-08T00:00:00.000Z',
-                                                            endedAt:
-                                                              '2026-09-08T02:00:00.000Z',
-                                                            odometerStartKm: 100,
-                                                            odometerEndKm: 150,
-                                                            distanceKm: 50,
-                                                            durationMinutes: 120,
-                                                            durationHours: 2,
-                                                            grossRevenueMinor: 10_000,
-                                                            currency: 'NZD',
-                                                            revenuePerHourMinor: 5000,
-                                                            revenuePerKmMinor: 200,
-                                                            notes: null,
-                                                            tankFullAtStart: true,
-                                                            noPersonalDriving: true,
-                                                            tankFullAtEnd: true,
-                                                            startingFuelExpenseId:
-                                                              null,
-                                                            endingFuelExpenseId:
-                                                              'fuel-local',
-                                                            fuelCalculationStatus:
-                                                              'EXACT',
-                                                            fuelLitresUsed: 40,
-                                                            fuelCostMinor: 10_000,
-                                                            fuelCurrency: 'NZD',
-                                                            kilometresPerLitre: 1.25,
-                                                            fuelCostPerKmMinor: 200,
-                                                          },
-                                                        ],
-                                                        summary: {
-                                                          sessionCount: 1,
-                                                          totalDurationHours: 2,
-                                                          totalDistanceKm: 50,
-                                                          totalRevenueMinor: 10_000,
+                                                        session: {
+                                                          id: 'session-local',
+                                                          businessId:
+                                                            'business-activity-contracting',
+                                                          legalEntityId:
+                                                            'entity-owner',
+                                                          businessActivityId:
+                                                            'activity-contracting',
+                                                          activityName:
+                                                            'IT Contracting',
+                                                          vehicleId:
+                                                            'vehicle-local',
+                                                          vehicleRegistration:
+                                                            'ABC123',
+                                                          startedAt:
+                                                            '2026-09-08T00:00:00.000Z',
+                                                          endedAt:
+                                                            '2026-09-08T02:00:00.000Z',
+                                                          odometerStartKm: 100,
+                                                          odometerEndKm: 150,
+                                                          distanceKm: 50,
+                                                          durationMinutes: 120,
+                                                          durationHours: 2,
+                                                          grossRevenueMinor: 10_000,
+                                                          currency: 'NZD',
                                                           revenuePerHourMinor: 5000,
                                                           revenuePerKmMinor: 200,
-                                                          currency: 'NZD',
-                                                          completeRevenueData: true,
+                                                          notes:
+                                                            'Airport delivery block',
+                                                          status: 'NEW',
+                                                          tankFullAtStart: true,
+                                                          noPersonalDriving: true,
+                                                          tankFullAtEnd: true,
+                                                          startingFuelExpenseId:
+                                                            null,
+                                                          endingFuelExpenseId:
+                                                            'fuel-local',
+                                                          fuelCalculationStatus:
+                                                            'EXACT',
+                                                          fuelLitresUsed: 40,
+                                                          fuelCostMinor: 10_000,
+                                                          fuelCurrency: 'NZD',
+                                                          kilometresPerLitre: 1.25,
+                                                          fuelCostPerKmMinor: 200,
                                                         },
                                                       }
-                                                    : {
-                                                        user: {
-                                                          id: 'owner',
-                                                          email:
-                                                            'owner@local.test',
-                                                          role: currentRole,
-                                                          status: 'ACTIVE',
-                                                        },
-                                                      };
+                                                    : /\/api\/(?:businesses\/[^/]+\/)?work-sessions$/.test(
+                                                          url,
+                                                        )
+                                                      ? {
+                                                          sessions: [
+                                                            {
+                                                              id: 'session-local',
+                                                              businessActivityId:
+                                                                'activity-contracting',
+                                                              activityName:
+                                                                'IT Contracting',
+                                                              vehicleId:
+                                                                'vehicle-local',
+                                                              vehicleRegistration:
+                                                                'ABC123',
+                                                              startedAt:
+                                                                '2026-09-08T00:00:00.000Z',
+                                                              endedAt:
+                                                                '2026-09-08T02:00:00.000Z',
+                                                              odometerStartKm: 100,
+                                                              odometerEndKm: 150,
+                                                              distanceKm: 50,
+                                                              durationMinutes: 120,
+                                                              durationHours: 2,
+                                                              grossRevenueMinor: 10_000,
+                                                              currency: 'NZD',
+                                                              revenuePerHourMinor: 5000,
+                                                              revenuePerKmMinor: 200,
+                                                              notes: null,
+                                                              status: 'NEW',
+                                                              tankFullAtStart: true,
+                                                              noPersonalDriving: true,
+                                                              tankFullAtEnd: true,
+                                                              startingFuelExpenseId:
+                                                                null,
+                                                              endingFuelExpenseId:
+                                                                'fuel-local',
+                                                              fuelCalculationStatus:
+                                                                'EXACT',
+                                                              fuelLitresUsed: 40,
+                                                              fuelCostMinor: 10_000,
+                                                              fuelCurrency:
+                                                                'NZD',
+                                                              kilometresPerLitre: 1.25,
+                                                              fuelCostPerKmMinor: 200,
+                                                            },
+                                                          ],
+                                                          summary: {
+                                                            sessionCount: 1,
+                                                            totalDurationHours: 2,
+                                                            totalDistanceKm: 50,
+                                                            totalRevenueMinor: 10_000,
+                                                            revenuePerHourMinor: 5000,
+                                                            revenuePerKmMinor: 200,
+                                                            currency: 'NZD',
+                                                            completeRevenueData: true,
+                                                          },
+                                                        }
+                                                      : {
+                                                          user: {
+                                                            id: 'owner',
+                                                            email:
+                                                              'owner@local.test',
+                                                            role: currentRole,
+                                                            status: 'ACTIVE',
+                                                          },
+                                                        };
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status: 200,
@@ -734,13 +786,17 @@ describe('App', () => {
     renderApp('/app/businesses/business-activity-contracting/mileage');
 
     expect(
-      await screen.findByRole('heading', { name: /work sessions/i }),
+      await screen.findByRole('heading', { name: 'Mileage' }),
     ).toBeInTheDocument();
     expect(await screen.findAllByText('50 km')).toHaveLength(2);
-    expect(screen.getByText('ABC123')).toBeInTheDocument();
+    expect(await screen.findByText('ABC123')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /add work session/i }),
-    ).toBeInTheDocument();
+      screen.getByRole('link', { name: /add work session/i }),
+    ).toHaveAttribute(
+      'href',
+      '/app/businesses/business-activity-contracting/mileage/new',
+    );
+    expect(document.querySelector('form')).not.toBeInTheDocument();
   });
 
   it('renders a list-first expense workflow with subtype filters', async () => {
@@ -763,11 +819,39 @@ describe('App', () => {
     renderApp('/app/businesses/business-activity-contracting/mileage');
 
     expect(
-      await screen.findByText(/only the owner can change them/i),
+      await screen.findByRole('heading', { name: 'Mileage' }),
     ).toBeInTheDocument();
+    expect(await screen.findByText('ABC123')).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: /add work session/i }),
+      screen.queryByRole('link', { name: /add work session/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders one dedicated work-session form without editable business identity', async () => {
+    renderApp('/app/businesses/business-activity-contracting/mileage/new');
+    expect(
+      await screen.findByRole('heading', { name: 'Add work session' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByLabelText('Vehicle')).toBeInTheDocument();
+    expect(document.querySelectorAll('form')).toHaveLength(1);
+    expect(
+      screen.queryByLabelText(/business activity/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/legal entity/i)).not.toBeInTheDocument();
+  });
+
+  it('renders work-session detail separately from editing', async () => {
+    renderApp(
+      '/app/businesses/business-activity-contracting/mileage/session-local',
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'ABC123 · 50 km' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Airport delivery block')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Edit session' })).toHaveAttribute(
+      'href',
+      '/app/businesses/business-activity-contracting/mileage/session-local/edit',
+    );
   });
 
   it('renders one dedicated expense form without editable business identity', async () => {

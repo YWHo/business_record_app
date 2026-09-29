@@ -9,7 +9,9 @@ import type { RouteParameters } from '../lib/router';
 import { writeAudit } from '../services/auditService';
 import {
   requireBusinessAccess,
+  requireBusinessScopedRecord,
   requireBusinessScopedReference,
+  requiresLegalEntityChangeConfirmation,
   resolveLegalEntityForBusinessDate,
 } from '../services/businessContextService';
 import { calculateFuelMetrics } from '../services/fuelService';
@@ -143,6 +145,12 @@ function currentValues(row: WorkSessionRow): WorkSessionValues {
     currency: row.currency,
     notes: row.notes,
   };
+}
+
+function routeSessionId(params: RouteParameters): string {
+  const id = params.sessionId?.trim();
+  if (!id) throw new HttpError(400, 'Work session is required.');
+  return id;
 }
 
 async function assertReferences(
@@ -376,36 +384,133 @@ export async function createWorkSession(
   return json({ session: serialize(row) }, { status: 201 });
 }
 
+export async function getWorkSession(
+  request: Request,
+  env: Env,
+  params: RouteParameters,
+): Promise<Response> {
+  const actor = await requireUser(request, env);
+  const routeBusinessId = params.businessId;
+  if (!routeBusinessId) throw new HttpError(400, 'Business is required.');
+  const business = await requireBusinessAccess(env.DB, actor, routeBusinessId);
+  const id = routeSessionId(params);
+  await requireBusinessScopedRecord(
+    env.DB,
+    actor,
+    'work_sessions',
+    business.id,
+    id,
+  );
+  const row = await env.DB.prepare(
+    `${sessionSelect} WHERE work_sessions.business_account_id = ?
+      AND work_sessions.business_id = ? AND work_sessions.id = ?`,
+  )
+    .bind(actor.businessAccountId, business.id, id)
+    .first<WorkSessionRow>();
+  if (!row) throw new HttpError(404, 'Work session not found.');
+  return json({ session: serialize(row) });
+}
+
 export async function updateWorkSession(
   request: Request,
   env: Env,
+  params: RouteParameters = {},
 ): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const body = await readJsonObject(request);
-  const id = getRequiredString(body, 'id');
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  if (business && !business.legacyBusinessActivityId) {
+    throw new HttpError(
+      409,
+      'This business cannot yet be written through the legacy record schema.',
+    );
+  }
+  const id = params.sessionId
+    ? routeSessionId(params)
+    : getRequiredString(body, 'id');
+  if (business) {
+    await requireBusinessScopedRecord(
+      env.DB,
+      owner,
+      'work_sessions',
+      business.id,
+      id,
+    );
+  }
   const row = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?${business ? ' AND work_sessions.business_id = ?' : ''}`,
   )
-    .bind(id, owner.businessAccountId)
+    .bind(id, owner.businessAccountId, ...(business ? [business.id] : []))
     .first<WorkSessionRow>();
   if (!row) throw new HttpError(404, 'Work session not found.');
-  const values = workSessionValues(body, currentValues(row));
+  const values = workSessionValues(
+    business
+      ? { ...body, businessActivityId: business.legacyBusinessActivityId }
+      : body,
+    currentValues(row),
+  );
   await assertReferences(env, owner.businessAccountId, values, row);
+  if (business) {
+    await requireBusinessScopedReference(
+      env.DB,
+      owner,
+      'vehicles',
+      business.id,
+      values.vehicleId,
+    );
+  }
+  const attribution = business
+    ? await resolveLegalEntityForBusinessDate(
+        env.DB,
+        owner,
+        business.id,
+        values.startedAt,
+        { forWrite: true },
+      )
+    : null;
+  const confirmedWarnings = new Set(
+    Array.isArray(body.confirmedWarnings)
+      ? body.confirmedWarnings.filter(
+          (value): value is string => typeof value === 'string',
+        )
+      : [],
+  );
+  const attributionWarning = attribution
+    ? requiresLegalEntityChangeConfirmation(
+        row.legal_entity_id,
+        attribution,
+        confirmedWarnings,
+      )
+    : null;
+  if (attributionWarning) {
+    return json(
+      {
+        error: 'Review the legal-entity change before saving.',
+        warnings: [attributionWarning],
+      },
+      { status: 409 },
+    );
+  }
   const retentionUntil = await retentionDate(
     env,
     owner.businessAccountId,
     values.endedAt,
   );
   const now = new Date().toISOString();
-  await env.DB.prepare(
-    `UPDATE work_sessions SET business_activity_id = ?, vehicle_id = ?, started_at = ?,
+  const statements = [
+    env.DB.prepare(
+      `UPDATE work_sessions SET business_activity_id = ?, vehicle_id = ?, started_at = ?,
       ended_at = ?, odometer_start_km = ?, odometer_end_km = ?,
       gross_revenue_minor = ?, currency = ?, notes = ?, status = 'NEW', updated_at = ?,
       retention_until = ?, purge_eligible_at = ?
       WHERE id = ? AND business_account_id = ?`,
-  )
-    .bind(
+    ).bind(
       values.businessActivityId,
       values.vehicleId,
       values.startedAt,
@@ -420,8 +525,22 @@ export async function updateWorkSession(
       retentionUntil,
       id,
       owner.businessAccountId,
-    )
-    .run();
+    ),
+    ...(attribution && business
+      ? [
+          env.DB.prepare(
+            `UPDATE work_sessions SET legal_entity_id = ?
+              WHERE business_account_id = ? AND business_id = ? AND id = ?`,
+          ).bind(
+            attribution.legalEntity.id,
+            owner.businessAccountId,
+            business.id,
+            id,
+          ),
+        ]
+      : []),
+  ];
+  await env.DB.batch(statements);
   await writeAudit(
     env,
     owner,
@@ -472,15 +591,17 @@ async function linkedFuel(
   env: Env,
   businessAccountId: string,
   id: string | null,
+  businessId: string | null = null,
 ): Promise<LinkedFuelRow | null> {
   if (!id) return null;
   const fuel = await env.DB.prepare(
     `SELECT expenses.id, fuel_expense_details.vehicle_id FROM expenses
      JOIN fuel_expense_details ON fuel_expense_details.expense_id = expenses.id
      WHERE expenses.id = ? AND expenses.business_account_id = ?
+       ${businessId ? 'AND expenses.business_id = ?' : ''}
        AND expenses.expense_type = 'FUEL' AND expenses.deleted_at IS NULL`,
   )
-    .bind(id, businessAccountId)
+    .bind(id, businessAccountId, ...(businessId ? [businessId] : []))
     .first<LinkedFuelRow>();
   if (!fuel) throw new HttpError(400, 'Select a valid fuel expense.');
   return fuel;
@@ -489,15 +610,33 @@ async function linkedFuel(
 export async function updateFuelWorkflow(
   request: Request,
   env: Env,
+  params: RouteParameters = {},
 ): Promise<Response> {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   const input = await readJsonObject(request);
-  const id = getRequiredString(input, 'id');
+  const routeBusinessId = params.businessId ?? null;
+  const business = routeBusinessId
+    ? await requireBusinessAccess(env.DB, owner, routeBusinessId, {
+        forWrite: true,
+      })
+    : null;
+  const id = params.sessionId
+    ? routeSessionId(params)
+    : getRequiredString(input, 'id');
+  if (business) {
+    await requireBusinessScopedRecord(
+      env.DB,
+      owner,
+      'work_sessions',
+      business.id,
+      id,
+    );
+  }
   const row = await env.DB.prepare(
-    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?`,
+    `${sessionSelect} WHERE work_sessions.id = ? AND work_sessions.business_account_id = ?${business ? ' AND work_sessions.business_id = ?' : ''}`,
   )
-    .bind(id, owner.businessAccountId)
+    .bind(id, owner.businessAccountId, ...(business ? [business.id] : []))
     .first<WorkSessionRow>();
   if (!row) throw new HttpError(404, 'Work session not found.');
 
@@ -517,8 +656,18 @@ export async function updateFuelWorkflow(
     );
   }
   const [startingFuel, endingFuel] = await Promise.all([
-    linkedFuel(env, owner.businessAccountId, startingFuelExpenseId),
-    linkedFuel(env, owner.businessAccountId, endingFuelExpenseId),
+    linkedFuel(
+      env,
+      owner.businessAccountId,
+      startingFuelExpenseId,
+      business?.id ?? null,
+    ),
+    linkedFuel(
+      env,
+      owner.businessAccountId,
+      endingFuelExpenseId,
+      business?.id ?? null,
+    ),
   ]);
   if (
     (startingFuel && startingFuel.vehicle_id !== row.vehicle_id) ||

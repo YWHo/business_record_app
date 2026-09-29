@@ -233,6 +233,64 @@ describe('browser-local public demo overlay', () => {
     });
   });
 
+  it('presents scoped work-session creates and fuel updates', async () => {
+    await recordDemoMutation(
+      '/api/businesses/business-demo-activity-delivery/work-sessions',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          vehicleId: 'vehicle-demo-delivery',
+          startedAt: '2026-07-04T08:00:00.000Z',
+          endedAt: '2026-07-04T10:00:00.000Z',
+          odometerStartKm: 100,
+          odometerEndKm: 142,
+          grossRevenue: '84.00',
+          currency: 'NZD',
+        }),
+      },
+    );
+    const list = await applyDemoOverlay(
+      { sessions: [] as Array<Record<string, unknown>> },
+      '/api/businesses/business-demo-activity-delivery/work-sessions',
+    );
+    expect(list.sessions[0]).toMatchObject({
+      businessId: 'business-demo-activity-delivery',
+      distanceKm: 42,
+      durationHours: 2,
+      grossRevenueMinor: 8400,
+      revenuePerKmMinor: 200,
+    });
+
+    const sessionId = String(list.sessions[0].id);
+    await recordDemoMutation(
+      `/api/businesses/business-demo-activity-delivery/work-sessions/${sessionId}/fuel-workflow`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          tankFullAtStart: true,
+          noPersonalDriving: true,
+          tankFullAtEnd: true,
+          startingFuelExpenseId: '',
+          endingFuelExpenseId: 'fuel-demo-delivery',
+        }),
+      },
+    );
+    await expect(
+      applyDemoOverlay(
+        { session: list.sessions[0] },
+        `/api/businesses/business-demo-activity-delivery/work-sessions/${sessionId}`,
+      ),
+    ).resolves.toMatchObject({
+      session: {
+        id: sessionId,
+        tankFullAtStart: true,
+        noPersonalDriving: true,
+        tankFullAtEnd: true,
+        fuelCalculationStatus: 'EXACT',
+      },
+    });
+  });
+
   it('presents scoped income creates and edits in list and detail views', async () => {
     await recordDemoMutation(
       '/api/businesses/business-demo-activity-delivery/income',
