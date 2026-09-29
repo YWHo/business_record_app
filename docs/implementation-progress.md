@@ -858,3 +858,28 @@ Acceptance criteria completed:
 Notes: The account-level transaction/receipt workspace and saved filters remain
 available for cross-business review. Files continue to be uploaded from their
 authoritative record detail rather than directly from the Documents list.
+
+## Focused business settings
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Replaced the combined reference-data setup screen with focused Details,
+  Legal entity, Activities, Vehicles, Categories, Clients, and Members routes.
+- Added a single owner-editable business details form for name, description,
+  and default currency, with validation, tenant scoping, and audit history.
+- Kept business-name corrections separate from legal-entity attribution, so a
+  typo fix does not create or rewrite an operating period.
+- Added a read-only operating-period table with plain legal-entity labels and
+  clear guidance that historical records remain assigned to their original
+  entity.
+- Kept accountants read-only across every settings route and directed
+  account-wide member administration to Account settings.
+- Preserved browser-local demo changes, business switching, responsive tab
+  navigation, and one-manager-per-page reference-data workflows.
+- Updated component, Worker-route, local smoke, and end-to-end coverage for the
+  focused settings structure.
+
+Notes: Creating a new legal-entity operating period remains a dedicated
+workflow. Existing periods are not editable from the focused settings pages.

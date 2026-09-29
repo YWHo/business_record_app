@@ -18,7 +18,16 @@ import { IncomeListPage } from './routes/IncomeListPage';
 import { LoginPage } from './routes/LoginPage';
 import { MileageListPage } from './routes/MileageListPage';
 import { NotFoundPage } from './routes/NotFoundPage';
-import { SetupPage } from './routes/SetupPage';
+import {
+  ActivitiesSettingsPage,
+  BusinessDetailsSettingsPage,
+  BusinessSettingsLayout,
+  CategoriesSettingsPage,
+  ClientsSettingsPage,
+  LegalEntitySettingsPage,
+  MembersSettingsPage,
+  VehiclesSettingsPage,
+} from './routes/SetupPage';
 import { TransactionsPage } from './routes/TransactionsPage';
 import { UserManagementPage } from './routes/UserManagementPage';
 import { VerifyLoginPage } from './routes/VerifyLoginPage';
@@ -124,7 +133,22 @@ export function App() {
               />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="reports" element={<ExportsPage />} />
-              <Route path="settings" element={<SetupPage />} />
+              <Route path="settings" element={<BusinessSettingsLayout />}>
+                <Route index element={<Navigate to="details" replace />} />
+                <Route
+                  path="details"
+                  element={<BusinessDetailsSettingsPage />}
+                />
+                <Route
+                  path="legal-entity"
+                  element={<LegalEntitySettingsPage />}
+                />
+                <Route path="activities" element={<ActivitiesSettingsPage />} />
+                <Route path="vehicles" element={<VehiclesSettingsPage />} />
+                <Route path="categories" element={<CategoriesSettingsPage />} />
+                <Route path="clients" element={<ClientsSettingsPage />} />
+                <Route path="members" element={<MembersSettingsPage />} />
+              </Route>
               <Route path="governance" element={<GovernancePage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>

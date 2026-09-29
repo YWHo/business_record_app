@@ -197,3 +197,28 @@ export async function createBusiness(
     .run();
   return input;
 }
+
+export async function updateBusinessDetails(
+  db: D1Database,
+  businessAccountId: string,
+  businessId: string,
+  values: Pick<Business, 'name' | 'description' | 'defaultCurrency'>,
+  updatedAt: string,
+): Promise<Business | null> {
+  await db
+    .prepare(
+      `UPDATE businesses
+          SET name = ?, description = ?, default_currency = ?, updated_at = ?
+        WHERE business_account_id = ? AND id = ?`,
+    )
+    .bind(
+      values.name,
+      values.description,
+      values.defaultCurrency,
+      updatedAt,
+      businessAccountId,
+      businessId,
+    )
+    .run();
+  return findBusinessById(db, businessAccountId, businessId);
+}

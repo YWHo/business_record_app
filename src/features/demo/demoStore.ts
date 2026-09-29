@@ -152,6 +152,7 @@ function routeBusinessId(pathname: string): string | null {
 }
 
 function resourceForPath(pathname: string): string {
+  if (/^\/api\/businesses\/[^/]+$/.test(pathname)) return 'business-details';
   const scoped = pathname.match(/^\/api\/businesses\/[^/]+\/(.+)$/);
   if (scoped) {
     const resource = scoped[1].replace(/^\/+|\/+$/g, '');
@@ -178,6 +179,8 @@ function recordIdFor(
     body.recordId ?? body.id ?? body.incomeId ?? body.expenseId,
   ).trim();
   if (explicit) return explicit;
+  if (resourceForPath(pathname) === 'business-details')
+    return routeBusinessId(pathname);
   const segments = pathname.split('/').filter(Boolean);
   if (segments.at(-1) === 'fuel-workflow') return segments.at(-2) ?? null;
   return segments.length > 4 ? (segments.at(-1) ?? null) : null;
@@ -795,10 +798,28 @@ export async function applyDemoOverlay<T>(
         business.currentLegalEntity =
           entities.get(current.legalEntityId) ?? null;
     });
+    stored
+      .filter((operation) => operation.resource === 'business-details')
+      .forEach((operation) => {
+        const business = businesses.find(
+          (candidate) => stringValue(candidate.id) === operation.businessId,
+        );
+        if (business) Object.assign(business, operation.body);
+      });
   }
   const businessId = routeBusinessId(requestPath);
   if (businessId && requestPath === `/api/businesses/${businessId}`) {
     const root = copy as Record<string, unknown>;
+    stored
+      .filter(
+        (operation) =>
+          operation.resource === 'business-details' &&
+          operation.businessId === businessId,
+      )
+      .forEach((operation) => {
+        const business = root.business as Record<string, unknown> | undefined;
+        if (business) Object.assign(business, operation.body);
+      });
     const seededPeriods = Array.isArray(root.operatingPeriods)
       ? (root.operatingPeriods as Array<Record<string, unknown>>)
       : [];

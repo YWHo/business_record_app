@@ -100,6 +100,14 @@ report migration, but are not mixed into the primary dashboard.
 
 Business activities and vehicles are database-backed reference records exposed through authenticated Worker routes. Both roles may read active and inactive records because historical financial and mileage views need their labels. Every mutation is owner-only and validated again at the Worker boundary.
 
+The selected-business settings area separates details, legal entity periods,
+activities, vehicles, categories, clients, and member guidance into focused
+routes. The details form is an owner-only audited update, so correcting a
+business name or description does not create a legal-entity change. Accountants
+retain read access. Legal-entity periods are displayed as immutable historical
+attribution here; changes use the dedicated period workflow rather than editing
+an existing row in place.
+
 There is no hard-delete operation. Deactivation retains the stable ID and records an end or retirement date; reactivation clears that date. Names and registrations remain case-insensitively unique, and every successful create, edit, activation, or deactivation produces an audit entry.
 
 ## Work-session calculations

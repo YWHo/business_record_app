@@ -88,7 +88,7 @@ export function BusinessShell() {
   const switchBusiness = (nextBusinessId: string) => {
     if (!nextBusinessId || nextBusinessId === business.id) return;
     const currentSuffix = location.pathname.slice(base.length);
-    const safeSuffix = [
+    const knownSuffix = [
       '/transactions',
       '/expenses',
       '/income',
@@ -97,9 +97,11 @@ export function BusinessShell() {
       '/reports',
       '/settings',
       '/governance',
-    ].includes(currentSuffix)
-      ? currentSuffix
-      : '';
+    ].includes(currentSuffix);
+    const safeSuffix =
+      knownSuffix || currentSuffix.startsWith('/settings/')
+        ? currentSuffix
+        : '';
     void navigate(`/app/businesses/${nextBusinessId}${safeSuffix}`);
   };
 

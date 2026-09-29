@@ -79,6 +79,44 @@ describe('App', () => {
               },
             ),
           );
+        if (/\/api\/businesses\/business-activity-contracting$/.test(url))
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                business: {
+                  id: 'business-activity-contracting',
+                  name: 'IT Contracting',
+                  description: 'IT services',
+                  businessType: 'PROFESSIONAL_SERVICES',
+                  defaultCurrency: 'NZD',
+                },
+                operatingPeriods: [
+                  {
+                    id: 'period-contracting',
+                    effectiveFrom: '2026-04-01',
+                    effectiveTo: null,
+                    legalEntityId: 'entity-owner',
+                    legalEntity: {
+                      id: 'entity-owner',
+                      entityType: 'SOLE_TRADER',
+                      legalName: 'Local Sole Trader',
+                      tradingName: null,
+                    },
+                  },
+                ],
+                currentLegalEntity: {
+                  id: 'entity-owner',
+                  entityType: 'SOLE_TRADER',
+                  legalName: 'Local Sole Trader',
+                  tradingName: null,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            ),
+          );
         const body = url.endsWith('/api/auth/config')
           ? {
               environment: 'local',
@@ -780,33 +818,66 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders owner management for activities and vehicles', async () => {
+  it('redirects business settings to one focused details form', async () => {
     renderApp('/app/businesses/business-activity-contracting/settings');
 
     expect(
       await screen.findByRole('heading', {
-        name: /activities, vehicles, categories, and clients/i,
+        name: 'Details',
       }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText('Business name')).toHaveValue(
+      'IT Contracting',
+    );
+    expect(screen.getByLabelText('Default currency')).toHaveValue('NZD');
+    expect(
+      screen.queryByRole('heading', { name: 'Business activities' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders each reference manager on its own settings page', async () => {
+    renderApp(
+      '/app/businesses/business-activity-contracting/settings/activities',
+    );
+
     expect(
       await screen.findByRole('heading', { name: 'IT Contracting' }),
     ).toBeInTheDocument();
-    expect(await screen.findByText('ABC123')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /add activity/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Vehicles' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('keeps setup read-only for accountants', async () => {
+  it('keeps focused business settings read-only for accountants', async () => {
     currentRole = 'ACCOUNTANT';
-    renderApp('/app/businesses/business-activity-contracting/settings');
+    renderApp(
+      '/app/businesses/business-activity-contracting/settings/activities',
+    );
 
     expect(
-      await screen.findByText(/only the owner can change it/i),
+      await screen.findByText(/only the owner can change them/i),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: /add activity/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows legal-entity operating periods without changing history', async () => {
+    renderApp(
+      '/app/businesses/business-activity-contracting/settings/legal-entity',
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Legal entity' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Local Sole Trader')).toBeInTheDocument();
+    expect(screen.getByText('Sole trader')).toBeInTheDocument();
+    expect(
+      screen.getByText(/historical records remain with the original entity/i),
+    ).toBeInTheDocument();
   });
 
   it('renders calculated mileage and owner entry controls', async () => {

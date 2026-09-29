@@ -706,6 +706,62 @@ th {
   gap: 1rem;
 }
 
+.settings-heading {
+  margin-bottom: 1rem;
+}
+
+.settings-navigation {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid #d9e1e8;
+  scrollbar-width: thin;
+}
+
+.settings-navigation a {
+  flex: 0 0 auto;
+  border-bottom: 3px solid transparent;
+  padding: 0.7rem 0.9rem;
+  color: #40566d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.settings-navigation a:hover,
+.settings-navigation a:focus-visible,
+.settings-navigation a.active {
+  border-bottom-color: #087f78;
+  color: #075e59;
+}
+
+.settings-panel,
+.settings-reference-page {
+  max-width: 58rem;
+}
+
+.settings-form {
+  display: grid;
+  max-width: 42rem;
+  gap: 0.5rem;
+}
+
+.settings-form label {
+  margin-top: 0.5rem;
+  font-weight: 700;
+}
+
+.settings-form .button-row {
+  margin-top: 0.75rem;
+}
+
+.settings-panel caption {
+  padding: 0.75rem;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
 .work-session-form {
   margin-top: 1rem;
 }

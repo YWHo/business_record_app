@@ -35,6 +35,46 @@ describe('browser-local public demo overlay', () => {
     ).resolves.toEqual({ clients: [{ id: 'seed', name: 'Seed client' }] });
   });
 
+  it('keeps business detail corrections local to the browser', async () => {
+    const path = '/api/businesses/business-demo-activity-delivery';
+    await recordDemoMutation(path, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: 'Delivery corrected',
+        description: 'Corrected locally',
+        defaultCurrency: 'NZD',
+      }),
+    });
+    const detail = await applyDemoOverlay(
+      {
+        business: {
+          id: 'business-demo-activity-delivery',
+          name: 'Delivery Platform',
+          description: 'Food delivery',
+          defaultCurrency: 'NZD',
+        },
+        operatingPeriods: [],
+      },
+      path,
+    );
+    expect(detail.business).toMatchObject({
+      name: 'Delivery corrected',
+      description: 'Corrected locally',
+    });
+    const directory = await applyDemoOverlay(
+      {
+        businesses: [
+          {
+            id: 'business-demo-activity-delivery',
+            name: 'Delivery Platform',
+          },
+        ],
+      },
+      '/api/businesses',
+    );
+    expect(directory.businesses[0].name).toBe('Delivery corrected');
+  });
+
   it('applies status changes without changing the immutable seed object', async () => {
     const seed = {
       records: [

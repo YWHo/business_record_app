@@ -9,6 +9,7 @@ import {
   getBusinessExpense,
   listBusinessExpenses,
   listBusinessRecords,
+  updateBusinessDetails,
 } from './businesses';
 import { getWorkSession, listWorkSessions } from './workSessions';
 
@@ -507,6 +508,67 @@ describe('business-scoped read routes', () => {
     expect(listQuery?.values).toEqual([
       'business-account-primary',
       'business-1',
+    ]);
+  });
+});
+
+describe('business settings routes', () => {
+  it('updates details inside the authenticated account and writes scoped audit history', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM sessions'))
+        return {
+          id: 'owner-1',
+          email: 'owner@example.invalid',
+          role: 'OWNER',
+          status: 'ACTIVE',
+          businessAccountId: 'business-account-primary',
+        };
+      if (query.sql.startsWith('SELECT id FROM businesses')) return null;
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('UPDATE businesses')) return null;
+      if (query.sql.includes('INSERT INTO audit_log')) return null;
+      throw new Error(`Unexpected query: ${query.sql}`);
+    }, 'production');
+    const response = await updateBusinessDetails(
+      new Request('https://records.example.invalid/api/businesses/business-1', {
+        method: 'PATCH',
+        headers: {
+          cookie: 'br_session=test-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'Uber Ride NZ',
+          description: 'Corrected business name',
+          defaultCurrency: 'nzd',
+        }),
+      }),
+      env,
+      { businessId: 'business-1' },
+    );
+
+    expect(response.status).toBe(200);
+    const update = queries.find((query) =>
+      query.sql.includes('UPDATE businesses'),
+    );
+    expect(update?.values.slice(0, 3)).toEqual([
+      'Uber Ride NZ',
+      'Corrected business name',
+      'NZD',
+    ]);
+    expect(update?.values.slice(-2)).toEqual([
+      'business-account-primary',
+      'business-1',
+    ]);
+    const audit = queries.find((query) =>
+      query.sql.includes('INSERT INTO audit_log'),
+    );
+    expect(audit?.values.slice(3, 9)).toEqual([
+      'BUSINESS_UPDATED',
+      'BUSINESS',
+      'business-1',
+      'activity-derived',
+      'business-1',
+      null,
     ]);
   });
 });

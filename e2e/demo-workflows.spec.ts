@@ -159,6 +159,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   ).toBe(true);
   await firstPage.setViewportSize({ width: 1280, height: 720 });
   await firstPage.getByRole('link', { name: 'Business settings' }).click();
+  await firstPage.getByRole('link', { name: 'Clients', exact: true }).click();
   const clients = firstPage.getByRole('region', {
     name: 'Clients',
     exact: true,
@@ -228,6 +229,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
     .click();
   await secondPage.getByRole('link', { name: 'Open Uber Eats' }).click();
   await secondPage.getByRole('link', { name: 'Business settings' }).click();
+  await secondPage.getByRole('link', { name: 'Clients', exact: true }).click();
   await expect(
     secondPage.getByRole('heading', { name: 'Only in this browser' }),
   ).toHaveCount(0);

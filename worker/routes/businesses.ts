@@ -1,7 +1,10 @@
-import { requireUser } from '../auth/authorization';
+import { requireRole, requireUser } from '../auth/authorization';
 import { HttpError, json, readJsonObject } from '../lib/http';
 import type { RouteParameters } from '../lib/router';
-import { listBusinessOverviews } from '../repositories/businessRepository';
+import {
+  listBusinessOverviews,
+  updateBusinessDetails as persistBusinessDetails,
+} from '../repositories/businessRepository';
 import { listBusinessEntityPeriods } from '../repositories/businessEntityPeriodRepository';
 import { listLegalEntities } from '../repositories/legalEntityRepository';
 import {
@@ -13,6 +16,7 @@ import {
   resolveLegalEntityForBusinessDate,
 } from '../services/businessContextService';
 import type { Env } from '../types';
+import { writeAudit } from '../services/auditService';
 import { dashboard } from './dashboard';
 import {
   createGeneralExpense,
@@ -165,6 +169,77 @@ export async function businessDetails(
     operatingPeriods,
     currentLegalEntity: currentPeriod?.legalEntity ?? null,
   });
+}
+
+function optionalBusinessDescription(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string')
+    throw new HttpError(400, 'Description must be text.');
+  const description = value.trim();
+  if (description.length > 500)
+    throw new HttpError(400, 'Description must be 500 characters or fewer.');
+  return description || null;
+}
+
+export async function updateBusinessDetails(
+  request: Request,
+  env: Env,
+  params: RouteParameters,
+) {
+  const owner = await requireUser(request, env);
+  requireRole(owner, ['OWNER']);
+  const business = await requireBusinessAccess(
+    env.DB,
+    owner,
+    businessId(params),
+  );
+  const body = await readJsonObject(request);
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name) throw new HttpError(400, 'Business name is required.');
+  if (name.length > 100)
+    throw new HttpError(400, 'Business name must be 100 characters or fewer.');
+  const defaultCurrency =
+    typeof body.defaultCurrency === 'string'
+      ? body.defaultCurrency.trim().toUpperCase()
+      : '';
+  if (!/^[A-Z]{3}$/.test(defaultCurrency))
+    throw new HttpError(400, 'Default currency must be a three-letter code.');
+  const description = optionalBusinessDescription(body.description);
+  const duplicate = await env.DB.prepare(
+    `SELECT id FROM businesses
+      WHERE business_account_id = ? AND name = ? COLLATE NOCASE AND id != ?`,
+  )
+    .bind(owner.businessAccountId, name, business.id)
+    .first();
+  if (duplicate)
+    throw new HttpError(409, 'A business with this name already exists.');
+  const updated = await persistBusinessDetails(
+    env.DB,
+    owner.businessAccountId,
+    business.id,
+    { name, description, defaultCurrency },
+    new Date().toISOString(),
+  );
+  if (!updated) throw new HttpError(404, 'Business not found.');
+  await writeAudit(
+    env,
+    owner,
+    'BUSINESS_UPDATED',
+    'BUSINESS',
+    business.id,
+    'Business details updated.',
+    business.legacyBusinessActivityId,
+    {
+      name: { from: business.name, to: name },
+      description: { from: business.description, to: description },
+      defaultCurrency: {
+        from: business.defaultCurrency,
+        to: defaultCurrency,
+      },
+    },
+    { businessId: business.id },
+  );
+  return json({ business: updated });
 }
 
 export async function businessDashboard(

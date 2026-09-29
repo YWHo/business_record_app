@@ -66,7 +66,7 @@ test.describe.serial('critical business workflows', () => {
       .click();
     await expect(
       accountantPage.getByText(
-        'Accountants can view this setup. Only the owner can change it.',
+        'Accountants can view these business settings. Only the owner can change them.',
       ),
     ).toBeVisible();
     await expect(
@@ -92,6 +92,7 @@ test.describe.serial('critical business workflows', () => {
   }) => {
     await login(page, 'owner');
     await page.getByRole('link', { name: 'Business settings' }).click();
+    await page.getByRole('link', { name: 'Activities', exact: true }).click();
 
     const activityRegion = page.getByRole('region', {
       name: 'Business activities',
@@ -109,6 +110,7 @@ test.describe.serial('critical business workflows', () => {
       page.getByRole('heading', { name: activityName }),
     ).toBeVisible();
 
+    await page.getByRole('link', { name: 'Vehicles', exact: true }).click();
     const vehicleRegion = page.getByRole('region', { name: 'Vehicles' });
     await vehicleRegion
       .getByLabel('Registration', { exact: true })

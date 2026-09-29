@@ -108,6 +108,7 @@ import {
   listBusinessExpenses,
   listBusinessRecords,
   listLegalEntityRecords,
+  updateBusinessDetails,
   updateBusinessExpense,
 } from './routes/businesses';
 import type { Env } from './types';
@@ -152,6 +153,11 @@ const routes: Route[] = [
     method: 'GET',
     pathname: '/api/businesses/:businessId',
     handler: businessDetails,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/businesses/:businessId',
+    handler: updateBusinessDetails,
   },
   {
     method: 'GET',

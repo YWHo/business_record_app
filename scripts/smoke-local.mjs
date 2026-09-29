@@ -149,6 +149,62 @@ expectStatus(deniedOwnerPermission, 403, 'accountant owner permission denial');
 const deniedUserList = await request('/api/users', {}, accountantCookie);
 expectStatus(deniedUserList, 403, 'accountant user-list denial');
 
+const businessSettingsPath = '/api/businesses/business-activity-contracting';
+const initialBusinessSettings = await request(
+  businessSettingsPath,
+  {},
+  accountantCookie,
+);
+expectStatus(initialBusinessSettings, 200, 'accountant business-details read');
+const deniedBusinessUpdate = await request(
+  businessSettingsPath,
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Denied business rename',
+      description: 'Denied',
+      defaultCurrency: 'NZD',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedBusinessUpdate, 403, 'accountant business-details update');
+const updatedBusiness = await request(
+  businessSettingsPath,
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'IT Contracting corrected',
+      description: 'IT services',
+      defaultCurrency: 'nzd',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(updatedBusiness, 200, 'owner business-details update');
+if (
+  updatedBusiness.body.business.name !== 'IT Contracting corrected' ||
+  updatedBusiness.body.business.defaultCurrency !== 'NZD'
+) {
+  throw new Error('business details were not normalized and persisted');
+}
+const restoredBusiness = await request(
+  businessSettingsPath,
+  {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'IT Contracting',
+      description: 'IT services',
+      defaultCurrency: 'NZD',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(restoredBusiness, 200, 'restore business details after test');
+
 const accountantActivities = await request(
   '/api/business-activities',
   {},
