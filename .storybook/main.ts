@@ -1,5 +1,6 @@
 import type { StorybookConfig } from '@storybook/react-vite';
 import type { PluginOption } from 'vite';
+import { fileURLToPath } from 'node:url';
 
 const isPwaPlugin = (plugin: PluginOption) =>
   plugin &&
@@ -24,6 +25,15 @@ const config: StorybookConfig = {
     viteConfig.plugins = flattenedPlugins?.filter(
       (plugin) => !isPwaPlugin(plugin),
     );
+    viteConfig.resolve = {
+      ...viteConfig.resolve,
+      alias: {
+        ...viteConfig.resolve?.alias,
+        'virtual:pwa-register': fileURLToPath(
+          new URL('./pwa-register-stub.ts', import.meta.url),
+        ),
+      },
+    };
     return viteConfig;
   },
 };
