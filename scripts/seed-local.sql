@@ -54,6 +54,17 @@ SET entity_type = 'SOLE_TRADER',
     updated_at = '2026-01-01T00:00:00.000Z'
 WHERE id = 'business-entity-primary';
 
+INSERT INTO business_entities (
+  id, business_account_id, entity_type, legal_name, trading_name, nzbn,
+  company_number, country, active, attribution_review_required, created_at,
+  updated_at
+)
+VALUES (
+  'dev-entity-taxi-limited', 'business-account-primary', 'LIMITED_COMPANY',
+  'Local Taxi Limited', NULL, NULL, NULL, 'NZ', 1, 0,
+  '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'
+);
+
 UPDATE business_accounts
 SET display_name = 'Local Business Records', updated_at = '2026-01-01T00:00:00.000Z'
 WHERE id = 'business-account-primary';

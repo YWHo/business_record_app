@@ -5,7 +5,13 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import { ActivityManager } from '../features/setup/ActivityManager';
 import { VehicleManager } from '../features/setup/VehicleManager';
 import { CategoryManager } from '../features/setup/CategoryManager';
@@ -246,14 +252,18 @@ function formatDate(value: string) {
 }
 
 function entityName(entity: LegalEntityRecord | null) {
-  return entity?.tradingName ?? entity?.legalName ?? 'Entity unavailable';
+  return entity?.legalName ?? entity?.tradingName ?? 'Entity unavailable';
 }
 
 export function LegalEntitySettingsPage() {
   const { businessId = '' } = useParams();
+  const location = useLocation();
+  const canManage = useSettingsPermission();
   const [periods, setPeriods] = useState<OperatingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const successMessage = (location.state as { message?: unknown } | null)
+    ?.message;
 
   useEffect(() => {
     let active = true;
@@ -287,11 +297,24 @@ export function LegalEntitySettingsPage() {
           <h2 id="legal-entity-heading">Legal entity</h2>
           <p>View which legal entity operated this business over time.</p>
         </div>
+        {canManage ? (
+          <Link
+            className="button-link"
+            to={businessPath(businessId, 'legal-entity/change')}
+          >
+            Add new period
+          </Link>
+        ) : null}
       </div>
       <p className="notice">
         When a business changes legal entity, a new operating period is created.
         Historical records remain with the original entity and are not changed.
       </p>
+      {typeof successMessage === 'string' ? (
+        <p className="notice success" role="status">
+          {successMessage}
+        </p>
+      ) : null}
       {loading ? <p role="status">Loading operating periods…</p> : null}
       {error ? (
         <p className="notice error" role="alert">

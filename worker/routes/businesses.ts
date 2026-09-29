@@ -6,9 +6,13 @@ import {
   updateBusinessDetails as persistBusinessDetails,
 } from '../repositories/businessRepository';
 import { listBusinessEntityPeriods } from '../repositories/businessEntityPeriodRepository';
-import { listLegalEntities } from '../repositories/legalEntityRepository';
+import {
+  findLegalEntityById,
+  listLegalEntities,
+} from '../repositories/legalEntityRepository';
 import {
   loadAndValidateBusinessEntityPeriods,
+  planLegalEntityChange,
   requireBusinessAccess,
   requireBusinessScopedRecord,
   requireBusinessScopedReference,
@@ -652,4 +656,130 @@ export async function listBusinessPeriods(
     business.id,
   );
   return json({ operatingPeriods });
+}
+
+function optionalPeriodNotes(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string')
+    throw new HttpError(400, 'Notes must be text.');
+  const notes = value.trim();
+  if (notes.length > 2000)
+    throw new HttpError(400, 'Notes must be 2,000 characters or fewer.');
+  return notes || null;
+}
+
+export async function changeBusinessLegalEntity(
+  request: Request,
+  env: Env,
+  params: RouteParameters,
+) {
+  const owner = await requireUser(request, env);
+  requireRole(owner, ['OWNER']);
+  const business = await requireBusinessAccess(
+    env.DB,
+    owner,
+    businessId(params),
+    { forWrite: true },
+  );
+  const body = await readJsonObject(request);
+  const legalEntityId =
+    typeof body.legalEntityId === 'string' ? body.legalEntityId : '';
+  const periods = await listBusinessEntityPeriods(
+    env.DB,
+    owner.businessAccountId,
+    business.id,
+  );
+  const plan = planLegalEntityChange(
+    periods,
+    legalEntityId,
+    body.effectiveFrom,
+  );
+  const legalEntity = await findLegalEntityById(
+    env.DB,
+    owner.businessAccountId,
+    plan.nextLegalEntityId,
+  );
+  if (!legalEntity) throw new HttpError(404, 'Legal entity not found.');
+  if (legalEntity.status !== 'ACTIVE')
+    throw new HttpError(409, 'The new legal entity must be active.');
+  const notes = optionalPeriodNotes(body.notes);
+  const now = new Date().toISOString();
+  const periodId = crypto.randomUUID();
+  const auditId = crypto.randomUUID();
+  const changedFields = JSON.stringify({
+    previousLegalEntityId: plan.currentPeriod.legalEntityId,
+    newLegalEntityId: legalEntity.id,
+    effectiveFrom: plan.nextEffectiveFrom,
+    previousPeriodEffectiveTo: plan.closeCurrentOn,
+    notes,
+  });
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE business_entity_periods
+          SET effective_to = ?
+        WHERE id = ? AND business_account_id = ? AND business_id = ?
+          AND effective_to IS NULL`,
+    ).bind(
+      plan.closeCurrentOn,
+      plan.currentPeriod.id,
+      owner.businessAccountId,
+      business.id,
+    ),
+    env.DB.prepare(
+      `INSERT INTO business_entity_periods (
+         id, business_account_id, business_id, legal_entity_id, effective_from,
+         effective_to, created_at, created_by, notes
+       ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
+    ).bind(
+      periodId,
+      owner.businessAccountId,
+      business.id,
+      legalEntity.id,
+      plan.nextEffectiveFrom,
+      now,
+      owner.id,
+      notes,
+    ),
+    env.DB.prepare(
+      `INSERT INTO audit_log (
+         id, business_account_id, user_id, action, entity_type, entity_id,
+         business_activity_id, business_id, legal_entity_id, summary,
+         changed_fields_json, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      auditId,
+      owner.businessAccountId,
+      owner.id,
+      'BUSINESS_LEGAL_ENTITY_CHANGED',
+      'BUSINESS_ENTITY_PERIOD',
+      periodId,
+      business.legacyBusinessActivityId,
+      business.id,
+      legalEntity.id,
+      'Business legal entity changed from a new effective date.',
+      changedFields,
+      now,
+    ),
+  ]);
+  return json(
+    {
+      operatingPeriod: {
+        id: periodId,
+        businessAccountId: owner.businessAccountId,
+        businessId: business.id,
+        legalEntityId: legalEntity.id,
+        effectiveFrom: plan.nextEffectiveFrom,
+        effectiveTo: null,
+        createdAt: now,
+        createdBy: owner.id,
+        notes,
+        legalEntity,
+      },
+      previousPeriod: {
+        ...plan.currentPeriod,
+        effectiveTo: plan.closeCurrentOn,
+      },
+    },
+    { status: 201 },
+  );
 }

@@ -448,4 +448,53 @@ test.describe.serial('critical business workflows', () => {
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(cardWith(page, parkingProvider)).toBeVisible();
   });
+
+  test('owner creates a legal-entity boundary without rewriting history', async ({
+    page,
+  }) => {
+    await login(page, 'owner');
+    await page
+      .getByLabel('Current business')
+      .selectOption('business-activity-delivery');
+    const transactionsPath =
+      '/api/businesses/business-activity-delivery/transactions?dateFrom=2026-01-01&dateTo=2026-12-31';
+    const beforeResponse = await page.request.get(transactionsPath);
+    expect(beforeResponse.ok()).toBeTruthy();
+    const before = (await beforeResponse.json()) as {
+      transactions: Array<{ id: string; legalEntityId: string }>;
+    };
+    const historical = before.transactions[0];
+    expect(historical).toBeTruthy();
+
+    await page.getByRole('link', { name: 'Business settings' }).click();
+    await page.getByRole('link', { name: 'Legal entity' }).click();
+    await page.getByRole('link', { name: 'Add new period' }).click();
+    await page
+      .getByLabel('New legal entity')
+      .selectOption('dev-entity-taxi-limited');
+    await page.getByLabel('Effective from').fill('2027-04-01');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page
+      .getByLabel('Notes (optional)')
+      .fill('E2E structural accounting boundary.');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(
+      page.getByText('Local Taxi Limited — Limited company'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Confirm change' }).click();
+
+    await expect(
+      page.getByText('Legal-entity operating period added.'),
+    ).toBeVisible();
+    await expect(page.getByText('Local Taxi Limited')).toBeVisible();
+    await expect(page.getByText('31 Mar 2027')).toBeVisible();
+    const afterResponse = await page.request.get(transactionsPath);
+    const after = (await afterResponse.json()) as {
+      transactions: Array<{ id: string; legalEntityId: string }>;
+    };
+    expect(
+      after.transactions.find((record) => record.id === historical.id)
+        ?.legalEntityId,
+    ).toBe(historical.legalEntityId);
+  });
 });

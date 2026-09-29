@@ -103,9 +103,11 @@ import {
   accountDetails,
   businessDashboard,
   businessDetails,
+  changeBusinessLegalEntity,
   createBusinessExpense,
   getBusinessExpense,
   listBusinessExpenses,
+  listBusinessPeriods,
   listBusinessRecords,
   listLegalEntityRecords,
   updateBusinessDetails,
@@ -158,6 +160,16 @@ const routes: Route[] = [
     method: 'PATCH',
     pathname: '/api/businesses/:businessId',
     handler: updateBusinessDetails,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/businesses/:businessId/legal-entity-periods',
+    handler: listBusinessPeriods,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/businesses/:businessId/legal-entity-periods',
+    handler: changeBusinessLegalEntity,
   },
   {
     method: 'GET',

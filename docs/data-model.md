@@ -75,6 +75,12 @@ open period, and insert/update triggers reject overlaps. Exactly one current
 period for every active business becomes a verified invariant when the backfill
 creates businesses and periods.
 
+A legal-entity change is append-only at the period level: the current open
+period receives an inclusive end date and a new open period starts at the
+selected boundary. Both changes and their audit event commit atomically.
+Previously attributed records are never rewritten; their stored legal-entity
+IDs remain the historical accounting evidence.
+
 Migration 0008 creates one business per legacy top-level activity, creates the
 initial operating periods, and fills business/legal-entity attribution on root
 records and their dependent details and metadata. The public demo uses explicit

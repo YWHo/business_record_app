@@ -762,6 +762,79 @@ th {
   font-weight: 750;
 }
 
+.workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid #d9e1e8;
+  padding: 0.6rem 0.25rem;
+  color: #66788a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.workflow-steps li.current {
+  border-bottom-color: #087f78;
+  color: #075e59;
+}
+
+.workflow-steps span {
+  display: inline-grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #e7eef4;
+}
+
+.workflow-steps .current span {
+  color: #fff;
+  background: #087f78;
+}
+
+.confirmation-panel {
+  max-width: 42rem;
+}
+
+.confirmation-summary {
+  display: grid;
+  gap: 0;
+  margin: 1rem 0;
+  border: 1px solid #d9e1e8;
+  border-radius: 0.65rem;
+}
+
+.confirmation-summary div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #d9e1e8;
+}
+
+.confirmation-summary div:last-child {
+  border-bottom: 0;
+}
+
+.confirmation-summary dt {
+  color: #66788a;
+  font-weight: 700;
+}
+
+.confirmation-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .work-session-form {
   margin-top: 1rem;
 }

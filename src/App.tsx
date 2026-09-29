@@ -16,6 +16,7 @@ import { IncomeDetailPage } from './routes/IncomeDetailPage';
 import { IncomeFormPage } from './routes/IncomeFormPage';
 import { IncomeListPage } from './routes/IncomeListPage';
 import { LoginPage } from './routes/LoginPage';
+import { LegalEntityChangePage } from './routes/LegalEntityChangePage';
 import { MileageListPage } from './routes/MileageListPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import {
@@ -142,6 +143,10 @@ export function App() {
                 <Route
                   path="legal-entity"
                   element={<LegalEntitySettingsPage />}
+                />
+                <Route
+                  path="legal-entity/change"
+                  element={<LegalEntityChangePage />}
                 />
                 <Route path="activities" element={<ActivitiesSettingsPage />} />
                 <Route path="vehicles" element={<VehiclesSettingsPage />} />

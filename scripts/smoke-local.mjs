@@ -2657,6 +2657,96 @@ if (
   throw new Error('business insurance attribution was not persisted');
 }
 
+const legalEntities = await request('/api/legal-entities', {}, ownerCookie);
+expectStatus(legalEntities, 200, 'legal entity list');
+if (
+  !legalEntities.body.legalEntities.some(
+    (entity) => entity.id === 'dev-entity-taxi-limited',
+  )
+) {
+  throw new Error('legal entity list omitted the next active entity');
+}
+const deniedPeriodChange = await request(
+  `/api/businesses/${scopedBusinessId}/legal-entity-periods`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      legalEntityId: 'dev-entity-taxi-limited',
+      effectiveFrom: '2027-04-01',
+    }),
+  },
+  accountantCookie,
+);
+expectStatus(deniedPeriodChange, 403, 'accountant period-change denial');
+const invalidPeriodChange = await request(
+  `/api/businesses/${scopedBusinessId}/legal-entity-periods`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      legalEntityId: 'dev-entity-taxi-limited',
+      effectiveFrom: '2025-04-01',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(invalidPeriodChange, 400, 'non-forward period boundary denial');
+const transactionsBeforePeriodChange = await request(
+  `/api/businesses/${scopedBusinessId}/transactions?page=1`,
+  {},
+  ownerCookie,
+);
+expectStatus(
+  transactionsBeforePeriodChange,
+  200,
+  'transactions before legal-entity period change',
+);
+const historicalTransaction =
+  transactionsBeforePeriodChange.body.transactions[0];
+if (!historicalTransaction)
+  throw new Error('period-change test needs a historical transaction');
+const changedPeriod = await request(
+  `/api/businesses/${scopedBusinessId}/legal-entity-periods`,
+  {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      legalEntityId: 'dev-entity-taxi-limited',
+      effectiveFrom: '2027-04-01',
+      notes: 'Synthetic smoke-test accounting boundary.',
+    }),
+  },
+  ownerCookie,
+);
+expectStatus(changedPeriod, 201, 'owner legal-entity period change');
+if (
+  changedPeriod.body.previousPeriod.effectiveTo !== '2027-03-31' ||
+  changedPeriod.body.operatingPeriod.legalEntityId !== 'dev-entity-taxi-limited'
+) {
+  throw new Error('legal-entity period boundary was incorrect');
+}
+const transactionsAfterPeriodChange = await request(
+  `/api/businesses/${scopedBusinessId}/transactions?page=1`,
+  {},
+  ownerCookie,
+);
+expectStatus(
+  transactionsAfterPeriodChange,
+  200,
+  'transactions after legal-entity period change',
+);
+const unchangedHistoricalTransaction =
+  transactionsAfterPeriodChange.body.transactions.find(
+    (record) => record.id === historicalTransaction.id,
+  );
+if (
+  unchangedHistoricalTransaction?.legalEntityId !==
+  historicalTransaction.legalEntityId
+) {
+  throw new Error('legal-entity period change rewrote historical attribution');
+}
+
 const storageWrite = await request(
   '/api/dev/storage-probe',
   { method: 'PUT' },

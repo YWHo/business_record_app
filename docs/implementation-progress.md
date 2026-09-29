@@ -881,5 +881,31 @@ Acceptance criteria completed:
 - Updated component, Worker-route, local smoke, and end-to-end coverage for the
   focused settings structure.
 
-Notes: Creating a new legal-entity operating period remains a dedicated
-workflow. Existing periods are not editable from the focused settings pages.
+Notes: Creating a new legal-entity operating period is delivered as the
+separate workflow below. Existing periods are not editable in place.
+
+## Legal-entity operating-period workflow
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added a dedicated owner-only Details, Transfer information, and Confirm flow
+  instead of an inline selector that immediately changes attribution.
+- Required a different active legal entity and a valid forward effective date,
+  with optional notes and a final plain-language comparison before saving.
+- Atomically closed the current inclusive period, created the next open period,
+  and wrote a business- and legal-entity-scoped audit event.
+- Preserved every historical record's persisted legal-entity attribution; only
+  future date resolution uses the new boundary.
+- Kept accountants read-only and validated account, business, entity, period,
+  overlap, and active-status constraints at the Worker boundary.
+- Persisted public-demo changes only in browser-local IndexedDB, including the
+  optional note, without mutating the shared demo database.
+- Added service, route, component, local smoke, and end-to-end coverage for
+  valid boundaries, rejected boundaries, authorization, audit history, and
+  unchanged historical attribution.
+
+Notes: This workflow creates the structural accounting boundary only. It does
+not automate asset sales, GST treatment, balances, receivables, payables, legal
+verification, or government filings.

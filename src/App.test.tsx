@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
@@ -110,6 +110,33 @@ describe('App', () => {
                   legalName: 'Local Sole Trader',
                   tradingName: null,
                 },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            ),
+          );
+        if (url.endsWith('/api/legal-entities'))
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                legalEntities: [
+                  {
+                    id: 'entity-owner',
+                    entityType: 'SOLE_TRADER',
+                    legalName: 'Local Sole Trader',
+                    tradingName: null,
+                    status: 'ACTIVE',
+                  },
+                  {
+                    id: 'entity-company',
+                    entityType: 'LIMITED_COMPANY',
+                    legalName: 'Taxi Limited',
+                    tradingName: null,
+                    status: 'ACTIVE',
+                  },
+                ],
               }),
               {
                 status: 200,
@@ -877,6 +904,41 @@ describe('App', () => {
     expect(screen.getByText('Sole trader')).toBeInTheDocument();
     expect(
       screen.getByText(/historical records remain with the original entity/i),
+    ).toBeInTheDocument();
+  });
+
+  it('guides an owner through a confirmed legal-entity period change', async () => {
+    renderApp(
+      '/app/businesses/business-activity-contracting/settings/legal-entity/change',
+    );
+
+    fireEvent.change(await screen.findByLabelText('New legal entity'), {
+      target: { value: 'entity-company' },
+    });
+    fireEvent.change(screen.getByLabelText('Effective from'), {
+      target: { value: '2027-04-01' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Transfer information' }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
+      target: { value: 'Company takes over operations.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Confirm' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Taxi Limited — Limited company'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('01 Apr 2027')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm change' }));
+
+    expect(
+      await screen.findByText('Legal-entity operating period added.'),
     ).toBeInTheDocument();
   });
 

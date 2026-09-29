@@ -463,6 +463,7 @@ describe('browser-local public demo overlay', () => {
         body: JSON.stringify({
           legalEntityId: 'demo-entity-taxi-limited',
           effectiveFrom: '2027-04-01',
+          notes: 'Browser-local boundary.',
         }),
       },
     );
@@ -479,6 +480,7 @@ describe('browser-local public demo overlay', () => {
           legalEntityId: 'demo-entity-taxi-limited',
           effectiveFrom: '2027-04-01',
           effectiveTo: null,
+          notes: 'Browser-local boundary.',
         }),
       ]),
     );

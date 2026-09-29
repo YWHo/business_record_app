@@ -81,6 +81,12 @@ trash remains represented until permanent deletion while typed detail rows do
 not inflate the total. The latest summary date is the newest update across
 those roots. Public-demo period changes overlay the same server-shaped response
 from the browser-local period store without mutating shared data.
+Owner-confirmed legal-entity changes close the current inclusive operating
+period on the day before the new boundary and create one new open period. The
+close, insert, and scoped audit event are one D1 batch, while existing financial
+and operational rows retain their persisted legal-entity IDs. The public demo
+applies the same boundary rules only to its browser-local IndexedDB period
+store.
 Desktop and landscape-tablet layouts use a persistent business sidebar,
 small-tablet portrait uses the same navigation in a compact column, and phone
 layouts replace it with a four-destination bottom navigation bar while keeping

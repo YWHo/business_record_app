@@ -6,6 +6,7 @@ import { getIncomeRecord, listIncomeRecords } from './incomeRecords';
 import { listTransactions } from './review';
 import {
   businessDashboard,
+  changeBusinessLegalEntity,
   getBusinessExpense,
   listBusinessExpenses,
   listBusinessRecords,
@@ -55,6 +56,9 @@ function fakeEnv(
         },
       };
       return statement;
+    },
+    batch(statements: D1PreparedStatement[]) {
+      return Promise.all(statements.map((statement) => statement.run()));
     },
   } as unknown as D1Database;
   return { env: { APP_ENV: appEnv, DB: db } as Env, queries };
@@ -569,6 +573,106 @@ describe('business settings routes', () => {
       'activity-derived',
       'business-1',
       null,
+    ]);
+  });
+
+  it('atomically closes the current period, creates the next one, and audits it', async () => {
+    const currentPeriod = {
+      id: 'period-current',
+      business_account_id: 'business-account-primary',
+      business_id: 'business-1',
+      legal_entity_id: 'entity-owner',
+      effective_from: '2026-04-01',
+      effective_to: null,
+      created_at: '2026-04-01T00:00:00.000Z',
+      created_by: 'owner-1',
+      notes: null,
+    };
+    const { env, queries } = fakeEnv((query) => {
+      if (query.sql.includes('FROM sessions'))
+        return {
+          id: 'owner-1',
+          email: 'owner@example.invalid',
+          role: 'OWNER',
+          status: 'ACTIVE',
+          businessAccountId: 'business-account-primary',
+        };
+      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('FROM business_entity_periods'))
+        return [currentPeriod];
+      if (query.sql.includes('FROM business_entities'))
+        return {
+          id: 'entity-company',
+          business_account_id: 'business-account-primary',
+          entity_type: 'LIMITED_COMPANY',
+          legal_name: 'Taxi Limited',
+          trading_name: null,
+          nzbn: null,
+          company_number: null,
+          country: 'NZ',
+          active: 1,
+          attribution_review_required: 0,
+          created_at: '2026-04-01T00:00:00.000Z',
+          updated_at: '2026-04-01T00:00:00.000Z',
+        };
+      if (
+        query.sql.includes('UPDATE business_entity_periods') ||
+        query.sql.includes('INSERT INTO business_entity_periods') ||
+        query.sql.includes('INSERT INTO audit_log')
+      )
+        return null;
+      throw new Error(`Unexpected query: ${query.sql}`);
+    }, 'production');
+
+    const response = await changeBusinessLegalEntity(
+      new Request(
+        'https://records.example.invalid/api/businesses/business-1/legal-entity-periods',
+        {
+          method: 'POST',
+          headers: {
+            cookie: 'br_session=test-token',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            legalEntityId: 'entity-company',
+            effectiveFrom: '2027-04-01',
+            notes: 'Company takes over operations.',
+          }),
+        },
+      ),
+      env,
+      { businessId: 'business-1' },
+    );
+
+    expect(response.status).toBe(201);
+    const close = queries.find((query) =>
+      query.sql.includes('UPDATE business_entity_periods'),
+    );
+    expect(close?.values).toEqual([
+      '2027-03-31',
+      'period-current',
+      'business-account-primary',
+      'business-1',
+    ]);
+    const insert = queries.find((query) =>
+      query.sql.includes('INSERT INTO business_entity_periods'),
+    );
+    expect(insert?.values.slice(1, 5)).toEqual([
+      'business-account-primary',
+      'business-1',
+      'entity-company',
+      '2027-04-01',
+    ]);
+    const audit = queries.find((query) =>
+      query.sql.includes('INSERT INTO audit_log'),
+    );
+    expect(audit?.values.slice(3, 9)).toEqual([
+      'BUSINESS_LEGAL_ENTITY_CHANGED',
+      'BUSINESS_ENTITY_PERIOD',
+      expect.any(String),
+      'activity-derived',
+      'business-1',
+      'entity-company',
     ]);
   });
 });

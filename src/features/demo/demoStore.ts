@@ -6,6 +6,7 @@ export interface DemoBusinessEntityPeriod {
   legalEntityId: string;
   effectiveFrom: string;
   effectiveTo: string | null;
+  notes?: string | null;
 }
 
 export interface DemoOperation {
@@ -878,6 +879,7 @@ export async function recordDemoMutation(
         businessId,
         legalEntityId,
         effectiveFrom,
+        notes: stringValue(body.notes).trim() || null,
       }),
     };
   }
@@ -937,6 +939,7 @@ export async function changeDemoBusinessLegalEntity(input: {
   businessId: string;
   legalEntityId: string;
   effectiveFrom: string;
+  notes?: string | null;
 }): Promise<DemoBusinessEntityPeriod[]> {
   const effectiveFrom = calendarDate(input.effectiveFrom);
   if (!effectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom))
@@ -958,6 +961,7 @@ export async function changeDemoBusinessLegalEntity(input: {
     legalEntityId: input.legalEntityId,
     effectiveFrom,
     effectiveTo: null,
+    notes: input.notes ?? null,
   });
   await replacePeriods(periods);
   return demoBusinessEntityPeriods(input.businessId);
