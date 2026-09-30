@@ -4,6 +4,7 @@ import { PwaStatus } from './features/pwa/PwaStatus';
 import { useAuth } from './features/auth/AuthContext';
 import { BusinessDirectoryProvider } from './features/business/BusinessDirectoryContext';
 import { AcceptInvitationPage } from './routes/AcceptInvitationPage';
+import { AccountantPage } from './routes/AccountantPage';
 import { BusinessesPage } from './routes/BusinessesPage';
 import { DashboardPage } from './routes/DashboardPage';
 import { DocumentsPage } from './routes/DocumentsPage';
@@ -76,6 +77,7 @@ export function App() {
             <Route path="/app" element={<AccountShell />}>
               <Route index element={<Navigate to="businesses" replace />} />
               <Route path="businesses" element={<BusinessesPage />} />
+              <Route path="accountant" element={<AccountantPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="reports" element={<ExportsPage />} />
               <Route path="settings/account" element={<UserManagementPage />} />

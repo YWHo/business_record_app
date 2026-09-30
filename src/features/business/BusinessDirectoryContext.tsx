@@ -29,6 +29,8 @@ export interface BusinessSummary {
     attributionReviewRequired: boolean;
   } | null;
   recordCount: number;
+  awaitingReviewCount: number;
+  missingReceiptCount: number;
   lastRecordUpdatedAt: string | null;
 }
 

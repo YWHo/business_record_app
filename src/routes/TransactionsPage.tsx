@@ -1,7 +1,14 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 
 type RecordType = 'EXPENSE' | 'INCOME';
 interface Transaction {
@@ -31,6 +38,11 @@ interface Reference {
   name: string;
   active: boolean;
 }
+interface LegalEntityReference {
+  id: string;
+  legalName: string | null;
+  tradingName: string | null;
+}
 interface SavedFilter {
   id: string;
   name: string;
@@ -50,6 +62,7 @@ interface Comment {
   authorRole: string;
 }
 interface Filters {
+  legalEntityId: string;
   q: string;
   dateFrom: string;
   dateTo: string;
@@ -66,6 +79,7 @@ interface Filters {
   review: string;
 }
 const emptyFilters: Filters = {
+  legalEntityId: '',
   q: '',
   dateFrom: '',
   dateTo: '',
@@ -81,6 +95,19 @@ const emptyFilters: Filters = {
   attachment: '',
   review: '',
 };
+
+function filtersFromQuery(search: string): Filters {
+  const params = new URLSearchParams(search);
+  return {
+    ...emptyFilters,
+    legalEntityId: params.get('legalEntityId') ?? '',
+    review:
+      params.get('review') === 'UNREVIEWED' ||
+      params.get('review') === 'REVIEWED'
+        ? (params.get('review') ?? '')
+        : '',
+  };
+}
 const money = (minor: number, currency: string) =>
   new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
@@ -243,13 +270,22 @@ function ReviewPanel({
 
 export function TransactionsPage() {
   const { businessId = '' } = useParams();
+  const location = useLocation();
+  const { businesses } = useBusinessDirectory();
   const { configuration, user } = useAuth();
+  const businessNames = useMemo(
+    () => new Map(businesses.map((business) => [business.id, business.name])),
+    [businesses],
+  );
   const [mode, setMode] = useState<'TRANSACTIONS' | 'RECEIPTS'>('TRANSACTIONS');
-  const [filters, setFilters] = useState<Filters>(emptyFilters),
+  const [filters, setFilters] = useState<Filters>(() =>
+      filtersFromQuery(location.search),
+    ),
     [records, setRecords] = useState<Transaction[]>([]),
     [activities, setActivities] = useState<Reference[]>([]),
     [categories, setCategories] = useState<Reference[]>([]),
     [vehicles, setVehicles] = useState<Reference[]>([]),
+    [legalEntities, setLegalEntities] = useState<LegalEntityReference[]>([]),
     [saved, setSaved] = useState<SavedFilter[]>([]),
     [page, setPage] = useState<PageMetadata>({
       number: 1,
@@ -264,6 +300,23 @@ export function TransactionsPage() {
     }),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
+  const entityNames = useMemo(() => {
+    const names = new Map(
+      legalEntities.map((entity) => [
+        entity.id,
+        entity.legalName || entity.tradingName || 'Legal entity',
+      ]),
+    );
+    for (const business of businesses) {
+      const entity = business.currentLegalEntity;
+      if (entity && !names.has(entity.id))
+        names.set(
+          entity.id,
+          entity.legalName || entity.tradingName || 'Legal entity',
+        );
+    }
+    return names;
+  }, [businesses, legalEntities]);
   const field =
     (key: keyof Filters) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -306,16 +359,17 @@ export function TransactionsPage() {
   );
   useEffect(() => {
     const load = async () => {
+      const requestedFilters = filtersFromQuery(location.search);
       if (businessId) {
         const [, categoryResult] = await Promise.all([
-          search(emptyFilters, 'TRANSACTIONS'),
+          search(requestedFilters, 'TRANSACTIONS'),
           apiRequest<{ categories: Reference[] }>('/api/expense-categories'),
         ]);
         setCategories(categoryResult.categories);
         return;
       }
-      const [activityResult, categoryResult, vehicleResult] = await Promise.all(
-        [
+      const [activityResult, categoryResult, vehicleResult, entityResult] =
+        await Promise.all([
           apiRequest<{ activities: Reference[] }>('/api/business-activities'),
           apiRequest<{ categories: Reference[] }>('/api/expense-categories'),
           apiRequest<{
@@ -325,8 +379,10 @@ export function TransactionsPage() {
               active: boolean;
             }>;
           }>('/api/vehicles'),
-        ],
-      );
+          apiRequest<{ legalEntities: LegalEntityReference[] }>(
+            '/api/legal-entities',
+          ),
+        ]);
       setActivities(activityResult.activities);
       setCategories(categoryResult.categories);
       setVehicles(
@@ -336,8 +392,9 @@ export function TransactionsPage() {
           active: item.active,
         })),
       );
+      setLegalEntities(entityResult.legalEntities);
       await Promise.all([
-        search(emptyFilters, 'TRANSACTIONS'),
+        search(requestedFilters, 'TRANSACTIONS'),
         loadSaved('TRANSACTIONS'),
       ]);
     };
@@ -348,12 +405,16 @@ export function TransactionsPage() {
           : 'Unable to load transactions.',
       ),
     );
-  }, [businessId, loadSaved, search]);
+  }, [businessId, loadSaved, location.search, search]);
   async function changeMode(next: typeof mode) {
+    const scopedEmpty = {
+      ...emptyFilters,
+      legalEntityId: filters.legalEntityId,
+    };
     setMode(next);
-    setFilters(emptyFilters);
+    setFilters(scopedEmpty);
     setError('');
-    await Promise.all([search(emptyFilters, next), loadSaved(next)]);
+    await Promise.all([search(scopedEmpty, next), loadSaved(next)]);
   }
   async function saveFilter(event: FormEvent) {
     event.preventDefault();
@@ -384,8 +445,13 @@ export function TransactionsPage() {
     await loadSaved(mode);
   }
   async function applyFilter(item: SavedFilter) {
-    setFilters({ ...emptyFilters, ...item.criteria });
-    await search({ ...emptyFilters, ...item.criteria }, mode);
+    const nextFilters = {
+      ...emptyFilters,
+      ...item.criteria,
+      legalEntityId: filters.legalEntityId,
+    };
+    setFilters(nextFilters);
+    await search(nextFilters, mode);
   }
   async function moveToTrash(record: Transaction) {
     if (
@@ -429,6 +495,14 @@ export function TransactionsPage() {
           </p>
         </div>
       </div>
+      {!businessId && filters.legalEntityId ? (
+        <p className="notice">
+          Scoped to legal entity:{' '}
+          <strong>
+            {entityNames.get(filters.legalEntityId) ?? 'Selected legal entity'}
+          </strong>
+        </p>
+      ) : null}
       {!businessId ? (
         <div className="button-row" role="group" aria-label="Log type">
           <button
@@ -578,8 +652,12 @@ export function TransactionsPage() {
                 type="button"
                 className="secondary-button"
                 onClick={() => {
-                  setFilters(emptyFilters);
-                  void search(emptyFilters, mode);
+                  const nextFilters = {
+                    ...emptyFilters,
+                    legalEntityId: filters.legalEntityId,
+                  };
+                  setFilters(nextFilters);
+                  void search(nextFilters, mode);
                 }}
               >
                 Clear
@@ -766,8 +844,12 @@ export function TransactionsPage() {
                 type="button"
                 className="secondary-button"
                 onClick={() => {
-                  setFilters(emptyFilters);
-                  void search(emptyFilters, mode);
+                  const nextFilters = {
+                    ...emptyFilters,
+                    legalEntityId: filters.legalEntityId,
+                  };
+                  setFilters(nextFilters);
+                  void search(nextFilters, mode);
                 }}
               >
                 Clear
@@ -922,7 +1004,12 @@ export function TransactionsPage() {
                     <h3>{record.counterparty}</h3>
                     <p>
                       {record.transactionDate} ·{' '}
-                      {record.activityName ?? 'Unallocated'}
+                      {businessNames.get(record.businessId) ??
+                        'Unknown business'}{' '}
+                      · {record.activityName ?? 'Unallocated'}
+                      {entityNames.has(record.legalEntityId)
+                        ? ` · ${entityNames.get(record.legalEntityId)}`
+                        : ''}
                       {record.categoryName ? ` · ${record.categoryName}` : ''}
                       {record.vehicleRegistration
                         ? ` · ${record.vehicleRegistration}`

@@ -28,6 +28,8 @@ interface BusinessOverviewRow extends BusinessRow {
   expense_record_count: number;
   income_record_count: number;
   work_session_record_count: number;
+  awaiting_review_count: number;
+  missing_receipt_count: number;
   expense_updated_at: string | null;
   income_updated_at: string | null;
   work_session_updated_at: string | null;
@@ -99,6 +101,33 @@ export async function listBusinessOverviews(
                 WHERE work_sessions.business_account_id = businesses.business_account_id
                   AND work_sessions.business_id = businesses.id
                   AND work_sessions.purged_at IS NULL) AS work_session_record_count,
+              ((SELECT COUNT(*) FROM expenses
+                 WHERE expenses.business_account_id = businesses.business_account_id
+                   AND expenses.business_id = businesses.id
+                   AND expenses.purged_at IS NULL
+                   AND expenses.deleted_at IS NULL
+                   AND expenses.status NOT IN ('REVIEWED', 'PROCESSED', 'VOIDED'))
+               + (SELECT COUNT(*) FROM income_records
+                 WHERE income_records.business_account_id = businesses.business_account_id
+                   AND income_records.business_id = businesses.id
+                   AND income_records.purged_at IS NULL
+                   AND income_records.deleted_at IS NULL
+                   AND income_records.status NOT IN ('REVIEWED', 'PROCESSED', 'VOIDED'))
+              ) AS awaiting_review_count,
+              (SELECT COUNT(*) FROM expenses
+                WHERE expenses.business_account_id = businesses.business_account_id
+                  AND expenses.business_id = businesses.id
+                  AND expenses.purged_at IS NULL
+                  AND expenses.deleted_at IS NULL
+                  AND expenses.status != 'VOIDED'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM attachments
+                     WHERE attachments.business_account_id = expenses.business_account_id
+                       AND attachments.record_type = 'EXPENSE'
+                       AND attachments.record_id = expenses.id
+                       AND attachments.is_current = 1
+                       AND attachments.purged_at IS NULL
+                  )) AS missing_receipt_count,
               (SELECT MAX(expenses.updated_at) FROM expenses
                 WHERE expenses.business_account_id = businesses.business_account_id
                   AND expenses.business_id = businesses.id
@@ -149,6 +178,8 @@ export async function listBusinessOverviews(
         Number(row.expense_record_count) +
         Number(row.income_record_count) +
         Number(row.work_session_record_count),
+      awaitingReviewCount: Number(row.awaiting_review_count ?? 0),
+      missingReceiptCount: Number(row.missing_receipt_count ?? 0),
       lastRecordUpdatedAt: updatedDates.sort().at(-1) ?? null,
     };
   });

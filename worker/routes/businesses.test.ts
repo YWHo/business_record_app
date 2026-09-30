@@ -461,6 +461,31 @@ describe('business-scoped read routes', () => {
     ]);
   });
 
+  it('scopes account-level review to a legal entity', async () => {
+    const { env, queries } = fakeEnv((query) => {
+      if (query.operation === 'all') return [];
+      throw new Error(`Unexpected query: ${query.sql}`);
+    });
+
+    const response = await listTransactions(
+      new Request(
+        'https://demo.invalid/api/transactions?legalEntityId=entity-1&review=UNREVIEWED',
+      ),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const listQuery = queries.find((query) =>
+      query.sql.includes('SELECT * FROM'),
+    );
+    expect(listQuery?.sql).toContain('legal_entity_id = ?');
+    expect(listQuery?.sql).toContain('reviewed_by IS NULL');
+    expect(listQuery?.values.slice(0, 2)).toEqual([
+      'business-account-primary',
+      'entity-1',
+    ]);
+  });
+
   it('lists current documents only inside the selected business', async () => {
     const { env, queries } = fakeEnv((query) => {
       if (query.sql.includes('FROM businesses')) return businessRow;

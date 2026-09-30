@@ -150,6 +150,7 @@ export async function listTransactions(
   if (from) add('transaction_date >= ?', from);
   if (to) add('transaction_date <= ?', to);
   const exact = [
+    ['legalEntityId', 'legal_entity_id'],
     ['activityId', 'business_activity_id'],
     ['direction', 'record_type'],
     ['subtype', 'subtype'],
@@ -201,7 +202,8 @@ export async function listTransactions(
     throw new HttpError(400, 'Attachment filter is invalid.');
   const review = url.searchParams.get('review');
   if (review === 'REVIEWED') where.push('reviewed_by IS NOT NULL');
-  else if (review === 'UNREVIEWED') where.push('reviewed_by IS NULL');
+  else if (review === 'UNREVIEWED')
+    where.push("reviewed_by IS NULL AND status != 'VOIDED'");
   else if (review) throw new HttpError(400, 'Review filter is invalid.');
   const pagination = requestPagination(url);
   const rows = await env.DB.prepare(

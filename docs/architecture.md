@@ -92,6 +92,15 @@ small-tablet portrait uses the same navigation in a compact column, and phone
 layouts replace it with a four-destination bottom navigation bar while keeping
 the selector in the app header.
 
+The account shell also exposes an accountant workspace at `/app/accountant`.
+Its legal-entity view groups businesses by their current operating entity,
+while its business view surfaces derived review and missing-receipt totals.
+No creation actions are exposed at this level. Entity review links carry an
+explicit legal-entity filter into the account transaction log; business review
+links enter the selected business transaction log. The Worker applies the
+authenticated account predicate before either optional scope, and transaction
+cards retain both business and legal-entity identity.
+
 The primary dashboard reads only
 `/api/businesses/:businessId/dashboard`. The Worker verifies the selected
 business against the authenticated account and applies the account and

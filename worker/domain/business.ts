@@ -27,6 +27,8 @@ export interface BusinessOverview extends Business {
     | 'attributionReviewRequired'
   > | null;
   recordCount: number;
+  awaitingReviewCount: number;
+  missingReceiptCount: number;
   lastRecordUpdatedAt: string | null;
 }
 

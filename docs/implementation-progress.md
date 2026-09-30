@@ -909,3 +909,27 @@ Acceptance criteria completed:
 Notes: This workflow creates the structural accounting boundary only. It does
 not automate asset sales, GST treatment, balances, receivables, payables, legal
 verification, or government filings.
+
+## Accountant workspace
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added an account-level Accountant view with URL-backed By legal entity and
+  By business groupings.
+- Grouped each current legal entity with its businesses and derived record and
+  review totals without creating a second source of accounting data.
+- Added per-business awaiting-review and missing-receipt summaries derived
+  from retained source records and current attachments.
+- Linked legal-entity groups into an account transaction log with an enforced
+  entity filter, and linked businesses into their already-scoped transaction
+  workspace.
+- Kept account-level views read-only and made business and legal-entity context
+  visible in cross-business transaction results.
+- Added component, repository, route, and browser coverage for grouping,
+  review navigation, and tenant-scoped filtering.
+
+Notes: Legal-entity grouping follows each business's current operating period;
+historical transactions retain their persisted entity IDs and the entity review
+link filters on those stored attributions.

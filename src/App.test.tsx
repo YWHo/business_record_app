@@ -50,6 +50,8 @@ describe('App', () => {
                       attributionReviewRequired: false,
                     },
                     recordCount: 64,
+                    awaitingReviewCount: 1,
+                    missingReceiptCount: 0,
                     lastRecordUpdatedAt: '2026-09-08T00:00:00.000Z',
                   },
                   {
@@ -69,6 +71,8 @@ describe('App', () => {
                       attributionReviewRequired: false,
                     },
                     recordCount: 128,
+                    awaitingReviewCount: 8,
+                    missingReceiptCount: 2,
                     lastRecordUpdatedAt: '2026-09-09T00:00:00.000Z',
                   },
                 ],
@@ -329,6 +333,8 @@ describe('App', () => {
                           transactions: [
                             {
                               id: 'income-local',
+                              businessId: 'business-activity-contracting',
+                              legalEntityId: 'entity-owner',
                               recordType: 'INCOME',
                               subtype: 'CONTRACT',
                               transactionDate: '2026-09-01',
@@ -811,6 +817,35 @@ describe('App', () => {
     expect(
       screen.getAllByRole('link', { name: 'Expenses' })[0],
     ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('groups the accountant workspace by legal entity and business', async () => {
+    currentRole = 'ACCOUNTANT';
+    renderApp('/app/accountant');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Accountant view' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Local Sole Trader' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2 businesses')).toBeInTheDocument();
+    expect(screen.getByText('192 records')).toBeInTheDocument();
+    expect(screen.getByText('9 items awaiting review')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Review entity' })).toHaveAttribute(
+      'href',
+      '/app/transactions?legalEntityId=entity-owner&review=UNREVIEWED',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'By business' }));
+    expect(screen.getByText('8 items awaiting review')).toBeInTheDocument();
+    expect(screen.getByText('2 missing receipts')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: 'Review records' })[0],
+    ).toHaveAttribute(
+      'href',
+      '/app/businesses/business-activity-contracting/transactions?review=UNREVIEWED',
+    );
   });
 
   it('returns safely to My businesses when business access is unavailable', async () => {

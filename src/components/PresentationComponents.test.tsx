@@ -57,6 +57,8 @@ describe('reusable presentation components', () => {
               attributionReviewRequired: false,
             },
             recordCount: 96,
+            awaitingReviewCount: 3,
+            missingReceiptCount: 1,
             lastRecordUpdatedAt: '2026-09-09T00:00:00.000Z',
           }}
         />

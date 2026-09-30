@@ -2277,6 +2277,8 @@ if (!scopedBusinessOverview) {
 if (
   scopedBusinessOverview.currentLegalEntity?.id !== 'business-entity-primary' ||
   typeof scopedBusinessOverview.recordCount !== 'number' ||
+  typeof scopedBusinessOverview.awaitingReviewCount !== 'number' ||
+  typeof scopedBusinessOverview.missingReceiptCount !== 'number' ||
   !Object.hasOwn(scopedBusinessOverview, 'lastRecordUpdatedAt')
 ) {
   throw new Error('business list omitted its legal-entity or record summary');
@@ -2354,6 +2356,21 @@ if (
   )
 ) {
   throw new Error('business transaction list crossed the selected business');
+}
+const entityTransactions = await request(
+  `/api/transactions?legalEntityId=${scopedBusinessOverview.currentLegalEntity.id}&review=UNREVIEWED`,
+  {},
+  accountantCookie,
+);
+expectStatus(entityTransactions, 200, 'legal-entity transaction list');
+if (
+  entityTransactions.body.transactions.some(
+    (transaction) =>
+      transaction.legalEntityId !==
+      scopedBusinessOverview.currentLegalEntity.id,
+  )
+) {
+  throw new Error('legal-entity transaction list crossed the selected entity');
 }
 const scopedDocuments = await request(
   `/api/businesses/${scopedBusinessId}/documents`,

@@ -312,6 +312,69 @@ select {
   gap: 1rem;
 }
 
+.view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.accountant-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.accountant-group {
+  display: grid;
+  gap: 1rem;
+}
+
+.accountant-group .section-heading {
+  align-items: start;
+}
+
+.accountant-group .section-heading h2 {
+  margin-bottom: 0.25rem;
+}
+
+.accountant-group .section-heading p,
+.accountant-totals {
+  margin: 0;
+  color: #66788a;
+}
+
+.accountant-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+}
+
+.accountant-totals strong {
+  color: #1f2933;
+}
+
+.accountant-business-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.accountant-business-list li + li {
+  border-top: 1px solid #e1e7ec;
+}
+
+.accountant-business-list a {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  color: #1f4e78;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .business-card {
   min-width: 0;
   border: 1px solid #d9e1e8;
@@ -1802,6 +1865,10 @@ th {
   }
 
   .business-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accountant-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

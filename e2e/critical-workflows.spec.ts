@@ -87,6 +87,28 @@ test.describe.serial('critical business workflows', () => {
     await accountantContext.close();
   });
 
+  test('accountant workspace groups businesses and opens a scoped review queue', async ({
+    page,
+  }) => {
+    await login(page, 'accountant');
+    await page.getByRole('link', { name: 'My businesses' }).click();
+    await page.getByRole('link', { name: 'Accountant view' }).first().click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Accountant view' }),
+    ).toBeVisible();
+    await expect(page.locator('.accountant-group').first()).toBeVisible();
+    await page.getByRole('button', { name: 'By business' }).click();
+    await expect(page.locator('.accountant-group')).toHaveCount(4);
+
+    await page.getByRole('link', { name: 'Review records' }).first().click();
+    await expect(page).toHaveURL(/\/transactions\?review=UNREVIEWED$/);
+    await expect(
+      page.getByRole('heading', { name: 'Transactions' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Review state')).toHaveValue('UNREVIEWED');
+  });
+
   test('owner creates reference data, mileage, fuel, parking, and a receipt', async ({
     page,
   }) => {

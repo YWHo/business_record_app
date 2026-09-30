@@ -10,6 +10,7 @@ import { useBusinessDirectory } from '../features/business/BusinessDirectoryCont
 
 const accountNavigation: ShellNavigationItem[] = [
   { to: '/app/businesses', label: 'My businesses', icon: '⌂', end: true },
+  { to: '/app/accountant', label: 'Accountant view', icon: '♙' },
   { to: '/app/transactions', label: 'All transactions', icon: '▤' },
   { to: '/app/reports', label: 'Reports', icon: '▥' },
 ];
