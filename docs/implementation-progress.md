@@ -933,3 +933,27 @@ Acceptance criteria completed:
 Notes: Legal-entity grouping follows each business's current operating period;
 historical transactions retain their persisted entity IDs and the entity review
 link filters on those stored attributions.
+
+## Responsive refinement
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Kept the selected business visible in the compact phone header and limited
+  bottom navigation to four touch-friendly destinations.
+- Added account and business More screens so reports, documents, mileage,
+  governance, settings, and account switching remain reachable without an
+  overloaded phone navigation bar.
+- Reserved safe bottom clearance for fixed phone navigation and prevented
+  dashboard currency values and table amounts from wrapping awkwardly.
+- Tightened the small-tablet portrait rail and table density while retaining a
+  visible sidebar, contained table scrolling, and single-column focused forms.
+- Preserved wider table, accountant-card, and form layouts for small-tablet
+  landscape and desktop widths.
+- Expanded browser checks across phone portrait, 7–8 inch tablet portrait,
+  tablet landscape, and desktop, including navigation visibility, form
+  geometry, table readability, and document-level overflow assertions.
+
+Notes: Responsive behavior is driven only by CSS viewport breakpoints. It does
+not use device-name or user-agent detection.

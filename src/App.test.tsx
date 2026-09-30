@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
@@ -817,6 +817,59 @@ describe('App', () => {
     expect(
       screen.getAllByRole('link', { name: 'Expenses' })[0],
     ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('keeps secondary destinations reachable from mobile More pages', async () => {
+    const businessMore = renderApp(
+      '/app/businesses/business-activity-contracting/more',
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'More' }),
+    ).toBeInTheDocument();
+    const businessMorePage = screen
+      .getByRole('heading', { name: 'More' })
+      .closest('section')!;
+    expect(
+      within(businessMorePage).getByRole('link', { name: /Documents/ }),
+    ).toHaveAttribute(
+      'href',
+      '/app/businesses/business-activity-contracting/documents',
+    );
+    expect(
+      within(businessMorePage).getByRole('link', {
+        name: /Business settings/,
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/app/businesses/business-activity-contracting/settings',
+    );
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'Mobile navigation',
+    });
+    expect(mobileNavigation.querySelectorAll('a')).toHaveLength(4);
+    expect(
+      mobileNavigation.querySelector('a[aria-current="page"]'),
+    ).toHaveTextContent('More');
+    businessMore.unmount();
+
+    renderApp('/app/more');
+    expect(
+      await screen.findByRole('heading', { name: 'More' }),
+    ).toBeInTheDocument();
+    const accountMorePage = screen
+      .getByRole('heading', { name: 'More' })
+      .closest('section')!;
+    expect(
+      within(accountMorePage).getByRole('link', {
+        name: /Reports and exports/,
+      }),
+    ).toHaveAttribute('href', '/app/reports');
+    expect(
+      within(accountMorePage).getByRole('link', {
+        name: /Account settings/,
+      }),
+    ).toHaveAttribute('href', '/app/settings/account');
   });
 
   it('groups the accountant workspace by legal entity and business', async () => {

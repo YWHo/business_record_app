@@ -19,6 +19,7 @@ import { IncomeListPage } from './routes/IncomeListPage';
 import { LoginPage } from './routes/LoginPage';
 import { LegalEntityChangePage } from './routes/LegalEntityChangePage';
 import { MileageListPage } from './routes/MileageListPage';
+import { AccountMorePage, BusinessMorePage } from './routes/MorePage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import {
   ActivitiesSettingsPage,
@@ -80,6 +81,7 @@ export function App() {
               <Route path="accountant" element={<AccountantPage />} />
               <Route path="transactions" element={<TransactionsPage />} />
               <Route path="reports" element={<ExportsPage />} />
+              <Route path="more" element={<AccountMorePage />} />
               <Route path="settings/account" element={<UserManagementPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
@@ -136,6 +138,7 @@ export function App() {
               />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="reports" element={<ExportsPage />} />
+              <Route path="more" element={<BusinessMorePage />} />
               <Route path="settings" element={<BusinessSettingsLayout />}>
                 <Route index element={<Navigate to="details" replace />} />
                 <Route

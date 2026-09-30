@@ -33,6 +33,7 @@ a {
 }
 
 button {
+  min-height: 2.75rem;
   border: 0;
   border-radius: 0.55rem;
   padding: 0.75rem 1rem;
@@ -60,6 +61,11 @@ textarea {
   color: #1f2933;
   background: #fff;
   font: inherit;
+}
+
+input,
+select {
+  min-height: 2.75rem;
 }
 
 textarea {
@@ -375,6 +381,40 @@ select {
   text-decoration: none;
 }
 
+.more-link-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.more-link-grid a {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #d9e1e8;
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  color: #1f2933;
+  background: #fff;
+  box-shadow: 0 4px 16px rgb(31 41 51 / 5%);
+  text-decoration: none;
+}
+
+.more-link-grid a:hover {
+  border-color: #67a9a5;
+}
+
+.more-link-grid strong,
+.more-link-grid small {
+  display: block;
+}
+
+.more-link-grid small {
+  margin-top: 0.2rem;
+  color: #66788a;
+}
+
 .business-card {
   min-width: 0;
   border: 1px solid #d9e1e8;
@@ -636,6 +676,11 @@ p {
 .metric-card strong {
   font-size: 1.65rem;
   line-height: 1.15;
+}
+
+.dashboard-metrics .metric-card strong {
+  font-size: clamp(1.2rem, 5vw, 1.65rem);
+  white-space: nowrap;
 }
 
 .empty-state {
@@ -1468,6 +1513,11 @@ th {
   color: #66788a;
 }
 
+.responsive-record-table td[data-label='Amount'],
+.numeric-cell {
+  white-space: nowrap;
+}
+
 .focused-form-panel {
   max-width: 56rem;
 }
@@ -1745,7 +1795,7 @@ th {
   }
 }
 
-@media (max-width: 32rem) {
+@media (max-width: 37.49rem) {
   input,
   select,
   textarea {
@@ -1766,7 +1816,7 @@ th {
   }
 
   .page-content {
-    padding: 1.25rem 0.75rem 3rem;
+    padding: 1.25rem 0.75rem calc(5.25rem + env(safe-area-inset-bottom));
   }
 
   .page-heading {
@@ -1799,6 +1849,16 @@ th {
   .pwa-status-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .accountant-group .section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .accountant-group .section-heading .secondary-button {
+    width: 100%;
+    text-align: center;
   }
 }
 
@@ -1844,6 +1904,51 @@ th {
   }
 }
 
+@media (min-width: 37.5rem) and (max-width: 56.24rem) {
+  .shell-topbar {
+    grid-template-columns: 9.5rem minmax(0, 1fr) auto auto;
+  }
+
+  .shell-topbar .brand > span:last-child {
+    font-size: 0.85rem;
+  }
+
+  .shell-grid {
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+  }
+
+  .shell-sidebar {
+    padding-inline: 0.55rem;
+  }
+
+  .shell-sidebar a {
+    gap: 0.35rem;
+    padding-inline: 0.45rem;
+    font-size: 0.85rem;
+  }
+
+  .sidebar-context {
+    padding-inline: 0.45rem;
+  }
+
+  .page-content {
+    padding: 1.5rem 1.25rem 3rem;
+  }
+
+  .form-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .responsive-record-table {
+    min-width: 40rem;
+  }
+
+  .responsive-record-table th,
+  .responsive-record-table td {
+    padding: 0.6rem;
+  }
+}
+
 @media (max-width: 24rem) {
   .brand > span:last-child {
     display: none;
@@ -1869,6 +1974,10 @@ th {
   }
 
   .accountant-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .more-link-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

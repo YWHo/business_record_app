@@ -90,7 +90,13 @@ store.
 Desktop and landscape-tablet layouts use a persistent business sidebar,
 small-tablet portrait uses the same navigation in a compact column, and phone
 layouts replace it with a four-destination bottom navigation bar while keeping
-the selector in the app header.
+the selector in the app header. The phone bar keeps Dashboard, Expenses, and
+Income immediately available and routes secondary business destinations
+through a dedicated More screen; the account shell uses the same four-item
+constraint. This prevents hidden sidebar-only destinations without squeezing
+five or more controls into the phone viewport. Tablet portrait forms remain a
+single column, repetitive records stay in a horizontally contained table, and
+tablet landscape restores the wider table and grouped-card layouts.
 
 The account shell also exposes an accountant workspace at `/app/accountant`.
 Its legal-entity view groups businesses by their current operating entity,

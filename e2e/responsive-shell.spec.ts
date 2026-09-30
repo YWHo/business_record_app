@@ -66,6 +66,34 @@ test('business context remains usable across phone, tablet, and desktop layouts'
   await expect(
     page.getByRole('navigation', { name: 'Mobile navigation' }),
   ).toBeVisible();
+  const phoneNavigation = page.getByRole('navigation', {
+    name: 'Mobile navigation',
+  });
+  await expect(phoneNavigation.getByRole('link')).toHaveCount(4);
+  await expect(
+    phoneNavigation.getByRole('link', { name: 'More' }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate<boolean>(
+      'document.documentElement.scrollWidth <= window.innerWidth',
+    ),
+  ).toBe(true);
+
+  await phoneNavigation.getByRole('link', { name: 'More' }).click();
+  await expect(page.getByRole('heading', { name: 'More' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Documents/ })).toBeVisible();
+  await phoneNavigation.getByRole('link', { name: 'Expenses' }).click();
+  await page.getByRole('link', { name: 'Add expense' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Add expense' }),
+  ).toBeVisible();
+  const phoneDate = await page
+    .getByLabel('Purchase date and time')
+    .boundingBox();
+  const phoneAmount = await page.getByLabel('Total amount').boundingBox();
+  expect(phoneDate).not.toBeNull();
+  expect(phoneAmount).not.toBeNull();
+  expect(phoneAmount!.y).toBeGreaterThan(phoneDate!.y);
   expect(
     await page.evaluate<boolean>(
       'document.documentElement.scrollWidth <= window.innerWidth',
@@ -78,13 +106,42 @@ test('business context remains usable across phone, tablet, and desktop layouts'
     page.getByRole('navigation', { name: 'Mobile navigation' }),
   ).toBeHidden();
   await expect(page.getByLabel('Current business')).toBeVisible();
-  const tabletMetricBoxes = await Promise.all(
-    [0, 1, 2].map((index) => dashboardMetrics.nth(index).boundingBox()),
-  );
-  tabletMetricBoxes.forEach((box) => expect(box).not.toBeNull());
+  const tabletDate = await page
+    .getByLabel('Purchase date and time')
+    .boundingBox();
+  const tabletAmount = await page.getByLabel('Total amount').boundingBox();
+  expect(tabletDate).not.toBeNull();
+  expect(tabletAmount).not.toBeNull();
+  expect(tabletAmount!.y).toBeGreaterThan(tabletDate!.y);
   expect(
-    Math.max(...tabletMetricBoxes.map((box) => box!.y)) -
-      Math.min(...tabletMetricBoxes.map((box) => box!.y)),
+    await page.evaluate<boolean>(
+      'document.documentElement.scrollWidth <= window.innerWidth',
+    ),
+  ).toBe(true);
+
+  await page.getByRole('link', { name: 'Expenses' }).click();
+  await expect(page.locator('.responsive-table-wrap')).toBeVisible();
+  await expect(page.locator('.responsive-record-table thead')).toBeVisible();
+  expect(
+    await page.evaluate<boolean>(
+      'document.documentElement.scrollWidth <= window.innerWidth',
+    ),
+  ).toBe(true);
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.getByRole('link', { name: 'My businesses' }).click();
+  await page.getByRole('link', { name: 'Accountant view' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Accountant view' }),
+  ).toBeVisible();
+  const accountantGroups = page.locator('.accountant-group');
+  await expect(accountantGroups.first()).toBeVisible();
+  const firstLandscapeGroup = await accountantGroups.nth(0).boundingBox();
+  const secondLandscapeGroup = await accountantGroups.nth(1).boundingBox();
+  expect(firstLandscapeGroup).not.toBeNull();
+  expect(secondLandscapeGroup).not.toBeNull();
+  expect(
+    Math.abs(secondLandscapeGroup!.y - firstLandscapeGroup!.y),
   ).toBeLessThan(2);
   expect(
     await page.evaluate<boolean>(
@@ -93,6 +150,8 @@ test('business context remains usable across phone, tablet, and desktop layouts'
   ).toBe(true);
 
   await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByRole('link', { name: 'My businesses' }).click();
+  await page.getByRole('link', { name: 'Open IT Contracting' }).click();
   await page
     .getByLabel('Current business')
     .selectOption('business-activity-delivery');

@@ -33,7 +33,12 @@ export function AccountShell() {
       contextLabel="Account"
       navigation={accountNavigation}
       secondaryNavigation={settings}
-      mobileNavigation={[...accountNavigation, ...settings]}
+      mobileNavigation={[
+        { ...accountNavigation[0], label: 'Home' },
+        accountNavigation[1],
+        { ...accountNavigation[2], label: 'Transactions' },
+        { to: '/app/more', label: 'More', icon: '•••' },
+      ]}
     />
   );
 }
@@ -96,6 +101,7 @@ export function BusinessShell() {
       '/mileage',
       '/documents',
       '/reports',
+      '/more',
       '/settings',
       '/governance',
     ].includes(currentSuffix);
@@ -148,7 +154,7 @@ export function BusinessShell() {
         navigation[0],
         navigation[2],
         navigation[3],
-        settings[0],
+        { to: `${base}/more`, label: 'More', icon: '•••' },
       ]}
     />
   );
