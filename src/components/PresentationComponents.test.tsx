@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { BackupReminderView } from '../features/exports/BackupReminder';
 import { BusinessCard } from './BusinessCard';
+import { BusinessSwitcher } from './BusinessSwitcher';
 import { DashboardMetricCard } from './DashboardMetricCard';
 import { StatusBadge } from './StatusBadge';
+import { ExpenseTable, OperatingPeriodsTable } from './WorkspacePatterns';
 
 describe('reusable presentation components', () => {
   it('formats workflow status names and applies their visual state class', () => {
@@ -74,6 +76,72 @@ describe('reusable presentation components', () => {
     expect(
       screen.getByRole('link', { name: 'Open Uber Ride' }),
     ).toHaveAttribute('href', '/app/businesses/business-ride');
+  });
+
+  it('exposes business switching as a labelled controlled selection', () => {
+    const onChange = vi.fn();
+    render(
+      <BusinessSwitcher
+        businesses={[
+          { id: 'delivery', name: 'Delivery' },
+          { id: 'consulting', name: 'Consulting' },
+        ]}
+        value="delivery"
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Current business'), {
+      target: { value: 'consulting' },
+    });
+    expect(onChange).toHaveBeenCalledWith('consulting');
+  });
+
+  it('keeps expense and operating-period tables semantically labelled', () => {
+    render(
+      <MemoryRouter>
+        <ExpenseTable
+          businessId="delivery"
+          expenses={[
+            {
+              id: 'expense-one',
+              businessId: 'delivery',
+              legalEntityId: 'entity-owner',
+              expenseType: 'GENERAL',
+              expenseCategoryId: 'equipment',
+              categoryName: 'Equipment',
+              merchantName: 'Officeworks',
+              purchaseDatetime: '2026-09-02T01:00:00.000Z',
+              totalAmountMinor: 8990,
+              currency: 'NZD',
+              description: null,
+              status: 'NEW',
+              createdAt: '2026-09-02T01:00:00.000Z',
+              updatedAt: '2026-09-02T01:00:00.000Z',
+            },
+          ]}
+        />
+        <OperatingPeriodsTable
+          periods={[
+            {
+              id: 'period-one',
+              effectiveFrom: '2026-04-01',
+              effectiveTo: null,
+              entityName: 'Brian Ho',
+              entityType: 'Sole trader',
+            },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Officeworks' })).toHaveAttribute(
+      'href',
+      '/app/businesses/delivery/expenses/expense-one',
+    );
+    expect(
+      screen.getByRole('table', { name: 'Operating periods' }),
+    ).toHaveTextContent('Present');
   });
 
   it('distinguishes due and current backup actions in text', () => {

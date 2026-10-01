@@ -79,5 +79,5 @@ export const NeedsAttention: Story = {
 
 export const Phone: Story = {
   ...SoleTrader,
-  parameters: { viewport: { defaultViewport: 'mobile1' } },
+  globals: { viewport: { value: 'phonePortrait', isRotated: false } },
 };

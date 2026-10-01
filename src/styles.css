@@ -134,6 +134,36 @@ select {
   font-weight: 700;
 }
 
+.business-context-badge,
+.entity-badge {
+  display: grid;
+  gap: 0.15rem;
+  width: fit-content;
+}
+
+.business-context-badge {
+  border: 1px solid #c7d4dc;
+  border-radius: 0.7rem;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+}
+
+.business-context-badge > span,
+.entity-badge small {
+  color: #66788a;
+  font-size: 0.75rem;
+}
+
+.entity-badge {
+  margin-top: 0.35rem;
+  border-left: 3px solid #147c78;
+  padding-left: 0.65rem;
+}
+
+.entity-badge.needs-attention {
+  border-left-color: #c77700;
+}
+
 .user-menu {
   position: relative;
   grid-column: 3;
@@ -1695,7 +1725,7 @@ th {
 
 .storybook-canvas {
   margin: 0 auto;
-  max-width: 72rem;
+  width: 100%;
 }
 
 .story-row {

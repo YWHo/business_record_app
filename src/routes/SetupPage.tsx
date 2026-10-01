@@ -14,6 +14,7 @@ import {
 } from 'react-router-dom';
 import { FormError } from '../components/FormError';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
+import { OperatingPeriodsTable } from '../components/WorkspacePatterns';
 import { ActivityManager } from '../features/setup/ActivityManager';
 import { VehicleManager } from '../features/setup/VehicleManager';
 import { CategoryManager } from '../features/setup/CategoryManager';
@@ -250,15 +251,6 @@ export function BusinessDetailsSettingsPage() {
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-NZ', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T00:00:00Z`));
-}
-
 function entityName(entity: LegalEntityRecord | null) {
   return entity?.legalName ?? entity?.tradingName ?? 'Entity unavailable';
 }
@@ -330,40 +322,17 @@ export function LegalEntitySettingsPage() {
         </p>
       ) : null}
       {!loading && !error ? (
-        <div className="table-wrap">
-          <table className="responsive-record-table">
-            <caption>Operating periods</caption>
-            <thead>
-              <tr>
-                <th scope="col">From</th>
-                <th scope="col">To</th>
-                <th scope="col">Legal entity</th>
-                <th scope="col">Entity type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periods.map((period) => (
-                <tr key={period.id}>
-                  <td data-label="From">{formatDate(period.effectiveFrom)}</td>
-                  <td data-label="To">
-                    {period.effectiveTo
-                      ? formatDate(period.effectiveTo)
-                      : 'Present'}
-                  </td>
-                  <td data-label="Legal entity">
-                    {entityName(period.legalEntity)}
-                  </td>
-                  <td data-label="Entity type">
-                    {period.legalEntity
-                      ? entityTypeLabels[period.legalEntity.entityType]
-                      : 'Unavailable'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!periods.length ? <p>No operating periods are available.</p> : null}
-        </div>
+        <OperatingPeriodsTable
+          periods={periods.map((period) => ({
+            id: period.id,
+            effectiveFrom: period.effectiveFrom,
+            effectiveTo: period.effectiveTo,
+            entityName: entityName(period.legalEntity),
+            entityType: period.legalEntity
+              ? entityTypeLabels[period.legalEntity.entityType]
+              : 'Unavailable',
+          }))}
+        />
       ) : null}
     </section>
   );

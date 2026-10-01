@@ -18,6 +18,14 @@ interface AppShellProps {
   secondaryNavigation?: ShellNavigationItem[];
 }
 
+interface AppShellPresentationProps extends AppShellProps {
+  children?: ReactNode;
+  isDemo?: boolean;
+  onLogout: () => void;
+  onResetDemo?: () => void;
+  userEmail: string;
+}
+
 function NavigationLinks({ items }: { items: ShellNavigationItem[] }) {
   return items.map((item) => (
     <NavLink
@@ -38,9 +46,14 @@ function NavigationLinks({ items }: { items: ShellNavigationItem[] }) {
   ));
 }
 
-function UserMenu() {
-  const { logout, user } = useAuth();
-  const initials = user?.email.slice(0, 2).toUpperCase() ?? 'ME';
+function UserMenu({
+  email,
+  onLogout,
+}: {
+  email: string;
+  onLogout: () => void;
+}) {
+  const initials = email.slice(0, 2).toUpperCase() || 'ME';
 
   return (
     <details className="user-menu">
@@ -48,8 +61,8 @@ function UserMenu() {
         <span aria-hidden="true">{initials}</span>
       </summary>
       <div className="user-menu-panel">
-        <strong>{user?.email}</strong>
-        <button type="button" onClick={() => void logout()}>
+        <strong>{email}</strong>
+        <button type="button" onClick={onLogout}>
           Sign out
         </button>
       </div>
@@ -57,15 +70,26 @@ function UserMenu() {
   );
 }
 
-export function AppShell({
+export function MobileBottomNav({ items }: { items: ShellNavigationItem[] }) {
+  return (
+    <nav aria-label="Mobile navigation" className="mobile-bottom-nav">
+      <NavigationLinks items={items} />
+    </nav>
+  );
+}
+
+export function AppShellPresentation({
+  children,
   contextControl,
   contextLabel,
+  isDemo = false,
   mobileNavigation,
   navigation,
+  onLogout,
+  onResetDemo,
   secondaryNavigation = [],
-}: AppShellProps) {
-  const { configuration, resetDemo } = useAuth();
-
+  userEmail,
+}: AppShellPresentationProps) {
   return (
     <div className="app-shell">
       <header className="shell-topbar">
@@ -82,17 +106,17 @@ export function AppShell({
         {contextControl ? (
           <div className="shell-context-control">{contextControl}</div>
         ) : null}
-        {configuration?.environment === 'demo' ? (
+        {isDemo ? (
           <button
             type="button"
             className="demo-reset-quick secondary-button"
             title="Clear changes stored only in this browser and restore the synthetic demo"
-            onClick={() => void resetDemo()}
+            onClick={onResetDemo}
           >
             Reset demo data
           </button>
         ) : null}
-        <UserMenu />
+        <UserMenu email={userEmail} onLogout={onLogout} />
       </header>
 
       <div className="shell-grid">
@@ -112,20 +136,30 @@ export function AppShell({
         </aside>
 
         <main className="shell-main">
-          {configuration?.environment === 'demo' ? (
+          {isDemo ? (
             <p className="demo-banner">
               <strong>Demo</strong> · Changes are saved only in this browser
             </p>
           ) : null}
-          <div className="page-content">
-            <Outlet />
-          </div>
+          <div className="page-content">{children ?? <Outlet />}</div>
         </main>
       </div>
 
-      <nav aria-label="Mobile navigation" className="mobile-bottom-nav">
-        <NavigationLinks items={mobileNavigation} />
-      </nav>
+      <MobileBottomNav items={mobileNavigation} />
     </div>
+  );
+}
+
+export function AppShell(props: AppShellProps) {
+  const { configuration, logout, resetDemo, user } = useAuth();
+
+  return (
+    <AppShellPresentation
+      {...props}
+      isDemo={configuration?.environment === 'demo'}
+      onLogout={() => void logout()}
+      onResetDemo={() => void resetDemo()}
+      userEmail={user?.email ?? ''}
+    />
   );
 }

@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
+import { AccountantEntityCard } from '../components/WorkspacePatterns';
 import {
   type BusinessSummary,
   useBusinessDirectory,
@@ -89,52 +90,12 @@ export function AccountantPage() {
       {!loading && !error && view === 'entity' ? (
         <div className="accountant-grid">
           {[...groups.entries()].map(([id, group]) => {
-            const records = group.businesses.reduce(
-              (total, business) => total + business.recordCount,
-              0,
-            );
-            const awaiting = group.businesses.reduce(
-              (total, business) => total + business.awaitingReviewCount,
-              0,
-            );
             return (
-              <article className="panel accountant-group" key={id}>
-                <div className="section-heading">
-                  <div>
-                    <h2>{entityName(group.entity)}</h2>
-                    <p>
-                      {group.entity
-                        ? entityTypeLabels[group.entity.entityType]
-                        : 'Needs attention'}
-                    </p>
-                  </div>
-                  {group.entity ? (
-                    <Link
-                      className="secondary-button"
-                      to={`/app/transactions?legalEntityId=${encodeURIComponent(group.entity.id)}&review=UNREVIEWED`}
-                    >
-                      Review entity
-                    </Link>
-                  ) : null}
-                </div>
-                <p className="accountant-totals">
-                  <strong>
-                    {plural(group.businesses.length, 'business', 'businesses')}
-                  </strong>
-                  <span>{plural(records, 'record')}</span>
-                  <span>{plural(awaiting, 'item')} awaiting review</span>
-                </p>
-                <ul className="accountant-business-list">
-                  {group.businesses.map((business) => (
-                    <li key={business.id}>
-                      <Link to={`/app/businesses/${business.id}/transactions`}>
-                        <span>{business.name}</span>
-                        <span aria-hidden="true">→</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </article>
+              <AccountantEntityCard
+                key={id}
+                entity={group.entity}
+                businesses={group.businesses}
+              />
             );
           })}
         </div>

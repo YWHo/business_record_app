@@ -979,3 +979,29 @@ Acceptance criteria completed:
 
 Notes: Native required-field validation continues to handle missing local form
 values. Server validation and save failures use the focused error summary.
+
+## Responsive component catalogue and visual baselines
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added named phone portrait, small-tablet portrait, small-tablet landscape,
+  and desktop viewports to Storybook's integrated viewport controls.
+- Documented the application shell, business switcher, business and entity
+  identity, dashboard summary, expense table and mobile cards, filters, focused
+  expense form, operating periods, accountant entity group, and mobile bottom
+  navigation.
+- Extracted shared presentation components from the routed application so
+  stories exercise the same business switcher, tables, filters, and accountant
+  cards that users see.
+- Updated Storybook to use an in-memory data router, allowing guarded forms and
+  navigation components to render without production PWA registration.
+- Added deterministic Playwright screenshot comparison for eleven
+  representative desktop, phone, and small-tablet pages.
+- Added component coverage for controlled business switching and the semantic
+  expense and operating-period tables.
+
+Notes: Screenshot baselines target the repository's Chromium-on-Linux test
+project. They use a freshly reset local database plus one fixed-date visual
+fixture and do not contain real identities or financial data.

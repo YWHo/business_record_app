@@ -217,6 +217,22 @@ Storybook uses the React/Vite framework with the application stylesheet, an in-m
 
 Stories exercise presentation boundaries rather than duplicating complete routed pages. Status badges, dashboard metrics, backup reminders, and the reusable supporting-document panel cover workflow variants, unavailable and error states, read-only access, long content, narrow viewports, and interactive image/PDF selection. Network behavior in attachment stories is deterministic and isolated from D1/R2; authoritative API behavior remains covered by Worker service tests and the local acceptance suite.
 
+The responsive workspace catalogue uses the same extracted shell, business
+switcher, expense filter/table, operating-period table, and accountant card
+components as the routed application. Storybook defines named 390 × 844 phone,
+768 × 1024 small-tablet portrait, 1024 × 768 small-tablet landscape, and
+1440 × 900 desktop viewports. Its router decorator uses an in-memory data
+router so navigation-aware components, including guarded forms, behave like
+their production counterparts without registering PWA infrastructure.
+
+Playwright stores representative Linux/Chromium screenshot baselines beside
+the visual test. The test creates one deterministic local expense before
+capturing business lists, dashboards, tables, forms, operating periods, and
+accountant layouts. Fixed viewport sizes and fixed record dates keep visual
+comparison independent of wall-clock time. It runs first against the freshly
+reset local database so later mutation-oriented workflows cannot alter the
+baseline inputs.
+
 ## Search and review projection
 
 The transaction and receipt APIs query a fixed `UNION ALL` projection over common expense and income fields. Type-specific joins add category, vehicle, and counterparty labels without making the projection an alternative source of truth. Every user filter becomes either a validated enum/date/amount or a bound SQL parameter; record-type-to-table mappings remain fixed in Worker code. Current attachment counts are correlated from D1 metadata so records with missing evidence remain searchable.

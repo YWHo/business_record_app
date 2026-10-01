@@ -5,6 +5,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import { AppShell, type ShellNavigationItem } from './AppShell';
+import { BusinessSwitcher } from './BusinessSwitcher';
 import { useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 
@@ -116,20 +117,11 @@ export function BusinessShell() {
     <AppShell
       contextLabel={business.name}
       contextControl={
-        <label className="business-switcher">
-          <span className="sr-only">Current business</span>
-          <select
-            aria-label="Current business"
-            value={business.id}
-            onChange={(event) => switchBusiness(event.target.value)}
-          >
-            {businesses.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <BusinessSwitcher
+          businesses={businesses}
+          value={business.id}
+          onChange={switchBusiness}
+        />
       }
       navigation={navigation}
       secondaryNavigation={[

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import {
+  ExpenseFilterBar,
+  ExpenseTable,
+} from '../components/WorkspacePatterns';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   type BusinessExpense,
   type ExpenseType,
   expenseTypeLabels,
-  formatExpenseDate,
-  formatMoney,
-  plainLabel,
 } from '../features/expenses/businessExpense';
 
 const expenseTypes = Object.keys(expenseTypeLabels) as ExpenseType[];
@@ -96,69 +97,19 @@ export function ExpensesPage() {
         ) : null}
       </div>
 
-      <div className="expense-filter-bar" aria-label="Expense filters">
-        <label className="filter-search">
-          <span className="sr-only">Search expenses</span>
-          <input
-            type="search"
-            placeholder="Search expenses…"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <label>
-          <span className="sr-only">Expense type</span>
-          <select
-            aria-label="Expense type"
-            value={type}
-            onChange={(event) => changeType(event.target.value)}
-          >
-            <option value="">All types</option>
-            {expenseTypes.map((expenseType) => (
-              <option key={expenseType} value={expenseType}>
-                {expenseTypeLabels[expenseType]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="sr-only">From date</span>
-          <input
-            aria-label="From date"
-            type="date"
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-          />
-        </label>
-        <label>
-          <span className="sr-only">Category</span>
-          <select
-            aria-label="Category"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-          >
-            <option value="">All categories</option>
-            {categories.map((name) => (
-              <option key={name}>{name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="sr-only">Status</span>
-          <select
-            aria-label="Status"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option value="">All statuses</option>
-            <option value="NEW">New</option>
-            <option value="MISSING_INFORMATION">Missing information</option>
-            <option value="READY_FOR_REVIEW">Ready for review</option>
-            <option value="REVIEWED">Reviewed</option>
-            <option value="PROCESSED">Processed</option>
-          </select>
-        </label>
-      </div>
+      <ExpenseFilterBar
+        categories={categories}
+        category={category}
+        dateFrom={dateFrom}
+        query={query}
+        status={status}
+        type={type}
+        onCategoryChange={setCategory}
+        onDateFromChange={setDateFrom}
+        onQueryChange={setQuery}
+        onStatusChange={setStatus}
+        onTypeChange={changeType}
+      />
 
       {error ? (
         <div className="notice error" role="alert">
@@ -180,53 +131,7 @@ export function ExpensesPage() {
         </div>
       ) : null}
       {!loading && !error && filtered.length ? (
-        <div className="responsive-table-wrap">
-          <table className="responsive-record-table">
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Merchant / description</th>
-                <th scope="col">Type</th>
-                <th scope="col">Category</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((expense) => (
-                <tr key={expense.id}>
-                  <td data-label="Date">
-                    {formatExpenseDate(expense.purchaseDatetime)}
-                  </td>
-                  <td data-label="Merchant / description">
-                    <Link
-                      to={`/app/businesses/${businessId}/expenses/${expense.id}`}
-                    >
-                      <strong>{expense.merchantName}</strong>
-                    </Link>
-                    {expense.description ? (
-                      <small>{expense.description}</small>
-                    ) : null}
-                  </td>
-                  <td data-label="Type">
-                    {expenseTypeLabels[expense.expenseType]}
-                  </td>
-                  <td data-label="Category">{expense.categoryName}</td>
-                  <td data-label="Amount">
-                    {formatMoney(expense.totalAmountMinor, expense.currency)}
-                  </td>
-                  <td data-label="Status">
-                    <span
-                      className={`status-badge ${expense.status.toLowerCase()}`}
-                    >
-                      {plainLabel(expense.status)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ExpenseTable businessId={businessId} expenses={filtered} />
       ) : null}
     </section>
   );
