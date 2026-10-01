@@ -1,17 +1,24 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { StrictMode } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { App } from './App';
 import { AuthProvider } from './features/auth/AuthContext';
 
 function renderApp(path: string) {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </MemoryRouter>,
+  const router = createMemoryRouter(
+    [
+      {
+        path: '*',
+        element: (
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        ),
+      },
+    ],
+    { initialEntries: [path] },
   );
+  return render(<RouterProvider router={router} />);
 }
 
 describe('App', () => {
@@ -1118,6 +1125,42 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('confirms before a business switch discards an unfinished expense', async () => {
+    renderApp('/app/businesses/business-activity-contracting/expenses/new');
+    expect(
+      await screen.findByRole('heading', { name: 'Add expense' }),
+    ).toBeInTheDocument();
+    fireEvent.change(await screen.findByLabelText('Merchant'), {
+      target: { value: 'Unsaved supplier' },
+    });
+
+    fireEvent.change(screen.getByLabelText('Current business'), {
+      target: { value: 'business-activity-delivery' },
+    });
+    expect(
+      screen.getByRole('dialog', { name: 'Discard unsaved changes?' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stay on page' })).toHaveFocus();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stay on page' }));
+    expect(
+      screen.getByRole('heading', { name: 'Add expense' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Current business')).toHaveValue(
+      'business-activity-contracting',
+    );
+
+    fireEvent.change(screen.getByLabelText('Current business'), {
+      target: { value: 'business-activity-delivery' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Leave without saving' }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Delivery Platform' }),
+    ).toBeInTheDocument();
+  });
+
   it('renders expense detail separately from editing', async () => {
     renderApp(
       '/app/businesses/business-activity-contracting/expenses/expense-local',
@@ -1254,13 +1297,22 @@ describe('App', () => {
   });
 
   it('consumes a login link only once under strict effects', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: (
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          ),
+        },
+      ],
+      { initialEntries: ['/verify-login?token=single-use'] },
+    );
     render(
       <StrictMode>
-        <MemoryRouter initialEntries={['/verify-login?token=single-use']}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </StrictMode>,
     );
 

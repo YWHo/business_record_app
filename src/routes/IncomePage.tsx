@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
@@ -232,6 +233,9 @@ export function IncomeForm({
       className="work-session-form"
       onSubmit={(event) => void submit(event)}
     >
+      <UnsavedChangesGuard
+        when={!saving && JSON.stringify(draft) !== JSON.stringify(initial)}
+      />
       <div className="form-pair">
         <label>
           Income type

@@ -266,3 +266,20 @@ The dashboard API applies the configured tax-year boundary and optional business
 Recorded revenue uses each income family's established reporting value. Net cash movement is intentionally separate: contract income contributes only its recorded received amount, while other income contributes its received/net common value. Expenses are then deducted as recorded. The UI labels invoice-value revenue less expenses as “Income less recorded expenses” and explicitly avoids taxable-profit language.
 
 Delivery and ride-hailing analytics use work-session gross revenue for per-session, per-hour, and per-kilometre rates. Direct operating cost contains only fuel and parking assigned to the same platform activity and currency; allocated insurance appears separately. Missing session revenue suppresses revenue-derived rates and contribution rather than silently treating missing values as zero. These indicators are operational estimates, not accounting or tax conclusions.
+
+## Accessible interaction boundary
+
+Record-entry and business-detail forms compare their current draft with the
+last loaded or saved value. An in-app navigation attempt while a draft is dirty
+is intercepted before the route or selected business changes. The resulting
+modal identifies itself as a dialog, moves initial focus to the safe action,
+contains keyboard focus, supports Escape, and restores focus when the user
+stays. Confirming departure discards only the browser draft and resumes the
+original destination. Browser unloads use the platform confirmation mechanism
+because custom UI cannot safely intercept that boundary.
+
+Async form errors use an alert that is also programmatically focused when its
+message appears. This makes a failed save discoverable without relying on
+colour or the user's current viewport position. The guard is disabled during a
+save so successful submissions can navigate normally, and a failed save
+restores dirty-state protection.

@@ -5,6 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
+import { FormError } from '../components/FormError';
 import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
@@ -265,11 +266,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </Link>
       </div>
 
-      {error ? (
-        <p className="notice error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FormError message={error} />
       {loading ? <p role="status">Loading expense form…</p> : null}
       {pending ? (
         <section

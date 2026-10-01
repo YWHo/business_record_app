@@ -957,3 +957,25 @@ Acceptance criteria completed:
 
 Notes: Responsive behavior is driven only by CSS viewport breakpoints. It does
 not use device-name or user-agent detection.
+
+## Accessible form interactions
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added unsaved-change protection to expense, income, mileage, fuel,
+  insurance, legal-entity, and business-details forms.
+- Confirmed before route navigation or business switching can discard an
+  unfinished draft, while allowing successful saves to navigate normally.
+- Added an accessible confirmation dialog with initial focus, focus
+  containment, Escape handling, and focus restoration.
+- Kept browser refresh and tab-close protection through the native unload
+  confirmation boundary.
+- Moved keyboard focus to newly displayed asynchronous form errors so failure
+  feedback is announced and immediately discoverable.
+- Added component, application, and browser coverage for staying on a form and
+  explicitly discarding a draft during a business switch.
+
+Notes: Native required-field validation continues to handle missing local form
+values. Server validation and save failures use the focused error summary.

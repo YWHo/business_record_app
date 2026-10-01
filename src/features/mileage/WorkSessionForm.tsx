@@ -4,6 +4,7 @@ import {
   type ReferenceOption,
   type WorkSessionDraft,
 } from './workSessionModel';
+import { UnsavedChangesGuard } from '../../components/UnsavedChangesGuard';
 
 export function WorkSessionForm({
   activities,
@@ -44,6 +45,9 @@ export function WorkSessionForm({
       className="work-session-form"
       onSubmit={(event) => void submit(event)}
     >
+      <UnsavedChangesGuard
+        when={!saving && JSON.stringify(draft) !== JSON.stringify(initial)}
+      />
       {showActivity ? (
         <>
           <label htmlFor={`activity-${formId}`}>Business activity</label>

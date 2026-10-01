@@ -109,6 +109,43 @@ test.describe.serial('critical business workflows', () => {
     await expect(page.getByLabel('Review state')).toHaveValue('UNREVIEWED');
   });
 
+  test('unfinished forms require confirmation before switching businesses', async ({
+    page,
+  }) => {
+    await login(page, 'owner');
+    await page.getByRole('link', { name: 'Expenses', exact: true }).click();
+    await page.getByRole('link', { name: 'Add expense' }).click();
+    await page.getByLabel('Merchant').fill('Unsaved E2E supplier');
+
+    await page
+      .getByLabel('Current business')
+      .selectOption('business-activity-delivery');
+    const dialog = page.getByRole('dialog', {
+      name: 'Discard unsaved changes?',
+    });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole('button', { name: 'Stay on page' }),
+    ).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(
+      /business-activity-contracting\/expenses\/new$/,
+    );
+    await expect(page.getByLabel('Current business')).toHaveValue(
+      'business-activity-contracting',
+    );
+
+    await page
+      .getByLabel('Current business')
+      .selectOption('business-activity-delivery');
+    await page.getByRole('button', { name: 'Leave without saving' }).click();
+    await expect(page).toHaveURL(/business-activity-delivery$/);
+    await expect(
+      page.getByRole('heading', { name: 'Delivery Platform' }),
+    ).toBeVisible();
+  });
+
   test('owner creates reference data, mileage, fuel, parking, and a receipt', async ({
     page,
   }) => {

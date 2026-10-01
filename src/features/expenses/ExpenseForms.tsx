@@ -4,6 +4,7 @@ import type {
   ParkingDraft,
   ReferenceOption,
 } from './expenseModel';
+import { UnsavedChangesGuard } from '../../components/UnsavedChangesGuard';
 
 type InputEvent = React.ChangeEvent<
   HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -181,6 +182,9 @@ export function GeneralExpenseForm({
       className="work-session-form"
       onSubmit={(event) => void submit(event)}
     >
+      <UnsavedChangesGuard
+        when={!saving && JSON.stringify(draft) !== JSON.stringify(initial)}
+      />
       <label>
         Merchant
         <input
@@ -242,6 +246,9 @@ export function ParkingForm({
       className="work-session-form"
       onSubmit={(event) => void submit(event)}
     >
+      <UnsavedChangesGuard
+        when={!saving && JSON.stringify(draft) !== JSON.stringify(initial)}
+      />
       <div className="form-pair">
         <label>
           Provider (optional)

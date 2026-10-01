@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { FormError } from '../components/FormError';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 
 type EntityType =
@@ -145,6 +147,11 @@ export function LegalEntityChangePage() {
       className="panel settings-panel legal-entity-change"
       aria-labelledby="change-entity-heading"
     >
+      <UnsavedChangesGuard
+        when={
+          !saving && Boolean(legalEntityId || effectiveFrom || notes.trim())
+        }
+      />
       <div className="section-heading">
         <div>
           <h2 id="change-entity-heading">Change legal entity</h2>
@@ -166,11 +173,7 @@ export function LegalEntityChangePage() {
         ))}
       </ol>
 
-      {error ? (
-        <p className="notice error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FormError message={error} />
 
       {step === 1 ? (
         <form

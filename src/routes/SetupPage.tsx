@@ -12,6 +12,8 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
+import { FormError } from '../components/FormError';
+import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { ActivityManager } from '../features/setup/ActivityManager';
 import { VehicleManager } from '../features/setup/VehicleManager';
 import { CategoryManager } from '../features/setup/CategoryManager';
@@ -118,6 +120,7 @@ export function BusinessDetailsSettingsPage() {
     description: '',
     defaultCurrency: 'NZD',
   });
+  const [savedDraft, setSavedDraft] = useState(draft);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -129,11 +132,13 @@ export function BusinessDetailsSettingsPage() {
       const result = await apiRequest<BusinessDetailsResponse>(
         `/api/businesses/${businessId}`,
       );
-      setDraft({
+      const nextDraft = {
         name: result.business.name,
         description: result.business.description ?? '',
         defaultCurrency: result.business.defaultCurrency,
-      });
+      };
+      setDraft(nextDraft);
+      setSavedDraft(nextDraft);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -178,17 +183,20 @@ export function BusinessDetailsSettingsPage() {
 
   return (
     <section className="panel settings-panel" aria-labelledby="details-heading">
+      <UnsavedChangesGuard
+        when={
+          canManage &&
+          !saving &&
+          JSON.stringify(draft) !== JSON.stringify(savedDraft)
+        }
+      />
       <div className="section-heading">
         <div>
           <h2 id="details-heading">Details</h2>
           <p>Basic information used throughout this business workspace.</p>
         </div>
       </div>
-      {error ? (
-        <p className="notice error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FormError message={error} />
       {message ? (
         <p className="notice success" role="status">
           {message}

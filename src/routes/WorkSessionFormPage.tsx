@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { FormError } from '../components/FormError';
 import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import { WorkSessionForm } from '../features/mileage/WorkSessionForm';
@@ -159,11 +160,7 @@ export function WorkSessionFormPage({ mode }: { mode: 'create' | 'edit' }) {
           Cancel
         </Link>
       </div>
-      {error ? (
-        <p className="notice error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <FormError message={error} />
       {loading ? <p role="status">Loading work session…</p> : null}
       {pending ? (
         <section

@@ -772,6 +772,35 @@ p {
   padding: 1.25rem;
 }
 
+.dialog-backdrop {
+  align-items: center;
+  background: rgb(17 31 43 / 65%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 100;
+}
+
+.confirm-dialog {
+  background: #fff;
+  border: 1px solid #c9d5df;
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgb(17 31 43 / 25%);
+  max-width: 30rem;
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.confirm-dialog h2 {
+  margin-top: 0;
+}
+
+.confirm-dialog .button-row {
+  justify-content: flex-end;
+}
+
 .inline-form {
   display: grid;
   gap: 0.65rem;
