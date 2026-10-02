@@ -8,12 +8,11 @@ resource setup remain in the [deployment guide](deployment-guide.md).
 - Confirm the intended commit is clean and reviewed.
 - Confirm the target Cloudflare account, Worker, D1 database, R2 bucket, origin,
   and environment are distinct from demo resources.
-- Export and store an application backup; record the D1 Time Travel bookmark
-  and current Worker version.
+- Export and store an application backup; record the D1 Time Travel bookmark and
+  current Worker version.
 - Run `pnpm install --frozen-lockfile`, `pnpm format:check`, `pnpm lint`,
-  `pnpm typecheck`, `pnpm test`, `pnpm test:migrations`,
-  `pnpm security:audit`, `pnpm build:production`, `pnpm build:demo`, and
-  `pnpm storybook:build`.
+  `pnpm typecheck`, `pnpm test`, `pnpm test:migrations`, `pnpm security:audit`,
+  `pnpm build:production`, `pnpm build:demo`, and `pnpm storybook:build`.
 - Run `pnpm test:e2e` only in an isolated checkout; it resets local Wrangler
   state, never remote resources.
 - Review every unapplied migration. Never edit one that has been applied.
