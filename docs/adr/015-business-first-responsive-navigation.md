@@ -1,6 +1,6 @@
 # ADR 015: Use business-first routes and responsive task-focused pages
 
-Status: Accepted
+Status: Accepted and implemented
 
 ## Context
 

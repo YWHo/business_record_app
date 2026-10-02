@@ -1,6 +1,6 @@
 # ADR 016: Keep D1 and introduce repository boundaries for future portability
 
-Status: Accepted
+Status: Accepted and implemented
 
 ## Context
 

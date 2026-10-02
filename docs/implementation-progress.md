@@ -1030,3 +1030,28 @@ Acceptance criteria completed:
 
 Notes: The migration regression uses a disposable in-memory SQLite database.
 It cannot read, reset, or mutate local Wrangler, demo, or production data.
+
+## Documentation and compatibility cleanup
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Updated the README around selected-business navigation, effective-dated legal
+  entities, focused record pages, current test commands, and the deployed demo.
+- Reconciled architecture and data-model documentation with the implemented
+  D1-only demo, completed historical backfill, business-scoped URLs, and retained
+  activity compatibility layer.
+- Marked the business identity, responsive navigation, and D1 repository
+  decisions as implemented.
+- Corrected deployment guidance to use the configured production Worker name,
+  added the populated migration regression to the release gate, and provided a
+  concise migration/deployment checklist.
+- Removed the unreferenced combined records route module while retaining
+  explicit redirects for old bookmarks whose destinations remain unambiguous.
+- Refreshed supported dependencies within their declared compatibility ranges
+  to remove newly disclosed transitive vulnerabilities from the release audit.
+
+Notes: Compatibility activity columns and typed-service modules remain in use
+and were not removed. Their removal requires a future data migration rather
+than presentation-layer cleanup.

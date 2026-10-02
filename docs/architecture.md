@@ -16,13 +16,13 @@ The Vite plugin runs this topology locally in the Workers runtime and builds the
 
 ## Environments
 
-| Environment | D1                                            | R2                                   | Authentication                                    |
-| ----------- | --------------------------------------------- | ------------------------------------ | ------------------------------------------------- |
-| Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root           | Email outbox plus loopback-only seeded helper     |
-| Demo        | Dedicated immutable synthetic-data database   | Dedicated immutable synthetic bucket | Browser-local role simulation; no server session  |
-| Production  | Dedicated private database                    | Dedicated private bucket             | Email links, Turnstile, and local helper disabled |
+| Environment | D1                                            | R2                         | Authentication                                    |
+| ----------- | --------------------------------------------- | -------------------------- | ------------------------------------------------- |
+| Local       | Miniflare, persisted under `.wrangler/state/` | Miniflare, same state root | Email outbox plus loopback-only seeded helper     |
+| Demo        | Dedicated immutable synthetic-data database   | None                       | Browser-local role simulation; no server session  |
+| Production  | Dedicated private database                    | Dedicated private bucket   | Email links, Turnstile, and local helper disabled |
 
-Bindings are deliberately non-inheritable in `wrangler.jsonc`, so every named environment declares its own resources and variables. Remote resource IDs remain placeholders until an operator creates each environment.
+Bindings are deliberately non-inheritable in `wrangler.jsonc`, so every named environment declares its own resources and variables. Cloudflare resource IDs are non-secret configuration and must be checked against the intended account before deployment.
 
 ## Identity and authorization
 
@@ -277,7 +277,7 @@ Version 1 deliberately has no importer. A future restore must validate `format` 
 
 ## Dashboard analytics boundary
 
-The dashboard API applies the configured tax-year boundary and optional business-activity filter to live, non-voided records. D1 selects authoritative source amounts and generated mileage; the Worker groups only within a single currency and derives rates from those persisted values. It never accepts caller-provided totals or combines currencies.
+The dashboard API applies the configured tax-year boundary and selected-business scope to live, non-voided records. D1 selects authoritative source amounts and generated mileage; the Worker groups only within a single currency and derives rates from those persisted values. It never accepts caller-provided totals or combines currencies.
 
 Recorded revenue uses each income family's established reporting value. Net cash movement is intentionally separate: contract income contributes only its recorded received amount, while other income contributes its received/net common value. Expenses are then deducted as recorded. The UI labels invoice-value revenue less expenses as “Income less recorded expenses” and explicitly avoids taxable-profit language.
 

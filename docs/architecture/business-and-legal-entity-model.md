@@ -1,7 +1,6 @@
 # Business and legal-entity model
 
-Status: Accepted target architecture; implementation begins after the planning
-baseline.
+Status: Implemented.
 
 ## Purpose
 
@@ -59,7 +58,6 @@ businesses
   default_currency
   status
   legacy_business_activity_id nullable during transition
-  attribution_review_required
   created_at
   updated_at
 ```
@@ -186,13 +184,13 @@ Business reference data may be assigned to that business or deliberately
 shared at account scope; arbitrary table names and browser-provided legal
 entity IDs are not authorization inputs.
 
-The Worker router supports named path segments and now exposes authenticated
+The Worker router supports named path segments and exposes authenticated
 account, business-list, business-detail, legal-entity, dashboard, expense,
 income, and work-session reads under explicit business context. Scoped record
 creation derives the legacy compatibility activity and effective legal entity
 from the route business; browser-provided account, business, activity, and
-legal-entity attribution cannot override it. Existing flat endpoints remain as
-temporary compatibility routes while the client moves to business URLs.
+legal-entity attribution cannot override it. The client uses business-scoped
+URLs; a small set of unambiguous browser redirects remains for old bookmarks.
 
 The unified scoped expense endpoint dispatches general, parking, fuel, and
 insurance creation through their existing validation services. Root and typed

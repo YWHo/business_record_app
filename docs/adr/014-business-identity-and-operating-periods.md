@@ -1,6 +1,6 @@
 # ADR 014: Separate businesses from legal entities with operating periods
 
-Status: Accepted
+Status: Accepted and implemented
 
 ## Context
 

@@ -60,6 +60,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:migrations
 pnpm security:audit
 pnpm build:production
 pnpm build:demo
@@ -76,23 +77,23 @@ Record the commit being released, test results, operator, UTC time, and intended
 
 `APP_ORIGIN` is the exact public origin where people will use the production application. It is configuration, not a value returned by the application. Choose one of these routes before the first deployment.
 
-For an initial `workers.dev` deployment, open the Cloudflare dashboard and go to **Workers & Pages**. Find **Your subdomain**; choose it there if the account does not have one yet. The production Worker name is already fixed by `wrangler.jsonc` as `business-records-production`, so its predictable URL is:
+For an initial `workers.dev` deployment, open the Cloudflare dashboard and go to **Workers & Pages**. Find **Your subdomain**; choose it there if the account does not have one yet. The production Worker name is fixed by `wrangler.jsonc` as `business-records`, so its predictable URL is:
 
 ```text
-https://business-records-production.<your-account-subdomain>.workers.dev
+https://business-records.<your-account-subdomain>.workers.dev
 ```
 
 For example, if **Your subdomain** is `acme-records`, set:
 
 ```json
-"APP_ORIGIN": "https://business-records-production.acme-records.workers.dev"
+"APP_ORIGIN": "https://business-records.acme-records.workers.dev"
 ```
 
 Do not run a placeholder-configured production deployment merely to discover this URL. Do not use a version-preview URL, include a path, or add a trailing slash.
 
 For a custom domain, decide the final hostname first, such as `records.example.nz`, and set `APP_ORIGIN` to `https://records.example.nz`. The Worker may be deployed before the dashboard mapping is attached, but authentication and state-changing verification must wait until the custom domain resolves to that Worker. Cloudflare recommends a route or custom domain rather than `workers.dev` for business-critical production use.
 
-Create the production Turnstile widget for the chosen hostname. The widget's hostname field is only the host—for example, `business-records-production.acme-records.workers.dev` or `records.example.nz`—without `https://`, a port, or a path. Copy its public site key into production `TURNSTILE_SITE_KEY`; retain its secret key for the secret step below.
+Create the production Turnstile widget for the chosen hostname. The widget's hostname field is only the host—for example, `business-records.acme-records.workers.dev` or `records.example.nz`—without `https://`, a port, or a path. Copy its public site key into production `TURNSTILE_SITE_KEY`; retain its secret key for the secret step below.
 
 After `whoami` identifies the intended account and the origin is decided, create dedicated resources once:
 
@@ -139,7 +140,7 @@ Do not use `.env.production` for these values because Vite automatically loads t
 
 `BOOTSTRAP_OWNER_EMAIL` is the only place to enter the initial owner's real email. During deployment, Wrangler uploads these values into Cloudflare's encrypted secret bindings; the Worker does not read the local file at runtime. Production ignores `DEV_OWNER_EMAIL`, and secret values are not returned by `wrangler secret list` after upload.
 
-If the Worker already exists, rotate an individual value with `pnpm exec wrangler secret put <NAME> --env production`, or enter it through Cloudflare Dashboard → **Workers & Pages** → `business-records-production` → **Settings** → **Variables and Secrets**. Add each required name with type **Secret**, not plaintext variable. The four required names are:
+If the Worker already exists, rotate an individual value with `pnpm exec wrangler secret put <NAME> --env production`, or enter it through Cloudflare Dashboard → **Workers & Pages** → `business-records` → **Settings** → **Variables and Secrets**. Add each required name with type **Secret**, not plaintext variable. The four required names are:
 
 - `BOOTSTRAP_OWNER_EMAIL`
 - `BOOTSTRAP_ADMIN_KEY`
@@ -242,3 +243,6 @@ Retain this minimum record outside the application:
 - pre-deploy D1 bookmark and application-export location/digest;
 - post-deploy checks and monitoring outcome;
 - configuration changes and rollback decision, if any.
+
+Use the repository's [release checklist](release-checklist.md) as the concise
+operator sequence and retain the completed copy with the release record.

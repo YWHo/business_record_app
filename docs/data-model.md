@@ -58,15 +58,17 @@ readable until the dedicated historical backfill verifies every row.
 The design, date semantics, attribution rules, and safe backfill sequence are
 recorded in
 [`architecture/business-and-legal-entity-model.md`](architecture/business-and-legal-entity-model.md).
-Until backfill and compatibility cleanup are complete, `business_activities`
-and their current foreign keys remain alongside first-class businesses.
+The historical backfill is complete. `business_activities` remains as
+business-scoped operational reference data and as a compatibility link for the
+existing typed services; it is not the application tenancy or selected-business
+boundary.
 
 ## Businesses and operating periods
 
 `businesses` is the operational context shown in the application. Names are
 case-insensitively unique inside an account, default currency is explicit, and
-status is lifecycle state rather than deletion. A temporary unique legacy
-activity link supports one-to-one migration and comparison.
+status is lifecycle state rather than deletion. The unique legacy activity link
+preserves compatibility with the established typed record services.
 
 `business_entity_periods` connects a business to the legal entity operating it
 over inclusive calendar dates. Composite foreign keys require the business and
