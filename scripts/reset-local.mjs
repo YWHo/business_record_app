@@ -6,6 +6,14 @@ import { fileURLToPath } from 'node:url';
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const projectDirectory = resolve(scriptsDirectory, '..');
 const stateDirectory = resolve(projectDirectory, '.wrangler', 'state');
+const testProfile = globalThis.process.argv.includes('--test');
+const unknownArguments = globalThis.process.argv
+  .slice(2)
+  .filter((argument) => argument !== '--test');
+
+if (unknownArguments.length) {
+  throw new Error(`Unknown local reset option: ${unknownArguments.join(' ')}`);
+}
 
 if (!stateDirectory.endsWith('/.wrangler/state')) {
   throw new Error(`Refusing to reset unexpected path: ${stateDirectory}`);
@@ -46,4 +54,17 @@ runWrangler([
   './scripts/seed-local.sql',
 ]);
 
-globalThis.console.log('Local D1 and R2 state reset, migrated, and seeded.');
+if (!testProfile) {
+  runWrangler([
+    'd1',
+    'execute',
+    'business-records-local',
+    ...localStateArguments,
+    '--file',
+    './scripts/seed-local-showcase.sql',
+  ]);
+}
+
+globalThis.console.log(
+  `Local D1 and R2 state reset with the ${testProfile ? 'test' : 'showcase'} profile.`,
+);

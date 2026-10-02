@@ -11,7 +11,8 @@ resource setup remain in the [deployment guide](deployment-guide.md).
 - Export and store an application backup; record the D1 Time Travel bookmark and
   current Worker version.
 - Run `pnpm install --frozen-lockfile`, `pnpm format:check`, `pnpm lint`,
-  `pnpm typecheck`, `pnpm test`, `pnpm test:migrations`, `pnpm security:audit`,
+  `pnpm typecheck`, `pnpm test`, `pnpm test:migrations`,
+  `pnpm test:local-data`, `pnpm test:demo-data`, `pnpm security:audit`,
   `pnpm build:production`, `pnpm build:demo`, and `pnpm storybook:build`.
 - Run `pnpm test:e2e` only in an isolated checkout; it resets local Wrangler
   state, never remote resources.

@@ -61,7 +61,21 @@ pnpm db:reset:local
 ```
 
 The reset script validates its target, removes only `.wrangler/state/`, then
-reapplies migrations and the local seed.
+reapplies migrations and the local showcase seed. The showcase includes four
+businesses with recent delivery and ride-hailing shifts, platform settlements,
+fuel, insurance, parking, six months of contracting, and six months of SaaS
+activity. Each business has at least 20 records.
+
+Playwright uses a separate minimal fixture so richer development examples do
+not change test totals, ordering, or screenshots:
+
+```bash
+pnpm db:reset:test
+```
+
+That command is intended for automated tests and replaces the same local
+`.wrangler/state/` directory. Do not run it while relying on unsaved local
+development data.
 
 ## Local authentication and invitation testing
 
@@ -464,6 +478,7 @@ pnpm format:check        Check formatting
 pnpm typecheck           Check client and Worker TypeScript projects
 pnpm test                Run unit and component tests
 pnpm test:migrations     Verify a populated database upgrade in memory
+pnpm test:local-data     Verify the rich local showcase seed
 pnpm security:audit      Check the resolved dependency graph for advisories
 pnpm test:watch          Run tests interactively
 pnpm test:e2e            Reset local data and run critical Chromium workflows
@@ -474,10 +489,12 @@ pnpm storybook           Run isolated component stories on port 6006
 pnpm storybook:build     Build the static Storybook and validate all stories
 pnpm cf-typegen          Regenerate binding types when configuration changes
 pnpm db:migrate:local    Apply pending migrations to local D1
-pnpm db:seed:local       Replace deterministic synthetic local seed data
+pnpm db:seed:local       Load base fixtures and rich local showcase data
+pnpm db:seed:test        Load only the stable local test fixture
 pnpm db:inspect:local    Inspect local runtime metadata
 pnpm db:verify:local     Check D1 integrity, foreign keys, and seed counts
-pnpm db:reset:local      Reset, migrate, and seed local D1/R2 state
+pnpm db:reset:local      Reset local D1/R2 with the showcase profile
+pnpm db:reset:test       Reset local D1/R2 with the Playwright profile
 pnpm db:migrate:demo     Apply migrations to explicitly selected remote demo D1
 pnpm db:seed:demo        Replace remote demo rows after guarded confirmation
 pnpm db:reset:demo       Migrate and restore guarded remote demo data
