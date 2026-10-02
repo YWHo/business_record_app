@@ -17,6 +17,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:migrations": "node ./scripts/test-migration-regression.mjs",
+    "test:demo-data": "node ./scripts/test-demo-seed.mjs",
     "security:audit": "pnpm audit --audit-level moderate",
     "test:watch": "vitest",
     "test:e2e": "pnpm test:e2e:api && pnpm test:e2e:browser",

@@ -139,8 +139,8 @@ VALUES
   ('demo-parking-2', 'demo-activity-rideshare', 'PARKING', 'category-parking', 'Harbour Park', '2026-08-14T05:50:00.000Z', 1250, 'NZD', 163, 'GST_INCLUDED', 'Airport waiting area', 'ONE_OFF', 'MISSING_INFORMATION', 'demo-owner', NULL, NULL, '2026-08-14T05:55:00.000Z', '2026-08-14T05:55:00.000Z', '2037-03-31', '2037-04-01'),
   ('demo-software-1', 'demo-activity-contracting', 'GENERAL', 'category-software', 'Tussock Code Tools', '2026-08-01T00:00:00.000Z', 4600, 'NZD', 600, 'GST_INCLUDED', 'Monthly development tools', 'RECURRING', 'REVIEWED', 'demo-owner', 'demo-accountant', '2026-08-02T01:00:00.000Z', '2026-08-01T00:05:00.000Z', '2026-08-02T01:00:00.000Z', '2037-03-31', '2037-04-01'),
   ('demo-cloud-1', 'demo-activity-saas', 'GENERAL', 'category-cloud-hosting', 'Pounamu Cloud Services', '2026-08-02T00:00:00.000Z', 13800, 'NZD', 1800, 'GST_INCLUDED', 'Application hosting and database', 'RECURRING', 'READY_FOR_REVIEW', 'demo-owner', NULL, NULL, '2026-08-02T00:05:00.000Z', '2026-08-02T00:05:00.000Z', '2037-03-31', '2037-04-01'),
-  ('demo-insurance-vehicle', 'demo-activity-delivery', 'INSURANCE', 'category-vehicle-insurance', 'Rimu Mutual', '2026-07-01T00:00:00.000Z', 148000, 'NZD', NULL, 'NO_GST', 'Annual vehicle policy', 'RECURRING', 'REVIEWED', 'demo-owner', 'demo-accountant', '2026-07-03T01:00:00.000Z', '2026-07-01T00:05:00.000Z', '2026-07-03T01:00:00.000Z', '2037-03-31', '2037-04-01'),
-  ('demo-insurance-liability', 'demo-activity-contracting', 'INSURANCE', 'category-liability-insurance', 'Rimu Mutual', '2026-04-01T00:00:00.000Z', 92000, 'NZD', NULL, 'NO_GST', 'Professional liability policy', 'RECURRING', 'PROCESSED', 'demo-owner', 'demo-accountant', '2026-04-03T01:00:00.000Z', '2026-04-01T00:05:00.000Z', '2026-04-03T01:00:00.000Z', '2037-03-31', '2037-04-01');
+  ('demo-insurance-vehicle', 'demo-activity-delivery', 'INSURANCE', 'category-vehicle-insurance', 'Rimu Mutual', '2026-07-01T00:00:00.000Z', 12400, 'NZD', NULL, 'NO_GST', 'July vehicle insurance premium', 'RECURRING', 'REVIEWED', 'demo-owner', 'demo-accountant', '2026-07-03T01:00:00.000Z', '2026-07-01T00:05:00.000Z', '2026-07-03T01:00:00.000Z', '2037-03-31', '2037-04-01'),
+  ('demo-insurance-liability', 'demo-activity-contracting', 'INSURANCE', 'category-liability-insurance', 'Rimu Mutual', '2026-04-01T00:00:00.000Z', 9200, 'NZD', NULL, 'NO_GST', 'April professional liability premium', 'RECURRING', 'PROCESSED', 'demo-owner', 'demo-accountant', '2026-04-03T01:00:00.000Z', '2026-04-01T00:05:00.000Z', '2026-04-03T01:00:00.000Z', '2037-03-31', '2037-04-01');
 
 INSERT INTO fuel_expense_details (expense_id, vehicle_id, fuel_station, fuel_price_micros_per_litre, fuel_litres, odometer_km, fill_type, notes)
 VALUES
@@ -155,13 +155,13 @@ VALUES
 
 INSERT INTO insurance_expense_details (expense_id, insurance_type, provider, policy_number, policy_period_start, policy_period_end, vehicle_id)
 VALUES
-  ('demo-insurance-vehicle', 'VEHICLE', 'Rimu Mutual', 'DEMO-MOTOR-2048', '2026-07-01', '2027-06-30', 'demo-vehicle-koru'),
-  ('demo-insurance-liability', 'PROFESSIONAL_LIABILITY', 'Rimu Mutual', 'DEMO-PL-1024', '2026-04-01', '2027-03-31', NULL);
+  ('demo-insurance-vehicle', 'VEHICLE', 'Rimu Mutual', 'DEMO-MOTOR-2048', '2026-07-01', '2026-07-31', 'demo-vehicle-koru'),
+  ('demo-insurance-liability', 'PROFESSIONAL_LIABILITY', 'Rimu Mutual', 'DEMO-PL-1024', '2026-04-01', '2026-04-30', NULL);
 
 INSERT INTO expense_allocations (id, expense_id, business_activity_id, allocation_method, percentage_basis_points, allocated_amount_minor, calculation_period_start, calculation_period_end, notes, reviewed_by, created_at, updated_at)
 VALUES
-  ('demo-allocation-vehicle', 'demo-insurance-vehicle', 'demo-activity-delivery', 'BUSINESS_KM_OVER_TOTAL_KM', 7200, 106560, '2026-07-01', '2027-06-30', 'Illustrative allocation based on recorded business kilometres; not final tax treatment', 'demo-accountant', '2026-07-03T01:00:00.000Z', '2026-07-03T01:00:00.000Z'),
-  ('demo-allocation-liability', 'demo-insurance-liability', 'demo-activity-contracting', '100_PERCENT_BUSINESS', 10000, 92000, '2026-04-01', '2027-03-31', 'Professional services policy', 'demo-accountant', '2026-04-03T01:00:00.000Z', '2026-04-03T01:00:00.000Z');
+  ('demo-allocation-vehicle', 'demo-insurance-vehicle', 'demo-activity-delivery', 'BUSINESS_KM_OVER_TOTAL_KM', 7200, 8928, '2026-07-01', '2026-07-31', 'Illustrative allocation based on recorded business kilometres; not final tax treatment', 'demo-accountant', '2026-07-03T01:00:00.000Z', '2026-07-03T01:00:00.000Z'),
+  ('demo-allocation-liability', 'demo-insurance-liability', 'demo-activity-contracting', '100_PERCENT_BUSINESS', 10000, 9200, '2026-04-01', '2026-04-30', 'Professional services policy', 'demo-accountant', '2026-04-03T01:00:00.000Z', '2026-04-03T01:00:00.000Z');
 
 INSERT INTO income_records (id, business_activity_id, income_type, received_from, transaction_date, total_amount_minor, currency, status, notes, created_by, reviewed_by, reviewed_at, created_at, updated_at, retention_until, purge_eligible_at)
 VALUES
@@ -190,6 +190,440 @@ INSERT INTO subscription_income_details (income_id, period_start, period_end, gr
 VALUES
   ('demo-subscription-1', '2026-07-01', '2026-07-31', 312000, 6500, 12480, 12270, 284750, 128, 18, 9),
   ('demo-subscription-2', '2026-08-01', '2026-08-31', 349500, 8200, 13980, 17720, 319600, 141, 22, 9);
+
+-- A dense but deterministic history makes the public demo useful without
+-- implying that any record belongs to a real person or provider. Delivery and
+-- ride-hailing shifts share one vehicle, so their times and odometers never
+-- overlap: morning ride-hailing, lunch and dinner delivery, then a late shift.
+WITH RECURSIVE demo_days(day_number, work_date) AS (
+  VALUES (0, '2026-09-21')
+  UNION ALL
+  SELECT day_number + 1, date(work_date, '+1 day')
+  FROM demo_days
+  WHERE day_number < 9
+), generated_sessions AS (
+  SELECT
+    printf('demo-delivery-lunch-%02d', day_number + 1) AS id,
+    'demo-activity-delivery' AS activity_id,
+    work_date || 'T11:30:00.000Z' AS started_at,
+    work_date || 'T14:00:00.000Z' AS ended_at,
+    30000 + day_number * 150 + 45 AS odometer_start,
+    30000 + day_number * 150 + 70 AS odometer_end,
+    6900 + day_number * 175 AS revenue,
+    'Lunch delivery round' AS notes
+  FROM demo_days
+  UNION ALL
+  SELECT
+    printf('demo-delivery-dinner-%02d', day_number + 1),
+    'demo-activity-delivery',
+    work_date || 'T17:30:00.000Z',
+    work_date || 'T20:30:00.000Z',
+    30000 + day_number * 150 + 70,
+    30000 + day_number * 150 + 105,
+    9800 + day_number * 225,
+    'Dinner delivery round'
+  FROM demo_days
+  UNION ALL
+  SELECT
+    printf('demo-rideshare-morning-%02d', day_number + 1),
+    'demo-activity-rideshare',
+    work_date || 'T06:00:00.000Z',
+    work_date || 'T09:00:00.000Z',
+    30000 + day_number * 150,
+    30000 + day_number * 150 + 45,
+    12600 + day_number * 240,
+    CASE WHEN strftime('%w', work_date) IN ('0', '6')
+      THEN 'Weekend morning ride-hailing shift'
+      ELSE 'Weekday commuter ride-hailing shift' END
+  FROM demo_days
+  UNION ALL
+  SELECT
+    printf('demo-rideshare-night-%02d', day_number + 1),
+    'demo-activity-rideshare',
+    work_date || 'T21:00:00.000Z',
+    work_date || 'T23:59:00.000Z',
+    30000 + day_number * 150 + 105,
+    30000 + day_number * 150 + 150,
+    15100 + day_number * 275,
+    CASE WHEN strftime('%w', work_date) IN ('0', '6')
+      THEN 'Weekend evening ride-hailing shift'
+      ELSE 'Weekday evening ride-hailing shift' END
+  FROM demo_days
+)
+INSERT INTO work_sessions (
+  id, business_activity_id, vehicle_id, started_at, ended_at,
+  odometer_start_km, odometer_end_km, gross_revenue_minor, currency, notes,
+  status, created_by, created_at, updated_at, retention_until, purge_eligible_at
+)
+SELECT
+  id, activity_id, 'demo-vehicle-koru', started_at, ended_at,
+  odometer_start, odometer_end, revenue, 'NZD', notes,
+  CASE abs(odometer_start) % 4
+    WHEN 0 THEN 'PROCESSED'
+    WHEN 1 THEN 'REVIEWED'
+    WHEN 2 THEN 'READY_FOR_REVIEW'
+    ELSE 'NEW'
+  END,
+  'demo-owner', ended_at, ended_at, '2037-03-31', '2037-04-01'
+FROM generated_sessions;
+
+-- Weekly fuel, monthly insurance, and occasional parking for each driving
+-- business. Separate transaction dates keep their histories easy to follow.
+WITH RECURSIVE fuel_weeks(week_number) AS (
+  VALUES (0) UNION ALL SELECT week_number + 1 FROM fuel_weeks WHERE week_number < 5
+), generated_fuel AS (
+  SELECT printf('demo-delivery-fuel-%02d', week_number + 1) AS id,
+    'demo-activity-delivery' AS activity_id,
+    datetime('2026-08-23', printf('+%d days', week_number * 7), '+16 hours') AS purchased_at,
+    8900 + week_number * 185 AS amount,
+    28500 + week_number * 340 AS odometer,
+    'Kauri Fuel Point' AS merchant
+  FROM fuel_weeks
+  UNION ALL
+  SELECT printf('demo-rideshare-fuel-%02d', week_number + 1),
+    'demo-activity-rideshare',
+    datetime('2026-08-21', printf('+%d days', week_number * 7), '+10 hours'),
+    9600 + week_number * 210,
+    28640 + week_number * 340,
+    'Southern Star Energy'
+  FROM fuel_weeks
+)
+INSERT INTO expenses (
+  id, business_activity_id, expense_type, expense_category_id, merchant_name,
+  purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
+  description, recurrence_type, status, created_by, created_at, updated_at,
+  retention_until, purge_eligible_at
+)
+SELECT id, activity_id, 'FUEL', 'category-fuel', merchant, purchased_at,
+  amount, 'NZD', CAST(round(amount * 3.0 / 23.0) AS INTEGER), 'GST_INCLUDED',
+  'Weekly fuel fill', 'ONE_OFF', 'REVIEWED', 'demo-owner', purchased_at,
+  purchased_at, '2037-03-31', '2037-04-01'
+FROM generated_fuel;
+
+WITH RECURSIVE fuel_weeks(week_number) AS (
+  VALUES (0) UNION ALL SELECT week_number + 1 FROM fuel_weeks WHERE week_number < 5
+), generated_fuel AS (
+  SELECT printf('demo-delivery-fuel-%02d', week_number + 1) AS id,
+    28500 + week_number * 340 AS odometer, 'Kauri Fuel Point' AS merchant
+  FROM fuel_weeks
+  UNION ALL
+  SELECT printf('demo-rideshare-fuel-%02d', week_number + 1),
+    28640 + week_number * 340, 'Southern Star Energy'
+  FROM fuel_weeks
+)
+INSERT INTO fuel_expense_details (
+  expense_id, vehicle_id, fuel_station, fuel_price_micros_per_litre,
+  fuel_litres, odometer_km, fill_type, notes
+)
+SELECT id, 'demo-vehicle-koru', merchant, 2640000, 36.500, odometer,
+  'FULL', 'Synthetic weekly fill'
+FROM generated_fuel;
+
+WITH insurance_months(month_start) AS (
+  VALUES ('2026-04-01'), ('2026-05-01'), ('2026-06-01'),
+    ('2026-07-01'), ('2026-08-01'), ('2026-09-01')
+), generated_insurance AS (
+  SELECT 'demo-delivery-insurance-' || strftime('%Y-%m', month_start) AS id,
+    'demo-activity-delivery' AS activity_id, 'category-vehicle-insurance' AS category_id,
+    12400 AS amount, 'Vehicle insurance monthly premium' AS description,
+    'VEHICLE' AS insurance_type, 'DEMO-MOTOR-2048' AS policy_number,
+    'demo-vehicle-koru' AS vehicle_id, month_start
+  FROM insurance_months WHERE month_start <> '2026-07-01'
+  UNION ALL
+  SELECT 'demo-rideshare-insurance-' || strftime('%Y-%m', month_start),
+    'demo-activity-rideshare', 'category-vehicle-insurance', 11800,
+    'Ride-hailing vehicle insurance monthly premium', 'VEHICLE',
+    'DEMO-RIDE-818', 'demo-vehicle-koru', month_start
+  FROM insurance_months
+  UNION ALL
+  SELECT 'demo-contract-insurance-' || strftime('%Y-%m', month_start),
+    'demo-activity-contracting', 'category-liability-insurance', 9200,
+    'Professional liability monthly premium', 'PROFESSIONAL_LIABILITY',
+    'DEMO-PL-1024', NULL, month_start
+  FROM insurance_months WHERE month_start <> '2026-04-01'
+)
+INSERT INTO expenses (
+  id, business_activity_id, expense_type, expense_category_id, merchant_name,
+  purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
+  description, recurrence_type, status, created_by, created_at, updated_at,
+  retention_until, purge_eligible_at
+)
+SELECT id, activity_id, 'INSURANCE', category_id, 'Rimu Mutual',
+  month_start || 'T00:00:00.000Z', amount, 'NZD', NULL, 'NO_GST', description,
+  'RECURRING', 'PROCESSED', 'demo-owner', month_start || 'T00:05:00.000Z',
+  month_start || 'T00:05:00.000Z', '2037-03-31', '2037-04-01'
+FROM generated_insurance;
+
+WITH insurance_months(month_start) AS (
+  VALUES ('2026-04-01'), ('2026-05-01'), ('2026-06-01'),
+    ('2026-07-01'), ('2026-08-01'), ('2026-09-01')
+), generated_insurance AS (
+  SELECT 'demo-delivery-insurance-' || strftime('%Y-%m', month_start) AS id,
+    'VEHICLE' AS insurance_type, 'DEMO-MOTOR-2048' AS policy_number,
+    'demo-vehicle-koru' AS vehicle_id, month_start
+  FROM insurance_months WHERE month_start <> '2026-07-01'
+  UNION ALL
+  SELECT 'demo-rideshare-insurance-' || strftime('%Y-%m', month_start),
+    'VEHICLE', 'DEMO-RIDE-818', 'demo-vehicle-koru', month_start
+  FROM insurance_months
+  UNION ALL
+  SELECT 'demo-contract-insurance-' || strftime('%Y-%m', month_start),
+    'PROFESSIONAL_LIABILITY', 'DEMO-PL-1024', NULL, month_start
+  FROM insurance_months WHERE month_start <> '2026-04-01'
+)
+INSERT INTO insurance_expense_details (
+  expense_id, insurance_type, provider, policy_number, policy_period_start,
+  policy_period_end, vehicle_id
+)
+SELECT id, insurance_type, 'Rimu Mutual', policy_number, month_start,
+  date(month_start, '+1 month', '-1 day'), vehicle_id
+FROM generated_insurance;
+
+WITH generated_parking(id, activity_id, purchased_at, amount, provider, location) AS (
+  VALUES
+    ('demo-delivery-parking-01', 'demo-activity-delivery', '2026-09-22T10:45:00.000Z', 650, 'Central City Parking', 'Te Aro'),
+    ('demo-delivery-parking-02', 'demo-activity-delivery', '2026-09-25T16:50:00.000Z', 900, 'Market Lane Parking', 'Wellington CBD'),
+    ('demo-delivery-parking-03', 'demo-activity-delivery', '2026-09-27T10:55:00.000Z', 550, 'Central City Parking', 'Te Aro'),
+    ('demo-delivery-parking-04', 'demo-activity-delivery', '2026-09-30T16:45:00.000Z', 750, 'Market Lane Parking', 'Wellington CBD'),
+    ('demo-rideshare-parking-01', 'demo-activity-rideshare', '2026-09-21T09:20:00.000Z', 1100, 'Harbour Park', 'Wellington Airport'),
+    ('demo-rideshare-parking-02', 'demo-activity-rideshare', '2026-09-24T09:30:00.000Z', 1250, 'Harbour Park', 'Wellington Airport'),
+    ('demo-rideshare-parking-03', 'demo-activity-rideshare', '2026-09-26T15:10:00.000Z', 800, 'Stadium Parking', 'Thorndon'),
+    ('demo-rideshare-parking-04', 'demo-activity-rideshare', '2026-09-29T09:15:00.000Z', 1050, 'Harbour Park', 'Wellington Airport')
+)
+INSERT INTO expenses (
+  id, business_activity_id, expense_type, expense_category_id, merchant_name,
+  purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
+  description, recurrence_type, status, created_by, created_at, updated_at,
+  retention_until, purge_eligible_at
+)
+SELECT id, activity_id, 'PARKING', 'category-parking', provider, purchased_at,
+  amount, 'NZD', CAST(round(amount * 3.0 / 23.0) AS INTEGER), 'GST_INCLUDED',
+  'Parking between scheduled jobs', 'ONE_OFF', 'READY_FOR_REVIEW',
+  'demo-owner', purchased_at, purchased_at, '2037-03-31', '2037-04-01'
+FROM generated_parking;
+
+WITH generated_parking(id, purchased_at, provider, location) AS (
+  VALUES
+    ('demo-delivery-parking-01', '2026-09-22T10:45:00.000Z', 'Central City Parking', 'Te Aro'),
+    ('demo-delivery-parking-02', '2026-09-25T16:50:00.000Z', 'Market Lane Parking', 'Wellington CBD'),
+    ('demo-delivery-parking-03', '2026-09-27T10:55:00.000Z', 'Central City Parking', 'Te Aro'),
+    ('demo-delivery-parking-04', '2026-09-30T16:45:00.000Z', 'Market Lane Parking', 'Wellington CBD'),
+    ('demo-rideshare-parking-01', '2026-09-21T09:20:00.000Z', 'Harbour Park', 'Wellington Airport'),
+    ('demo-rideshare-parking-02', '2026-09-24T09:30:00.000Z', 'Harbour Park', 'Wellington Airport'),
+    ('demo-rideshare-parking-03', '2026-09-26T15:10:00.000Z', 'Stadium Parking', 'Thorndon'),
+    ('demo-rideshare-parking-04', '2026-09-29T09:15:00.000Z', 'Harbour Park', 'Wellington Airport')
+)
+INSERT INTO parking_expense_details (
+  expense_id, vehicle_id, parking_provider, parking_location,
+  parking_start_datetime, parking_end_datetime, parking_reference
+)
+SELECT id, 'demo-vehicle-koru', provider, location, purchased_at,
+  replace(datetime(purchased_at, '+45 minutes'), ' ', 'T') || '.000Z',
+  upper(substr(id, -2))
+FROM generated_parking;
+
+-- Ten weeks of Tuesday delivery and Thursday ride-hailing settlements.
+WITH RECURSIVE payout_weeks(week_number) AS (
+  VALUES (0) UNION ALL SELECT week_number + 1 FROM payout_weeks WHERE week_number < 9
+), generated_payouts AS (
+  SELECT printf('demo-delivery-payout-%02d', week_number + 1) AS id,
+    'demo-activity-delivery' AS activity_id,
+    date('2026-07-28', printf('+%d days', week_number * 7)) AS paid_on,
+    47200 + week_number * 1350 AS net_amount, 'Harbour Hopper' AS provider
+  FROM payout_weeks
+  UNION ALL
+  SELECT printf('demo-rideshare-payout-%02d', week_number + 1),
+    'demo-activity-rideshare',
+    date('2026-07-30', printf('+%d days', week_number * 7)),
+    63800 + week_number * 1725, 'Koru Ride'
+  FROM payout_weeks
+)
+INSERT INTO income_records (
+  id, business_activity_id, income_type, received_from, transaction_date,
+  total_amount_minor, currency, status, notes, created_by, created_at,
+  updated_at, retention_until, purge_eligible_at
+)
+SELECT id, activity_id, 'PLATFORM', provider, paid_on, net_amount, 'NZD',
+  'PROCESSED', 'Weekly platform settlement', 'demo-owner',
+  paid_on || 'T00:10:00.000Z', paid_on || 'T00:10:00.000Z',
+  '2037-03-31', '2037-04-01'
+FROM generated_payouts;
+
+WITH RECURSIVE payout_weeks(week_number) AS (
+  VALUES (0) UNION ALL SELECT week_number + 1 FROM payout_weeks WHERE week_number < 9
+), generated_payouts AS (
+  SELECT printf('demo-delivery-payout-%02d', week_number + 1) AS id,
+    date('2026-07-28', printf('+%d days', week_number * 7)) AS paid_on,
+    47200 + week_number * 1350 AS net_amount, 'Harbour Hopper' AS provider
+  FROM payout_weeks
+  UNION ALL
+  SELECT printf('demo-rideshare-payout-%02d', week_number + 1),
+    date('2026-07-30', printf('+%d days', week_number * 7)),
+    63800 + week_number * 1725, 'Koru Ride'
+  FROM payout_weeks
+)
+INSERT INTO platform_income_details (
+  income_id, provider_name, period_start, period_end, payment_date,
+  gross_earnings_minor, tips_minor, bonuses_promotions_minor,
+  flat_rate_credit_minor, platform_fees_minor, other_adjustments_minor,
+  net_payment_received_minor
+)
+SELECT id, provider, date(paid_on, '-8 days'), date(paid_on, '-2 days'), paid_on,
+  net_amount + 7200, 2400, 1200, 0, 7200, 0, net_amount
+FROM generated_payouts;
+
+-- Six months of weekday client parking and weekly Friday payments make the
+-- contracting business feel like a sustained engagement rather than a sample.
+WITH RECURSIVE contract_days(day_number, parking_date) AS (
+  VALUES (0, '2026-04-01')
+  UNION ALL
+  SELECT day_number + 1, date(parking_date, '+1 day')
+  FROM contract_days
+  WHERE parking_date < '2026-09-30'
+), weekday_parking AS (
+  SELECT day_number, parking_date
+  FROM contract_days
+  WHERE strftime('%w', parking_date) BETWEEN '1' AND '5'
+)
+INSERT INTO expenses (
+  id, business_activity_id, expense_type, expense_category_id, merchant_name,
+  purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
+  description, recurrence_type, status, created_by, created_at, updated_at,
+  retention_until, purge_eligible_at
+)
+SELECT printf('demo-contract-parking-%s', replace(parking_date, '-', '')),
+  'demo-activity-contracting', 'PARKING', 'category-parking',
+  CASE day_number % 2 WHEN 0 THEN 'Civic Quay Parking' ELSE 'Terrace Parking' END,
+  parking_date || 'T08:15:00.000Z', 1800 + (day_number % 4) * 200, 'NZD',
+  CAST(round((1800 + (day_number % 4) * 200) * 3.0 / 23.0) AS INTEGER),
+  'GST_INCLUDED', 'Parking for client-site contracting', 'ONE_OFF',
+  'PROCESSED', 'demo-owner', parking_date || 'T08:15:00.000Z',
+  parking_date || 'T17:20:00.000Z', '2037-03-31', '2037-04-01'
+FROM weekday_parking;
+
+WITH RECURSIVE contract_days(day_number, parking_date) AS (
+  VALUES (0, '2026-04-01')
+  UNION ALL
+  SELECT day_number + 1, date(parking_date, '+1 day')
+  FROM contract_days
+  WHERE parking_date < '2026-09-30'
+), weekday_parking AS (
+  SELECT day_number, parking_date
+  FROM contract_days
+  WHERE strftime('%w', parking_date) BETWEEN '1' AND '5'
+)
+INSERT INTO parking_expense_details (
+  expense_id, vehicle_id, parking_provider, parking_location,
+  parking_start_datetime, parking_end_datetime, parking_reference
+)
+SELECT printf('demo-contract-parking-%s', replace(parking_date, '-', '')),
+  'demo-vehicle-koru',
+  CASE day_number % 2 WHEN 0 THEN 'Civic Quay Parking' ELSE 'Terrace Parking' END,
+  CASE day_number % 2 WHEN 0 THEN 'Wellington waterfront' ELSE 'The Terrace' END,
+  parking_date || 'T08:15:00.000Z', parking_date || 'T17:15:00.000Z',
+  printf('CON-%03d', day_number + 1)
+FROM weekday_parking;
+
+WITH RECURSIVE contract_weeks(week_number, paid_on) AS (
+  VALUES (0, '2026-04-03')
+  UNION ALL
+  SELECT week_number + 1, date(paid_on, '+7 days')
+  FROM contract_weeks
+  WHERE week_number < 25
+)
+INSERT INTO income_records (
+  id, business_activity_id, income_type, received_from, transaction_date,
+  total_amount_minor, currency, status, notes, created_by, created_at,
+  updated_at, retention_until, purge_eligible_at
+)
+SELECT printf('demo-contract-week-%02d', week_number + 1),
+  'demo-activity-contracting', 'CONTRACT', 'Harbour Lantern Limited', paid_on,
+  230000, 'NZD', 'PROCESSED', 'Weekly contracting invoice paid Friday',
+  'demo-owner', paid_on || 'T17:30:00.000Z', paid_on || 'T17:30:00.000Z',
+  '2037-03-31', '2037-04-01'
+FROM contract_weeks;
+
+WITH RECURSIVE contract_weeks(week_number, paid_on) AS (
+  VALUES (0, '2026-04-03')
+  UNION ALL
+  SELECT week_number + 1, date(paid_on, '+7 days')
+  FROM contract_weeks
+  WHERE week_number < 25
+)
+INSERT INTO contract_income_details (
+  income_id, client_id, invoice_number, invoice_date, service_period_start,
+  service_period_end, subtotal_minor, gst_amount_minor, total_minor, due_date,
+  payment_received_date, amount_received_minor, payment_status
+)
+SELECT printf('demo-contract-week-%02d', week_number + 1),
+  'demo-client-harbour', printf('HL-2026-W%02d', week_number + 14),
+  date(paid_on, '-4 days'), date(paid_on, '-7 days'), date(paid_on, '-3 days'),
+  200000, 30000, 230000, paid_on, paid_on, 230000, 'PAID'
+FROM contract_weeks;
+
+-- Six complete months of subscription settlements, hosting, payment fees and
+-- quarterly domain renewals provide exactly twenty SaaS records.
+WITH subscription_months(month_start, net_amount, subscribers) AS (
+  VALUES
+    ('2026-04-01', 211400, 96), ('2026-05-01', 232800, 104),
+    ('2026-06-01', 259300, 115), ('2026-09-01', 351900, 153)
+)
+INSERT INTO income_records (
+  id, business_activity_id, income_type, received_from, transaction_date,
+  total_amount_minor, currency, status, notes, created_by, created_at,
+  updated_at, retention_until, purge_eligible_at
+)
+SELECT 'demo-subscription-' || strftime('%Y-%m', month_start),
+  'demo-activity-saas', 'SUBSCRIPTION', 'Subscription platform',
+  date(month_start, '+1 month', '-1 day'), net_amount, 'NZD', 'PROCESSED',
+  strftime('%Y-%m', month_start) || ' subscriber summary', 'demo-owner',
+  date(month_start, '+1 month') || 'T00:15:00.000Z',
+  date(month_start, '+1 month') || 'T00:15:00.000Z', '2037-03-31', '2037-04-01'
+FROM subscription_months;
+
+WITH subscription_months(month_start, net_amount, subscribers) AS (
+  VALUES
+    ('2026-04-01', 211400, 96), ('2026-05-01', 232800, 104),
+    ('2026-06-01', 259300, 115), ('2026-09-01', 351900, 153)
+)
+INSERT INTO subscription_income_details (
+  income_id, period_start, period_end, gross_subscription_revenue_minor,
+  refunds_minor, platform_fees_minor, payment_processing_fees_minor,
+  net_payment_received_minor, subscriber_count, new_subscribers,
+  cancelled_subscribers
+)
+SELECT 'demo-subscription-' || strftime('%Y-%m', month_start), month_start,
+  date(month_start, '+1 month', '-1 day'), net_amount + 24200, 4200, 8600,
+  11400, net_amount, subscribers, 12 + subscribers % 7, 5 + subscribers % 4
+FROM subscription_months;
+
+WITH saas_expenses(id, purchased_at, amount, category_id, merchant, description) AS (
+  VALUES
+    ('demo-cloud-2026-04', '2026-04-02T00:00:00.000Z', 11200, 'category-cloud-hosting', 'Pounamu Cloud Services', 'April application hosting'),
+    ('demo-cloud-2026-05', '2026-05-02T00:00:00.000Z', 11800, 'category-cloud-hosting', 'Pounamu Cloud Services', 'May application hosting'),
+    ('demo-cloud-2026-06', '2026-06-02T00:00:00.000Z', 12400, 'category-cloud-hosting', 'Pounamu Cloud Services', 'June application hosting'),
+    ('demo-cloud-2026-07', '2026-07-02T00:00:00.000Z', 13100, 'category-cloud-hosting', 'Pounamu Cloud Services', 'July application hosting'),
+    ('demo-cloud-2026-09', '2026-09-02T00:00:00.000Z', 14600, 'category-cloud-hosting', 'Pounamu Cloud Services', 'September application hosting'),
+    ('demo-processing-2026-04', '2026-04-30T23:00:00.000Z', 8300, 'category-payment-processing', 'Koru Payments', 'April payment processing fees'),
+    ('demo-processing-2026-05', '2026-05-31T23:00:00.000Z', 8900, 'category-payment-processing', 'Koru Payments', 'May payment processing fees'),
+    ('demo-processing-2026-06', '2026-06-30T23:00:00.000Z', 9600, 'category-payment-processing', 'Koru Payments', 'June payment processing fees'),
+    ('demo-processing-2026-07', '2026-07-31T23:00:00.000Z', 10400, 'category-payment-processing', 'Koru Payments', 'July payment processing fees'),
+    ('demo-processing-2026-08', '2026-08-31T23:00:00.000Z', 11200, 'category-payment-processing', 'Koru Payments', 'August payment processing fees'),
+    ('demo-processing-2026-09', '2026-09-30T23:00:00.000Z', 12100, 'category-payment-processing', 'Koru Payments', 'September payment processing fees'),
+    ('demo-domain-2026-04', '2026-04-01T01:00:00.000Z', 3200, 'category-domain-registration', 'Aotearoa Domains', 'Quarterly domain renewal'),
+    ('demo-domain-2026-07', '2026-07-01T01:00:00.000Z', 3200, 'category-domain-registration', 'Aotearoa Domains', 'Quarterly domain renewal')
+)
+INSERT INTO expenses (
+  id, business_activity_id, expense_type, expense_category_id, merchant_name,
+  purchase_datetime, total_amount_minor, currency, gst_amount_minor, gst_status,
+  description, recurrence_type, status, created_by, created_at, updated_at,
+  retention_until, purge_eligible_at
+)
+SELECT id, 'demo-activity-saas', 'GENERAL', category_id, merchant, purchased_at,
+  amount, 'NZD', CAST(round(amount * 3.0 / 23.0) AS INTEGER), 'GST_INCLUDED',
+  description, 'RECURRING', 'PROCESSED', 'demo-owner', purchased_at,
+  purchased_at, '2037-03-31', '2037-04-01'
+FROM saas_expenses;
 
 INSERT INTO income_reconciliations (id, income_id, expected_amount_minor, actual_amount_minor, matched, notes, reconciled_by, created_at, updated_at)
 VALUES
