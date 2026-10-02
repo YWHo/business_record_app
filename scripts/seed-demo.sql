@@ -43,13 +43,13 @@ VALUES
 
 UPDATE users
 SET display_name = CASE id
-  WHEN 'demo-owner' THEN 'Brian Ho'
+  WHEN 'demo-owner' THEN 'John Doe'
   WHEN 'demo-accountant' THEN 'Demo Accountant'
 END;
 
 UPDATE business_entities
 SET entity_type = 'SOLE_TRADER',
-    legal_name = 'Brian Ho',
+    legal_name = 'John Doe',
     trading_name = NULL,
     active = 1,
     attribution_review_required = 0,
@@ -91,7 +91,7 @@ VALUES
   ('business-demo-activity-delivery', 'business-account-primary', 'Uber Eats', 'Food delivery', 'PLATFORM_SERVICES', 'NZD', 'ACTIVE', 'demo-activity-delivery', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
   ('business-demo-activity-rideshare', 'business-account-primary', 'Uber Ride', 'Ride-hailing', 'PLATFORM_SERVICES', 'NZD', 'ACTIVE', 'demo-activity-rideshare', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
   ('business-demo-activity-contracting', 'business-account-primary', 'IT Contracting', 'IT services', 'PROFESSIONAL_SERVICES', 'NZD', 'ACTIVE', 'demo-activity-contracting', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z'),
-  ('business-demo-activity-saas', 'business-account-primary', 'HomeRekod', 'SaaS website', 'SOFTWARE_SERVICE', 'NZD', 'ACTIVE', 'demo-activity-saas', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
+  ('business-demo-activity-saas', 'business-account-primary', 'Music Streaming', 'SaaS website', 'SOFTWARE_SERVICE', 'NZD', 'ACTIVE', 'demo-activity-saas', '2026-04-01T00:00:00.000Z', '2026-04-01T00:00:00.000Z');
 
 INSERT INTO business_entity_periods (
   id, business_account_id, business_id, legal_entity_id, effective_from,

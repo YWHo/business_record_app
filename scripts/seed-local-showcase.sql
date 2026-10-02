@@ -5,7 +5,7 @@ SET name = CASE id
       WHEN 'business-activity-delivery' THEN 'Uber Eats'
       WHEN 'business-activity-rideshare' THEN 'Uber Ride'
       WHEN 'business-activity-contracting' THEN 'IT Contracting'
-      WHEN 'business-activity-saas' THEN 'HomeRekod'
+      WHEN 'business-activity-saas' THEN 'Music Streaming'
     END,
     description = CASE id
       WHEN 'business-activity-delivery' THEN 'Food delivery'

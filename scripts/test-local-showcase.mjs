@@ -47,6 +47,8 @@ SELECT
     AS contract_weekday_parking,
   (SELECT COUNT(*) FROM all_records
     WHERE business_id = 'business-activity-saas') AS saas_records,
+  (SELECT name FROM businesses
+    WHERE id = 'business-activity-saas') AS saas_business_name,
   (SELECT COUNT(*)
     FROM work_sessions AS delivery
     JOIN work_sessions AS rideshare
@@ -96,6 +98,7 @@ assert.deepEqual(actual, {
   contract_friday_payments: 26,
   contract_weekday_parking: 131,
   saas_records: 20,
+  saas_business_name: 'Music Streaming',
   overlapping_driving_sessions: 0,
   seed_profile: 'local-development-showcase',
   foreign_key_errors: 0,

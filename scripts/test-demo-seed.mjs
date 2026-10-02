@@ -58,6 +58,12 @@ SELECT
   (SELECT COUNT(*) FROM expenses
     WHERE business_id = 'business-demo-activity-saas'
       AND expense_category_id = 'category-cloud-hosting') AS hosting_months,
+  (SELECT name FROM businesses
+    WHERE id = 'business-demo-activity-saas') AS saas_business_name,
+  (SELECT display_name FROM users
+    WHERE id = 'demo-owner') AS owner_display_name,
+  (SELECT legal_name FROM business_entities
+    WHERE id = 'business-entity-primary') AS sole_trader_legal_name,
   (SELECT COUNT(*)
     FROM work_sessions AS delivery
     JOIN work_sessions AS rideshare
@@ -122,6 +128,9 @@ assert.deepEqual(actual, {
   contract_insurance_months: 6,
   subscription_months: 6,
   hosting_months: 6,
+  saas_business_name: 'Music Streaming',
+  owner_display_name: 'John Doe',
+  sole_trader_legal_name: 'John Doe',
   overlapping_driving_sessions: 0,
   foreign_key_errors: 0,
 });
