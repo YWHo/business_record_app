@@ -463,6 +463,11 @@ Use `db:seed:demo` only when no migration is pending. It destructively replaces
 the fictional remote demo rows after confirmation but does not apply migrations.
 If the seed depends on a new migration, use the combined runbook below.
 
+The guarded script submits the seed as one remote D1 query batch. This avoids
+Wrangler's asynchronous SQL-file importer, which can fail with the opaque
+`{"D1_RESET_DO":true}` service error even after a valid file uploads. D1 rolls
+back the complete batch if any seed statement fails.
+
 The D1 replacement does not invalidate existing successful GET responses in
 Cloudflare's demo edge cache. Those responses can remain visible for up to ten
 minutes. It also does not clear an installed service worker or a visitor's

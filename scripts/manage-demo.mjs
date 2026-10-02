@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 
 const target = 'business-records-demo';
@@ -42,6 +43,15 @@ if (action === 'reset') {
   runWrangler(['d1', 'migrations', 'apply', 'DB', '--remote', '--env', 'demo']);
 }
 
+// Wrangler's remote --file path uses D1's asynchronous import service. That
+// service can reset internally with only {"D1_RESET_DO":true}, even for a small
+// valid file. The query endpoint supports semicolon-separated statements as a
+// transactional batch, avoids that importer, and preserves all-or-nothing seed
+// replacement if a statement fails.
+const seedSql = readFileSync(
+  new URL('./seed-demo.sql', import.meta.url),
+  'utf8',
+);
 runWrangler([
   'd1',
   'execute',
@@ -49,8 +59,8 @@ runWrangler([
   '--remote',
   '--env',
   'demo',
-  '--file',
-  './scripts/seed-demo.sql',
+  '--command',
+  seedSql,
 ]);
 
 console.log(
