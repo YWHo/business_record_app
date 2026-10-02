@@ -69,9 +69,23 @@ SELECT
   (SELECT COUNT(*) FROM pragma_foreign_key_check) AS foreign_key_errors;
 `;
 
+const seedSql = readSql(path.join(scriptDirectory, 'seed-demo.sql'));
+const firstInsert = seedSql.indexOf('INSERT INTO users');
+assert.notEqual(
+  firstInsert,
+  -1,
+  'Unable to locate the demo seed insert phase.',
+);
+const teardownSql = seedSql.slice(0, firstInsert);
 const completeSql = [
   migrationSql,
-  readSql(path.join(scriptDirectory, 'seed-demo.sql')),
+  seedSql,
+  // Exercise the destructive preamble against already-seeded attribution.
+  // A savepoint preserves the first seed for the content assertions below.
+  'SAVEPOINT reseed_teardown;',
+  teardownSql,
+  'ROLLBACK TO reseed_teardown;',
+  'RELEASE reseed_teardown;',
   verificationSql,
 ].join('\n');
 

@@ -21,6 +21,10 @@ DELETE FROM saved_filters;
 DELETE FROM clients;
 DELETE FROM vehicles;
 DELETE FROM business_entity_periods;
+-- Categories are migration-owned reference rows and are retained between
+-- resets. A previous seed scopes some of them to a single demo business, so
+-- clear those references before replacing the businesses.
+UPDATE expense_categories SET business_id = NULL;
 DELETE FROM businesses;
 DELETE FROM business_activities;
 DELETE FROM business_entities WHERE id <> 'business-entity-primary';
