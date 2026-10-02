@@ -184,7 +184,7 @@ curl --fail --silent --show-error -X POST \
 
 Do not paste the real key into shared logs. The call is idempotent only for the configured email and creates no session. Sign in through the emailed link, confirm the owner-only screens, create a small test record and attachment, download it, generate an all-records export, and store that archive safely. Invite the accountant only after these checks pass.
 
-## 5. Provision and deploy the public demo
+## 5. First public demo deployment
 
 Choose a separate demo origin before deployment. With the same account subdomain, the default is predictable from the configured demo Worker name:
 
@@ -201,10 +201,11 @@ pnpm exec wrangler d1 create business-records-demo
 Replace only the demo D1 placeholder and demo `APP_ORIGIN` in `wrangler.jsonc`. The origin must be the exact URL chosen above, without a path or trailing slash. The demo deliberately has no R2 binding: document downloads are unavailable, its seed contains no attachment metadata, and browser-only changes never reach server storage. Keep the demo email, local-auth, bootstrap, and Turnstile settings disabled. Then:
 
 ```bash
-pnpm db:reset:demo
-pnpm db:verify:demo
+pnpm test:demo-data
 pnpm build:demo
 pnpm exec wrangler deploy --env demo --dry-run --outdir .wrangler/deploy-preview/demo
+pnpm db:reset:demo
+pnpm db:verify:demo
 pnpm deploy:demo
 ```
 
@@ -212,19 +213,175 @@ Wrangler currently warns that the top-level local `DOCUMENTS` binding is not pre
 
 The reset requires typing `business-records-demo` because it destroys and reseeds remote demo rows. Successful demo JSON reads are cached at Cloudflare's edge for ten minutes without another D1 query, so a remote reset can take up to ten minutes to appear at an edge location. Verify both browser roles, browser-local edits and reset, cross-browser isolation, the 30-per-10-second burst and 120-per-minute sustained read limits, `Retry-After` responses, and rejection of every non-GET API request. Check that the demo D1 ID and hostname differ from production before publishing its URL.
 
+The command block above provisions and initializes a new demo. Do not reuse it
+unchanged for every later release; select the applicable code-only, data-only,
+schema, or combined runbook below.
+
 ## 6. Subsequent releases
 
-For each environment, deploy one environment at a time:
+Do not repeat the first-deployment sequence blindly. Existing production data,
+uploaded secrets, demo edge-cache entries, installed service workers, and
+browser-local demo overlays survive a Worker deployment. First identify what
+the reviewed commit changes, then use the smallest applicable runbook below.
 
-1. Export an application backup from **Exports** and store it off-account.
-2. Record the current D1 Time Travel bookmark and current Worker deployment/version.
-3. Pass the release gate and review new migrations. Never edit an applied migration.
-4. Apply production migrations, run `verify-schema.sql`, and only then deploy production code.
-5. Check `/api/health`, authentication, one representative read, attachment download, and archive generation.
-6. Review Worker errors, D1 errors/latency, R2 operations, rate-limit responses, and email delivery during the observation window.
-7. Reset/redeploy demo separately if its schema or synthetic dataset changed.
+| Reviewed change                          | Production action                                                          | Demo action                                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Frontend or Worker code only             | Build, dry-run, deploy, and verify. Do not migrate or reset D1.            | Build, dry-run, deploy, and verify. Do not reset D1.                                        |
+| Committed non-secret configuration       | Dry-run the bindings, deploy, and verify the affected integration.         | Dry-run the bindings, deploy, and verify.                                                   |
+| Secret rotation only                     | Update only the named secret and verify; do not reseed or rerun bootstrap. | The demo must not acquire production secrets.                                               |
+| New additive D1 migration plus code      | Back up, bookmark, migrate, verify D1, then deploy compatible code.        | Validate the bundle, migrate and verify without reseeding, then deploy compatible code.     |
+| Demo synthetic data only                 | No production action.                                                      | Run the seed regression, reseed remote demo D1, and verify. A Worker deploy is unnecessary. |
+| Demo code, migration, and synthetic data | No production action unless the same reviewed changes apply there.         | Validate first, then reset/verify D1 and immediately deploy the compatible Worker.          |
 
-If verification fails, stop writes if practical and follow the [recovery guide](recovery-guide.md). Rolling back Worker code does not roll back D1 migrations or R2 objects.
+Always deploy one environment at a time from a clean checkout of the reviewed
+commit. Never edit a migration that has been applied remotely. D1 migrations
+must be forward-compatible with both the currently deployed Worker and the new
+Worker because migration and deployment cannot be atomic. Prefer an
+expand/migrate/contract sequence across releases: add compatible schema first,
+deploy readers/writers that tolerate both forms, and remove obsolete schema
+only in a later reviewed release. If that compatibility is impossible, use a
+planned maintenance window or a separately provisioned replacement environment.
+
+### Production: code or frontend only
+
+Existing secrets and data remain in place. Do not pass the local secrets file
+again unless the release intentionally rotates those values.
+
+```bash
+pnpm build:production
+pnpm exec wrangler deploy --env production --dry-run --outdir .wrangler/deploy-preview/production
+pnpm deploy:production
+```
+
+Check `/api/health`, authentication and authorization, one representative
+business-scoped read, and the workflow changed by the release. An installed PWA
+may keep the prior application shell until its service worker detects the new
+assets and the user reloads or reopens the application.
+
+### Production: schema and code
+
+Before changing D1, export an application backup from **Exports**, store it
+off-account, and record the current D1 Time Travel bookmark and Worker
+deployment/version. Pass the complete release gate and inspect every pending
+migration. Build and dry-run before the remote mutation so a packaging or
+binding error is found while the existing deployment is still untouched.
+
+```bash
+pnpm build:production
+pnpm exec wrangler deploy --env production --dry-run --outdir .wrangler/deploy-preview/production
+pnpm exec wrangler d1 migrations list business-records-production --env production --remote
+pnpm exec wrangler d1 migrations apply business-records-production --env production --remote
+pnpm exec wrangler d1 execute business-records-production --env production --remote --file ./scripts/verify-schema.sql
+pnpm deploy:production
+```
+
+Require `PRAGMA quick_check` to return `ok`, require the foreign-key check to
+return no rows, then verify health, login, roles, one read/write round trip,
+attachment download, and archive generation. Observe Worker and D1 errors before
+declaring the release complete. Never run `db:reset:demo`, `seed-demo.sql`, or
+any production reset/seed equivalent against production.
+
+### Production: configuration or secret changes
+
+For committed variables or bindings, inspect the dry-run binding table and
+deploy normally. For a secret-only rotation, update the individual secret:
+
+```bash
+pnpm exec wrangler secret put <NAME> --env production
+pnpm exec wrangler secret list --env production
+```
+
+Wrangler may create and deploy a Worker version when a secret changes. Verify
+the affected integration immediately. Do not rerun owner bootstrap, replace
+unrelated secrets, or reset D1. If code and secrets change together, deploy the
+reviewed code and rotate the secrets as one controlled release, retaining the
+old values until post-deployment verification succeeds where the provider
+supports overlap.
+
+### Demo: code or frontend only
+
+Do not reset demo data merely because application code changed:
+
+```bash
+pnpm build:demo
+pnpm exec wrangler deploy --env demo --dry-run --outdir .wrangler/deploy-preview/demo
+pnpm deploy:demo
+```
+
+Verify `/api/health`, both simulated roles, a representative server read,
+server-side rejection of writes, and the changed workflow. Reload or reopen an
+installed demo PWA if it is still displaying the prior application shell.
+
+### Demo: synthetic data only
+
+The SQL seed is executed directly from the checked-out commit and is not part
+of the deployed frontend bundle. Therefore a data-only change does not require
+a Worker deployment. Validate it locally, replace the remote synthetic rows,
+and verify the result:
+
+```bash
+pnpm test:demo-data
+pnpm db:seed:demo
+pnpm db:verify:demo
+```
+
+Use `db:seed:demo` only when no migration is pending. It destructively replaces
+the fictional remote demo rows after confirmation but does not apply migrations.
+If the seed depends on a new migration, use the combined runbook below.
+
+The D1 replacement does not invalidate existing successful GET responses in
+Cloudflare's demo edge cache. Those responses can remain visible for up to ten
+minutes. It also does not clear an installed service worker or a visitor's
+IndexedDB overlay. After the cache window, reload or reopen the PWA and use the
+in-app **Reset Demo Data** action to clear only that browser's overlay. The
+in-app action never resets remote D1.
+
+### Demo: schema and code without synthetic-data changes
+
+Do not destroy and reload the demo dataset merely because a migration is
+pending. Validate the bundle first, apply only the pending migrations, verify
+the existing dataset, and deploy compatible code:
+
+```bash
+pnpm build:demo
+pnpm exec wrangler deploy --env demo --dry-run --outdir .wrangler/deploy-preview/demo
+pnpm db:migrate:demo
+pnpm db:verify:demo
+pnpm deploy:demo
+```
+
+If migration or verification fails, do not deploy. The migration must remain
+compatible with the previously deployed Worker during this interval. Use the
+combined runbook only when the new schema and the revised synthetic seed need
+to land together.
+
+### Demo: schema, code, and synthetic data together
+
+Validate the new seed and deployable bundle before changing the remote demo.
+Then keep the reset and deployment close together to minimize the period in
+which the previous Worker sees the new schema/data:
+
+```bash
+pnpm test:demo-data
+pnpm build:demo
+pnpm exec wrangler deploy --env demo --dry-run --outdir .wrangler/deploy-preview/demo
+pnpm db:reset:demo
+pnpm db:verify:demo
+pnpm deploy:demo
+```
+
+`db:reset:demo` applies pending demo migrations and then destructively reloads
+the fictional dataset. If reset or verification fails, do not deploy the new
+Worker. If deployment fails after a successful reset, assess compatibility
+before rolling back because a Worker rollback does not reverse D1 migrations.
+After deployment, allow for the ten-minute edge-cache window, reload or reopen
+the PWA, clear its browser-local overlay with **Reset Demo Data**, and verify
+both demo roles again.
+
+For any runbook, if verification fails, stop further deployment, preserve the
+failure output, and follow the [recovery guide](recovery-guide.md). Rolling back
+Worker code does not roll back D1 migrations, D1 data, R2 objects, secrets, or
+third-party configuration.
 
 ## 7. CI/CD boundaries
 

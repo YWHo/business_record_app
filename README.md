@@ -150,7 +150,11 @@ pnpm exec wrangler d1 create business-records-demo
 Replace the demo D1 placeholder ID and `APP_ORIGIN` in `wrangler.jsonc` with the created resource ID and final demo Worker URL. Do not copy production identifiers or secrets into the demo environment. Apply migrations, load the synthetic dataset, and deploy:
 
 ```bash
+pnpm test:demo-data
+pnpm build:demo
+pnpm exec wrangler deploy --env demo --dry-run --outdir .wrangler/deploy-preview/demo
 pnpm db:reset:demo
+pnpm db:verify:demo
 pnpm deploy:demo
 ```
 
@@ -161,6 +165,11 @@ pnpm db:reset:demo -- --confirm business-records-demo
 ```
 
 `pnpm db:seed:demo` replaces records without applying migrations first and has the same confirmation guard. The seed provides a synthetic account, four businesses with legal-entity operating periods, two users, two vehicles, fictional clients/providers, work sessions, platform payments, IT invoices, SaaS summaries, expenses, allocations, reconciliations, comments, audit history, saved filters, and mixed review statuses.
+
+The commands above are for initial demo provisioning. Later code-only, schema,
+configuration, and synthetic-data releases have different ordering and should
+not all reset D1. Follow the matching
+[subsequent-release runbook](docs/deployment-guide.md#6-subsequent-releases).
 
 The SQL seed intentionally contains no attachment metadata. Browser-selected demo files remain local, and the demo Worker cannot access R2. Production documents continue to use a private R2 bucket with the Standard storage class unless a later ADR records a reviewed reason to change it.
 
