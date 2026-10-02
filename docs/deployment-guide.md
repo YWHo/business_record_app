@@ -13,10 +13,10 @@ Use Node.js 22+, pnpm 10+, and a Cloudflare account. During the steps below you 
 
 ### Authenticate Wrangler
 
-For an interactive deployment from WSL, a container, SSH, or another environment where the browser cannot reliably reach the terminal's `localhost:8976` callback server, use the device flow:
+For an interactive deployment from WSL, a container, SSH, or another environment where the browser cannot reliably reach the terminal's `localhost:8976` callback server, use the device flow. This is the recommended login method for WSL:
 
 ```bash
-pnpm exec wrangler login --device --browser=false
+pnpm exec wrangler login --device
 ```
 
 Wrangler prints a verification URL and a short-lived code. Open the URL in any browser, enter the code, approve access, and leave the terminal running until it reports `Successfully logged in`. The code normally expires after five minutes; rerun the command if it expires. This flow polls Cloudflare directly and does not require a browser-to-WSL localhost callback.
@@ -33,11 +33,11 @@ After either flow completes, verify the selected account:
 pnpm exec wrangler whoami
 ```
 
-If the standard browser flow shows authorization success while its terminal remains pending, press `Ctrl+C`; the callback did not reach Wrangler, so use the device command above. To replace an incorrect or expired interactive login:
+If the standard browser flow shows authorization success while its terminal remains pending, press `Ctrl+C`. Browser approval alone does not confirm that Wrangler received and stored the credentials; the browser-to-WSL callback probably did not reach the temporary server. Run `whoami`, then use the device flow if Wrangler still reports that it is unauthenticated. To replace an incorrect or expired interactive login:
 
 ```bash
 pnpm exec wrangler logout
-pnpm exec wrangler login --device --browser=false
+pnpm exec wrangler login --device
 pnpm exec wrangler whoami
 ```
 
