@@ -1055,3 +1055,20 @@ Acceptance criteria completed:
 Notes: Compatibility activity columns and typed-service modules remain in use
 and were not removed. Their removal requires a future data migration rather
 than presentation-layer cleanup.
+
+## Unified Playwright integration testing
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Moved the comprehensive local API smoke scenario into the Playwright test
+  suite instead of requiring a separately started development server.
+- Split API and browser/visual scenarios into independently reset local runs so
+  their stateful fixtures cannot change each other's expected results.
+- Made `pnpm test:e2e` the single command for API, browser, responsive, demo
+  isolation, and visual integration coverage.
+- Removed the standalone `test:local` command and smoke script documentation.
+
+Notes: Both groups still exercise the real local Worker, D1, and R2 runtime.
+Playwright now owns server startup and shutdown for each group.

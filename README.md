@@ -93,14 +93,6 @@ curl -b /tmp/business-records-owner.cookies \
 
 Submit the URL token and matching email to `POST /api/invitations/accept`. Tokens are hashed in D1, expire after 72 hours, and become unusable after acceptance. Acceptance creates an accountant account but no session; the new accountant signs in through the normal email-link flow. The seed also contains an expired invitation for testing rejection.
 
-Run the complete local flow against a running development server with:
-
-```bash
-pnpm test:local
-```
-
-This checks authentication and role controls, business records, private versioned documents, transaction and receipt filters, saved-view isolation, review transitions and attribution, append-only comments, source-edit review reset, invitation controls, session revocation, and R2 persistence.
-
 Run the critical browser workflows with:
 
 ```bash
@@ -108,7 +100,7 @@ pnpm exec playwright install chromium # first run only
 pnpm test:e2e
 ```
 
-The end-to-end command resets local D1 and R2 state before launching the app. It covers owner/accountant login and authorization, business switching, reference and record creation, receipt upload, primary income types, review, entity-period changes, browser-local demo isolation, responsive layouts, visual baselines, invitations, and retention-protected trash/restore.
+The end-to-end command runs two isolated Playwright groups. Each group resets local D1 and R2, and Playwright starts and stops the application server automatically. The API group covers authentication, permissions, record services, documents, filters, review, retention, exports, invitations, session revocation, legal-entity attribution, and R2 persistence. The browser group covers business switching, focused workflows, browser-local demo isolation, responsive layouts, and visual baselines. You do not need to run `pnpm dev` separately.
 
 Test the populated historical-schema upgrade independently with:
 
@@ -274,10 +266,11 @@ pnpm test:migrations     Verify a populated historical database upgrade in memor
 pnpm security:audit      Check the resolved dependency graph for advisories
 pnpm test:watch          Run tests interactively
 pnpm test:e2e            Reset local data and run critical Chromium workflows
+pnpm test:e2e:api        Reset local data and run Playwright API integration tests
+pnpm test:e2e:browser    Reset local data and run Playwright browser/visual tests
 pnpm test:e2e:headed     Reset local data and run Chromium with a visible browser
 pnpm storybook           Run isolated component stories on port 6006
 pnpm storybook:build     Build the static Storybook and validate all stories
-pnpm test:local          Smoke-test a running local Worker (optional URL argument)
 pnpm cf-typegen          Regenerate binding types when configuration changes
 pnpm db:migrate:local    Apply pending migrations to local D1
 pnpm db:seed:local       Replace deterministic synthetic local seed data
