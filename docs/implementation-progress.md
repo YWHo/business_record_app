@@ -1005,3 +1005,28 @@ Acceptance criteria completed:
 Notes: Screenshot baselines target the repository's Chromium-on-Linux test
 project. They use a freshly reset local database plus one fixed-date visual
 fixture and do not contain real identities or financial data.
+
+## Upgrade and isolation regression certification
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Added a populated pre-upgrade database fixture that exercises expenses,
+  income, mileage, attachments, comments, audit history, and shared reference
+  data.
+- Added an isolated migration regression command that applies the historical
+  schema, loads representative private data, upgrades it, and verifies account,
+  business, operating-period, and legal-entity attribution.
+- Confirmed that an unknown private sole-trader identity stays unnamed and is
+  explicitly marked for review instead of being inferred from an email or
+  other unrelated field.
+- Verified inherited attachment and comment attribution, business assignment
+  for unambiguous vehicles, operating-period overlap guards, and foreign-key
+  integrity after upgrade.
+- Documented the release regression matrix for authentication, authorization,
+  public-demo isolation, business continuity, browser workflows, visuals, and
+  production builds.
+
+Notes: The migration regression uses a disposable in-memory SQLite database.
+It cannot read, reset, or mutate local Wrangler, demo, or production data.

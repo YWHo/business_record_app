@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "test:migrations": "node ./scripts/test-migration-regression.mjs",
     "security:audit": "pnpm audit --audit-level moderate",
     "test:watch": "vitest",
     "test:e2e": "pnpm db:reset:local && playwright test",

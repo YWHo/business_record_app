@@ -1,0 +1,18 @@
+# Regression test matrix
+
+This matrix identifies the automated checks that protect the highest-risk
+application boundaries. Run the full set before a release.
+
+| Boundary                             | Automated coverage                                                                                                                                                                                                                                           | Command                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Populated schema upgrade             | Applies the first five migrations, inserts representative private-workspace history, then applies the account/business/entity migrations. Verifies memberships, operating periods, root and inherited attribution, review flags, triggers, and foreign keys. | `pnpm test:migrations`                                                  |
+| Authentication and authorization     | Covers local sign-in, protected routes, owner/accountant permissions, invitations, session validation, and tenant-scoped access.                                                                                                                             | `pnpm test` and `pnpm test:e2e`                                         |
+| Public demo isolation                | Covers browser-local writes, separation between browser contexts, reset behavior, read-only shared APIs, and disabled privileged actions.                                                                                                                    | `pnpm test` and `pnpm test:e2e`                                         |
+| Business and legal-entity continuity | Covers date-based entity resolution, non-overlapping periods, entity changes, immutable historical attribution, and business-scoped record access.                                                                                                           | `pnpm test`, `pnpm test:local`, and `pnpm test:e2e`                     |
+| Primary browser workflows            | Covers business switching, dashboard, expense/income/mileage creation, review, settings, accountant views, responsive navigation, and unsaved-change confirmation.                                                                                           | `pnpm test:e2e`                                                         |
+| Responsive visual baselines          | Compares representative desktop, phone, and small-tablet pages against repository screenshots.                                                                                                                                                               | `pnpm test:e2e`                                                         |
+| Static and production integration    | Checks lint rules, TypeScript boundaries, production bundling, PWA assets, and Storybook composition.                                                                                                                                                        | `pnpm lint`, `pnpm typecheck`, `pnpm build`, and `pnpm storybook:build` |
+
+`pnpm test:e2e` resets only the local Wrangler D1 state configured for tests. It
+does not target the demo or production databases. `pnpm test:local` expects the
+local development server to be running after `pnpm db:reset:local`.
