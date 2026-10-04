@@ -535,13 +535,13 @@ export function TransactionsPage() {
         <h2>Filters</h2>
         {businessId ? (
           <form
-            className="expense-filter-bar"
+            className="expense-filter-bar transaction-filter-form"
             onSubmit={(event) => {
               event.preventDefault();
               void search(filters, mode);
             }}
           >
-            <label className="filter-search">
+            <label className="filter-search transaction-filter-search">
               Search transactions
               <input
                 placeholder="Merchant, client, or type"
@@ -591,7 +591,7 @@ export function TransactionsPage() {
                 ))}
               </select>
             </label>
-            <details className="filter-search">
+            <details className="filter-search transaction-more-filters">
               <summary>More filters</summary>
               <div className="form-pair">
                 <label>
@@ -646,7 +646,11 @@ export function TransactionsPage() {
                 </label>
               </div>
             </details>
-            <div className="button-row">
+            <div
+              className="button-row transaction-filter-actions"
+              role="group"
+              aria-label="Filter actions"
+            >
               <button>Search</button>
               <button
                 type="button"

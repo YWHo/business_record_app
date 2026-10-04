@@ -1261,6 +1261,12 @@ describe('App', () => {
       }),
     ).toBeInTheDocument();
     expect(
+      await screen.findByRole('group', { name: 'Filter actions' }),
+    ).toContainElement(screen.getByRole('button', { name: 'Search' }));
+    expect(
+      screen.getByRole('group', { name: 'Filter actions' }),
+    ).toContainElement(screen.getByRole('button', { name: 'Clear' }));
+    expect(
       await screen.findByText('Example Consulting Client'),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/search transactions/i)).toBeInTheDocument();
