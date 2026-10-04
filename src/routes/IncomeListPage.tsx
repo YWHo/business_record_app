@@ -93,23 +93,21 @@ export function IncomeListPage() {
       ) : null}
       <div className="record-filter-bar" aria-label="Income filters">
         <label>
-          <span className="sr-only">Search income</span>
+          <span className="record-filter-label">Search</span>
           <input
             type="search"
-            placeholder="Search income..."
-            aria-label="Search income"
+            placeholder="Source, invoice number or notes"
             value={search}
             onChange={(event) => filter('q', event.target.value)}
           />
         </label>
         <label>
-          <span className="sr-only">Income type</span>
+          <span className="record-filter-label">Income type</span>
           <select
-            aria-label="Income type"
             value={type}
             onChange={(event) => filter('type', event.target.value)}
           >
-            <option value="">All types</option>
+            <option value="">All income types</option>
             {types.map((value) => (
               <option key={value} value={value}>
                 {incomeTypeLabels[value]}
@@ -118,18 +116,16 @@ export function IncomeListPage() {
           </select>
         </label>
         <label>
-          <span className="sr-only">From date</span>
+          <span className="record-filter-label">Received on or after</span>
           <input
             type="date"
-            aria-label="From date"
             value={from}
             onChange={(event) => filter('from', event.target.value)}
           />
         </label>
         <label>
-          <span className="sr-only">Status</span>
+          <span className="record-filter-label">Record status</span>
           <select
-            aria-label="Status"
             value={status}
             onChange={(event) => filter('status', event.target.value)}
           >

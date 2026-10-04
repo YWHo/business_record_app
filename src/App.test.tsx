@@ -1195,6 +1195,13 @@ describe('App', () => {
     expect(
       screen.getByRole('link', { name: /add income/i }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText('Search')).toHaveAttribute(
+      'placeholder',
+      'Source, invoice number or notes',
+    );
+    expect(screen.getByLabelText('Income type')).toBeInTheDocument();
+    expect(screen.getByLabelText('Received on or after')).toBeInTheDocument();
+    expect(screen.getByLabelText('Record status')).toBeInTheDocument();
     expect(document.querySelector('form')).not.toBeInTheDocument();
   });
 

@@ -1540,6 +1540,31 @@ th {
   grid-column: span 2;
 }
 
+.record-filter-bar {
+  display: grid;
+  gap: 1rem;
+  width: min(68rem, 100%);
+  margin-bottom: 1.25rem;
+  border: 1px solid #d9e1e8;
+  border-radius: 0.8rem;
+  padding: 1rem;
+  background: #fff;
+}
+
+.record-filter-bar label {
+  display: grid;
+  align-content: end;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.record-filter-label {
+  color: #526b80;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .responsive-table-wrap {
   overflow-x: auto;
   border: 1px solid #d9e1e8;
@@ -1804,6 +1829,10 @@ th {
 }
 
 @media (min-width: 44rem) {
+  .record-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .primary-nav {
     padding-inline: clamp(1rem, 5vw, 4rem);
   }
@@ -2015,6 +2044,12 @@ th {
 }
 
 @media (min-width: 64rem) {
+  .record-filter-bar {
+    grid-template-columns:
+      minmax(18rem, 1.6fr) minmax(11rem, 1fr) minmax(12rem, 1fr)
+      minmax(11rem, 1fr);
+  }
+
   .shell-topbar {
     grid-template-columns: 15rem minmax(14rem, 1fr) auto auto;
     padding-inline: 1.5rem 2rem;
