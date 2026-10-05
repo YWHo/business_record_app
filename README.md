@@ -73,9 +73,10 @@ not change test totals, ordering, or screenshots:
 pnpm db:reset:test
 ```
 
-That command is intended for automated tests and replaces the same local
-`.wrangler/state/` directory. Do not run it while relying on unsaved local
-development data.
+That command is intended for automated tests and replaces only
+`.wrangler/state/e2e/`. Playwright starts Vite in `e2e` mode so its D1 and R2
+bindings use that nested test state. Running an end-to-end test therefore does
+not replace the richer development data under `.wrangler/state/`.
 
 ## Local authentication and invitation testing
 
@@ -141,13 +142,13 @@ pnpm test:e2e
 ```
 
 The end-to-end command runs two isolated Playwright groups. Each group resets
-local D1 and R2, and Playwright starts and stops the application server
-automatically. The API group covers authentication, permissions, record
-services, documents, filters, review, retention, exports, invitations, session
-revocation, legal-entity attribution, and R2 persistence. The browser group
-covers business switching, focused workflows, browser-local demo isolation,
-responsive layouts, and visual baselines. You do not need to run `pnpm dev`
-separately.
+only `.wrangler/state/e2e/`, and Playwright starts and stops an `e2e`-mode
+application server automatically. The API group covers authentication,
+permissions, record services, documents, filters, review, retention, exports,
+invitations, session revocation, legal-entity attribution, and R2 persistence.
+The browser group covers business switching, focused workflows, browser-local
+demo isolation, responsive layouts, and visual baselines. You do not need to
+run `pnpm dev` separately.
 
 Test the populated historical-schema upgrade independently with:
 

@@ -5,8 +5,11 @@ import { fileURLToPath } from 'node:url';
 
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const projectDirectory = resolve(scriptsDirectory, '..');
-const stateDirectory = resolve(projectDirectory, '.wrangler', 'state');
 const testProfile = globalThis.process.argv.includes('--test');
+const stateRelativeDirectory = testProfile
+  ? '.wrangler/state/e2e'
+  : '.wrangler/state';
+const stateDirectory = resolve(projectDirectory, stateRelativeDirectory);
 const unknownArguments = globalThis.process.argv
   .slice(2)
   .filter((argument) => argument !== '--test');
@@ -15,7 +18,10 @@ if (unknownArguments.length) {
   throw new Error(`Unknown local reset option: ${unknownArguments.join(' ')}`);
 }
 
-if (!stateDirectory.endsWith('/.wrangler/state')) {
+const expectedStateSuffix = testProfile
+  ? '/.wrangler/state/e2e'
+  : '/.wrangler/state';
+if (!stateDirectory.endsWith(expectedStateSuffix)) {
   throw new Error(`Refusing to reset unexpected path: ${stateDirectory}`);
 }
 
@@ -36,7 +42,7 @@ function runWrangler(arguments_) {
   }
 }
 
-const localStateArguments = ['--local', '--persist-to', '.wrangler/state'];
+const localStateArguments = ['--local', '--persist-to', stateRelativeDirectory];
 
 runWrangler([
   'd1',

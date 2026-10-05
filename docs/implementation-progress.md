@@ -1072,3 +1072,19 @@ Acceptance criteria completed:
 
 Notes: Both groups still exercise the real local Worker, D1, and R2 runtime.
 Playwright now owns server startup and shutdown for each group.
+
+## Local showcase and test-state isolation
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Kept the rich development showcase under `.wrangler/state/` while moving the
+  minimal Playwright fixture to `.wrangler/state/e2e/`.
+- Configured Playwright to start Vite in `e2e` mode so the Worker, D1, R2, and
+  reset command all use the same isolated test root.
+- Disabled reuse of an unrelated development server during end-to-end runs.
+- Preserved the reset guard so test cleanup can remove only its explicit nested
+  local path and cannot target remote resources.
+
+Notes: `pnpm test:e2e` no longer changes the database used by `pnpm dev`.

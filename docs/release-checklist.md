@@ -14,8 +14,8 @@ resource setup remain in the [deployment guide](deployment-guide.md).
   `pnpm typecheck`, `pnpm test`, `pnpm test:migrations`,
   `pnpm test:local-data`, `pnpm test:demo-data`, `pnpm security:audit`,
   `pnpm build:production`, `pnpm build:demo`, and `pnpm storybook:build`.
-- Run `pnpm test:e2e` only in an isolated checkout; it resets local Wrangler
-  state, never remote resources.
+- Run `pnpm test:e2e`; it resets only `.wrangler/state/e2e/`, never normal
+  development state or remote resources.
 - Review every unapplied migration. Never edit one that has been applied.
 
 ## Deploy one environment at a time

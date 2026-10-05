@@ -3,7 +3,7 @@ import { cloudflare } from '@cloudflare/vite-plugin';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
@@ -43,6 +43,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
       },
     }),
-    cloudflare(),
+    cloudflare({
+      persistState: {
+        path: mode === 'e2e' ? '.wrangler/state/e2e' : '.wrangler/state',
+      },
+    }),
   ],
-});
+}));

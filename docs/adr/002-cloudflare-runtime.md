@@ -8,9 +8,16 @@ The SPA needs a real server-side trust boundary while local development must req
 
 ## Decision
 
-Use the official Cloudflare Vite plugin with one Worker entry point. Route `/api/*` through the Worker before static assets, serve unmatched navigation as the SPA, and bind D1/R2 through `wrangler.jsonc`. Wrangler CLI migration and seed commands use `--local --persist-to .wrangler/state` so they share state with Vite's Miniflare runtime.
+Use the official Cloudflare Vite plugin with one Worker entry point. Route
+`/api/*` through the Worker before static assets, serve unmatched navigation as
+the SPA, and bind D1/R2 through `wrangler.jsonc`. Wrangler CLI migration and
+seed commands use `--local --persist-to .wrangler/state` so they share state
+with Vite's Miniflare runtime. Playwright uses the nested
+`.wrangler/state/e2e` root and Vite's `e2e` mode, preventing test resets from
+replacing normal development data.
 
-Local, demo, and production declare separate bindings. Development authentication additionally requires a loopback hostname.
+Local, demo, and production declare separate bindings. Development
+authentication additionally requires a loopback hostname.
 
 ## Consequences
 

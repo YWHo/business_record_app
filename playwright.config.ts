@@ -21,9 +21,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 5180',
+    command: 'pnpm dev --mode e2e --host 127.0.0.1 --port 5180',
     url: 'http://127.0.0.1:5180/api/health',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

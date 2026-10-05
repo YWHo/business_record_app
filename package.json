@@ -30,7 +30,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate:local": "wrangler d1 migrations apply business-records-local --local --persist-to .wrangler/state",
     "db:seed:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/seed-local.sql && wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/seed-local-showcase.sql",
-    "db:seed:test": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/seed-local.sql",
+    "db:seed:test": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state/e2e --file ./scripts/seed-local.sql",
     "db:inspect:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --command \"SELECT key, value, updated_at FROM runtime_metadata ORDER BY key\"",
     "db:verify:local": "wrangler d1 execute business-records-local --local --persist-to .wrangler/state --file ./scripts/verify-schema.sql",
     "db:reset:local": "node ./scripts/reset-local.mjs",

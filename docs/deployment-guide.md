@@ -92,10 +92,10 @@ pnpm build:demo
 pnpm storybook:build
 ```
 
-Run `pnpm test:e2e` only in an isolated test checkout. It intentionally deletes
-and recreates `.wrangler/state/`; it does not touch remote D1 or R2 because the
-reset script permits only the local state path. Do not make CI release jobs
-depend on shared local Miniflare data.
+`pnpm test:e2e` deletes and recreates only `.wrangler/state/e2e/`. Playwright's
+`e2e` Vite mode points Miniflare at that nested test state, so the command does
+not replace normal development data and cannot touch remote D1 or R2. Do not
+make CI release jobs depend on pre-existing local Miniflare data.
 
 Record the commit being released, test results, operator, UTC time, and intended
 environments. Stop if the worktree is not the reviewed commit.
