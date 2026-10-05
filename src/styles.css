@@ -75,6 +75,20 @@ textarea {
 
 select {
   width: 100%;
+  padding-right: 2.75rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%231f2933' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 1rem;
+}
+
+@media (forced-colors: active) {
+  select {
+    padding-right: 0.8rem;
+    appearance: auto;
+    background-image: none;
+  }
 }
 
 :focus-visible {
