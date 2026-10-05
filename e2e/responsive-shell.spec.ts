@@ -164,4 +164,23 @@ test('business context remains usable across phone, tablet, and desktop layouts'
   await expect(
     page.getByRole('navigation', { name: 'Delivery Platform navigation' }),
   ).toBeVisible();
+
+  await page.getByRole('link', { name: 'Transactions' }).click();
+  await page.getByText('More filters').click();
+  const advancedFilterLabels = [
+    'Record type',
+    'Expense category',
+    'Attachment',
+    'Review state',
+  ];
+  const advancedFilterBoxes = await Promise.all(
+    advancedFilterLabels.map((label) => page.getByLabel(label).boundingBox()),
+  );
+  advancedFilterBoxes.forEach((box) => expect(box).not.toBeNull());
+  const firstAdvancedFilter = advancedFilterBoxes[0]!;
+  advancedFilterBoxes.slice(1).forEach((box) => {
+    expect(Math.abs(box!.y - firstAdvancedFilter.y)).toBeLessThan(2);
+    expect(Math.abs(box!.width - firstAdvancedFilter.width)).toBeLessThan(2);
+  });
+  expect(advancedFilterBoxes[3]!.x).toBeGreaterThan(advancedFilterBoxes[0]!.x);
 });

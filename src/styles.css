@@ -1540,7 +1540,7 @@ th {
   grid-column: span 2;
 }
 
-.transaction-more-filters {
+.expense-filter-bar .transaction-more-filters {
   grid-column: 1 / -1;
   min-width: 0;
 }
