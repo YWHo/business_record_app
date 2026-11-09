@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
 
-test('@api-smoke local API workflows retain their integration boundaries', async ({
+test('@api-smoke @non-ui local API workflows retain their integration boundaries', async ({
   baseURL,
 }) => {
   const apiBaseUrl = baseURL ?? 'http://127.0.0.1:5180';

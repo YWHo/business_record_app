@@ -1,5 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const visualTime = '2026-10-01T00:00:00.000Z';
+
+test.use({ locale: 'en-NZ', timezoneId: 'Pacific/Auckland' });
+
 async function openOwnerWorkspace(page: Page) {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Continue as local owner' }).click();
@@ -40,9 +44,29 @@ async function discardDraft(page: Page) {
   await page.getByRole('button', { name: 'Leave without saving' }).click();
 }
 
-test('representative business workspaces retain their responsive layout', async ({
+test('@visual @non-ui representative business workspaces retain their responsive layout', async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date(visualTime));
+  // Creating the visual expense uses the Worker's real clock. Stabilize only
+  // the directory's display timestamp; keep record counts and identities real.
+  await page.route('**/api/businesses', async (route) => {
+    const response = await route.fetch();
+    expect(response.ok()).toBeTruthy();
+    const payload = (await response.json()) as {
+      businesses: { lastRecordUpdatedAt: string | null }[];
+    };
+    await route.fulfill({
+      response,
+      json: {
+        ...payload,
+        businesses: payload.businesses.map((business) => ({
+          ...business,
+          lastRecordUpdatedAt: business.lastRecordUpdatedAt ? visualTime : null,
+        })),
+      },
+    });
+  });
   await page.setViewportSize({ width: 1440, height: 900 });
   await openOwnerWorkspace(page);
   await createVisualExpense(page);

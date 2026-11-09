@@ -10,9 +10,14 @@ application boundaries. Run the full set before a release.
 | Public demo isolation                | Covers browser-local writes, separation between browser contexts, reset behavior, read-only shared APIs, and disabled privileged actions.                                                                                                                    | `pnpm test` and `pnpm test:e2e`                                         |
 | Business and legal-entity continuity | Covers date-based entity resolution, non-overlapping periods, entity changes, immutable historical attribution, and business-scoped record access.                                                                                                           | `pnpm test` and `pnpm test:e2e`                                         |
 | Primary browser workflows            | Covers business switching, dashboard, expense/income/mileage creation, review, settings, accountant views, responsive navigation, and unsaved-change confirmation.                                                                                           | `pnpm test:e2e`                                                         |
-| Responsive visual baselines          | Compares representative desktop, phone, and small-tablet pages against repository screenshots.                                                                                                                                                               | `pnpm test:e2e`                                                         |
+| Responsive visual baselines          | Compares representative desktop, phone, and small-tablet pages against repository screenshots in a consistent WSL/Linux rendering environment.                                                                                                               | `pnpm test:e2e:visual`                                                  |
 | Static and production integration    | Checks lint rules, TypeScript boundaries, production bundling, PWA assets, and Storybook composition.                                                                                                                                                        | `pnpm lint`, `pnpm typecheck`, `pnpm build`, and `pnpm storybook:build` |
 
 `pnpm test:e2e` runs isolated API and browser groups. Each group resets only the
 local Wrangler D1/R2 state configured for tests, and Playwright manages its own
 application server. It does not target the demo or production databases.
+
+The default browser group excludes `@visual` screenshot comparisons. It retains
+functional and responsive usability assertions across phone, tablet, and desktop.
+Run `pnpm test:e2e:visual` separately for release visual validation; it resets
+the same isolated test state and uses the single committed baseline set.

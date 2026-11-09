@@ -22,7 +22,7 @@ describe('remote demo administration safety', () => {
   it('uses the transactional query path instead of the D1 file importer', () => {
     const script = readFileSync('./scripts/manage-demo.mjs', 'utf8');
 
-    expect(script).toContain("'--command',\n  seedSql");
-    expect(script).not.toContain("'--file',\n  './scripts/seed-demo.sql'");
+    expect(script).toMatch(/'--command',\s+seedSql/);
+    expect(script).not.toMatch(/'--file',\s+'\.\/scripts\/seed-demo\.sql'/);
   });
 });

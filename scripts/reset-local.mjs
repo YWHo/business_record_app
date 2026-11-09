@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertLocalStatePath } from './local-state-path.mjs';
 
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const projectDirectory = resolve(scriptsDirectory, '..');
@@ -18,17 +19,16 @@ if (unknownArguments.length) {
   throw new Error(`Unknown local reset option: ${unknownArguments.join(' ')}`);
 }
 
-const expectedStateSuffix = testProfile
-  ? '/.wrangler/state/e2e'
-  : '/.wrangler/state';
-if (!stateDirectory.endsWith(expectedStateSuffix)) {
-  throw new Error(`Refusing to reset unexpected path: ${stateDirectory}`);
-}
+assertLocalStatePath(projectDirectory, stateDirectory, testProfile);
+
+const wranglerCli = fileURLToPath(
+  new URL('./bin/wrangler.js', import.meta.resolve('wrangler/package.json')),
+);
 
 await rm(stateDirectory, { recursive: true, force: true });
 
 function runWrangler(arguments_) {
-  const result = spawnSync('pnpm', ['exec', 'wrangler', ...arguments_], {
+  const result = spawnSync(process.execPath, [wranglerCli, ...arguments_], {
     cwd: projectDirectory,
     stdio: 'inherit',
   });

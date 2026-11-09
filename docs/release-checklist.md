@@ -16,6 +16,8 @@ resource setup remain in the [deployment guide](deployment-guide.md).
   `pnpm build:production`, `pnpm build:demo`, and `pnpm storybook:build`.
 - Run `pnpm test:e2e`; it resets only `.wrangler/state/e2e/`, never normal
   development state or remote resources.
+- Run `pnpm test:e2e:visual` separately in the consistent WSL/Linux rendering
+  environment and review screenshot differences against the shared baselines.
 - Review every unapplied migration. Never edit one that has been applied.
 
 ## Deploy one environment at a time

@@ -1154,3 +1154,81 @@ Notes: Phase 1 was committed by the user as `ae1d271`. Full-suite validation
 above includes the separate test-tooling fixes documented below. Auditor
 sign-in remains unavailable until schema and backend enforcement are ready.
 Proceed to Phase 3 only when requested by the user.
+
+## Test tooling and visual regression updates
+
+These follow-up changes are committed separately from the Phase 2 permission
+model at the user's request.
+
+- Fixed an existing demo-administration test that assumed LF source line
+  endings and failed on Windows CRLF checkouts. Its assertions now tolerate
+  whitespace while preserving the transactional command-path check. The demo
+  administration script itself is unchanged.
+
+### Windows local-reset compatibility follow-up
+
+- Replaced the POSIX-only suffix guard in `scripts/reset-local.mjs` with an
+  exact project-relative path check using the platform path implementation.
+  Test mode accepts only `.wrangler/state/e2e`; showcase mode accepts only
+  `.wrangler/state`. Neither can target unrelated projects or broader paths.
+- Added Windows and POSIX unit coverage for both valid profiles and rejected
+  parent, sibling, nested, wrong-profile, and relative paths.
+- Invoked the installed Wrangler CLI through Node rather than spawning the
+  Windows-incompatible bare `pnpm` command. Arguments remain separate and no
+  shell is introduced. Wrangler resolves before local state is removed.
+- Verified all 241 unit tests, lint, and typecheck pass. The local test reset
+  successfully applied migrations and seeded the isolated test database.
+- The Playwright API smoke passed against the real local Worker, D1, and R2.
+  Sandbox validation required command-local Wrangler config/log paths within
+  `.wrangler/` because the default user-level registry directory is read-only.
+- The full e2e command stalled during server teardown after the API scenario
+  completed and was stopped. Browser/visual scenarios were not reached; this
+  run does not certify the full e2e suite.
+
+### Shared visual baselines across operating systems
+
+- Configured a fixed snapshot path template so Windows, WSL, and native Linux
+  compare against the same eleven committed Chromium/Linux baseline images.
+- Preserved existing baseline files and comparison tolerances. Documented that
+  the Linux filename suffix identifies the original capture environment, not
+  a restriction on which platform may run the tests.
+- Moved the untracked Windows baseline images into ignored test output; they
+  are not part of the shared baseline set.
+- Verified all eleven capture names resolve to existing shared baseline files,
+  typecheck passes, and Playwright discovers all twelve tests. Formatting and
+  diff whitespace checks pass. Full screenshot comparisons were not rerun for
+  this configuration change.
+
+### Visual fixture stability investigation
+
+- Inspected expected, actual, and diff artifacts from the Windows shared-baseline
+  failure. Differences include system-font metrics and the directory's latest
+  update date (1 October in the baseline versus the real creation date).
+- Fixed the visual scenario's browser date, locale, timezone, and displayed
+  directory update timestamps while retaining real API record counts and
+  identities. The Worker clock and production behavior are unchanged.
+- Shared baseline selection does not standardize installed system fonts or
+  browser rasterization. Native Windows pixel comparisons against the Linux
+  baseline remain unresolved; baseline images and tolerances were not changed.
+- WSL validation is unavailable in the agent sandbox: distribution enumeration
+  returns E_ACCESSDENIED. Full Linux screenshot verification is still required.
+
+### Functional UI and screenshot test separation
+
+- Kept API integration and functional/responsive browser workflows in
+  `pnpm test:e2e`, including visible content, navigation, forms, authorization,
+  browser-local demo isolation, layout relationships, and overflow checks.
+- Tagged API and screenshot scenarios `@non-ui` so browser and headed commands
+  select only functional UI tests without shell-sensitive regex alternation.
+- Added `pnpm test:e2e:visual` for explicit screenshot comparison in a consistent
+  WSL/Linux rendering environment. The same eleven committed baseline files
+  and existing comparison tolerance remain in use; visual checks are retained
+  as a separate release gate.
+- Updated README, regression matrix, and release checklist for the new split.
+- Verified discovery selects ten functional browser tests, one API smoke test,
+  and one visual scenario independently. Typecheck, changed e2e-file lint,
+  formatting, and diff whitespace checks pass.
+- Ran the functional browser command: it reached all ten scenarios without
+  reporting assertion failures, then stalled before process exit and was
+  stopped. Full-run completion is not certified because of the local teardown
+  issue; screenshot matching is no longer part of that command.

@@ -147,8 +147,27 @@ application server automatically. The API group covers authentication,
 permissions, record services, documents, filters, review, retention, exports,
 invitations, session revocation, legal-entity attribution, and R2 persistence.
 The browser group covers business switching, focused workflows, browser-local
-demo isolation, responsive layouts, and visual baselines. You do not need to
+demo isolation, and responsive usability without pixel comparisons. You do not need to
 run `pnpm dev` separately.
+
+Screenshot comparisons are a separate visual regression check:
+
+```bash
+pnpm test:e2e:visual
+```
+
+Run this check in the consistent WSL/Linux rendering environment for release
+validation. The default e2e suite checks visible content, navigation, form
+interactions, permissions, responsive layout relationships, and overflow, so
+normal UI testing does not depend on matching operating-system font pixels.
+
+Visual tests use one shared set of committed `*-chromium-linux.png` baselines
+on Windows, WSL, and native Linux. The `linux` suffix records their original
+capture environment; Playwright does not select a different set for Windows.
+Review screenshot differences before updating shared baselines. OS font and
+browser rendering can differ even when application code is identical; use
+WSL/Linux to reproduce the original capture environment when investigating
+those differences. Failure screenshots and reports remain ignored test output.
 
 Test the populated historical-schema upgrade independently with:
 
@@ -484,7 +503,8 @@ pnpm security:audit      Check the resolved dependency graph for advisories
 pnpm test:watch          Run tests interactively
 pnpm test:e2e            Reset local data and run critical Chromium workflows
 pnpm test:e2e:api        Reset data and run Playwright API integration tests
-pnpm test:e2e:browser    Reset data and run Playwright browser/visual tests
+pnpm test:e2e:browser    Reset data and run functional/responsive browser tests
+pnpm test:e2e:visual     Reset data and compare screenshots (use WSL/Linux)
 pnpm test:e2e:headed     Reset data and run Chromium with a visible browser
 pnpm storybook           Run isolated component stories on port 6006
 pnpm storybook:build     Build the static Storybook and validate all stories

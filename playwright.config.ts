@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  // One reviewed baseline set on every OS; retain the existing Linux filenames.
+  snapshotPathTemplate:
+    '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}',
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
