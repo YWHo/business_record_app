@@ -1116,3 +1116,41 @@ not applicable to this documentation-only phase.
 
 Notes: Per the user's workflow, no commit is made by the agent. Phase 2 waits
 for the user to commit this phase and explicitly request continuation.
+
+## Auditor role Phase 2: Permission model
+
+Status: Complete
+
+Acceptance criteria implemented:
+
+- Added shared, runtime-independent permission identifiers and immutable
+  OWNER, ACCOUNTANT, and AUDITOR bundles in `src/lib/permissions.ts`.
+- Added fail-closed role lookup and permission evaluation, including unknown,
+  reserved, malformed, and prototype-property role values.
+- Separated evidence viewing, uploading, downloading, report viewing/export,
+  and archive export. Auditor receives only the four baseline read grants.
+- Kept runtime authenticated roles, schema, invitations, routes, and UI
+  unchanged. Existing owner/accountant behavior remains intact; target
+  accountant archive restrictions are enforced in Phase 5.
+- Added unit coverage for the complete role/permission matrix, missing context,
+  invalid roles/permissions, immutable policy, and duplicate-free grants.
+- Documented the target permission matrix, domain-rule boundaries, and staged
+  enforcement in `docs/permissions.md`.
+
+Validation:
+
+- Direct Node execution against the actual TypeScript module passed 354
+  assertions covering the role matrix and fail-closed/immutability behavior.
+- `git diff --check` passed.
+- Initial dependency installation was blocked by network EACCES. After
+  dependencies became available, `pnpm test` passed all 231 tests across 38
+  files, including the permission policy tests. Lint, typecheck, production
+  build, and Storybook build also passed.
+- No route or UI behavior changes in this phase require new browser scenarios
+  or stories. Existing owner/accountant e2e coverage remains applicable and
+  was not rerun for this policy-only change.
+
+Notes: Phase 1 was committed by the user as `ae1d271`. Full-suite validation
+above includes the separate test-tooling fixes documented below. Auditor
+sign-in remains unavailable until schema and backend enforcement are ready.
+Proceed to Phase 3 only when requested by the user.

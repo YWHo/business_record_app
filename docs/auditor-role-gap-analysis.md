@@ -1,6 +1,7 @@
 # Auditor role gap analysis
 
-Status: Phase 1 complete; implementation has not started.
+Status: Phase 1 complete. This is the pre-implementation baseline; Phase 2 policy
+definitions are documented separately in [permissions.md](permissions.md).
 
 Baseline: repository inspected on 9 November 2026 against
 `../business_records_auditor_role_feature_plan.md`. This document describes
