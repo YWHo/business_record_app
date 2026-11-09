@@ -1088,3 +1088,31 @@ Acceptance criteria completed:
   local path and cannot target remote resources.
 
 Notes: `pnpm test:e2e` no longer changes the database used by `pnpm dev`.
+
+## Auditor role Phase 1: Gap analysis
+
+Status: Complete
+
+Acceptance criteria completed:
+
+- Inspected runtime roles, membership and invitation constraints, session
+  authentication, current accountant capabilities, downloads/exports, owner
+  member administration, and browser-local demo roles.
+- Added `docs/auditor-role-gap-analysis.md` with source references, the existing
+  capability matrix, scoped authorization requirements, migration hazards,
+  phase delivery gates, and unit, API/e2e, and Storybook coverage requirements.
+- Identified authenticated-only mutation paths that must receive explicit
+  permission checks before auditor access is exposed.
+- Documented the planned accountant archive restriction and the need to
+  separate evidence previews, downloads, report exports, and portable archives.
+- Recorded that inline evidence viewing cannot guarantee browser copy
+  prevention and that historical entity attribution must govern scope checks.
+
+Validation: `git diff --check` passed. Markdown formatting was reviewed manually;
+the Prettier command could not run because dependencies are absent and pnpm's
+registry verification was blocked by network access (EACCES). No application
+code, schema, or UI changed, so unit tests, e2e tests, and Storybook changes are
+not applicable to this documentation-only phase.
+
+Notes: Per the user's workflow, no commit is made by the agent. Phase 2 waits
+for the user to commit this phase and explicitly request continuation.
