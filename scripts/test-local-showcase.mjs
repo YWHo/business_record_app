@@ -12,7 +12,10 @@ const readSql = (filePath) => readFileSync(filePath, 'utf8');
 const migrationSql = readdirSync(migrationDirectory)
   .filter((name) => /^\d+.*\.sql$/.test(name))
   .sort()
-  .map((name) => readSql(path.join(migrationDirectory, name)))
+  .map((name) => {
+    const sql = readSql(path.join(migrationDirectory, name));
+    return name.startsWith('0009_') ? `BEGIN;\n${sql}\nCOMMIT;` : sql;
+  })
   .join('\n');
 
 const verificationSql = `

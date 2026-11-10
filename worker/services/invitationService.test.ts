@@ -90,6 +90,10 @@ describe('normalizeEmail', () => {
     expect(batched[1].query).toContain('INSERT INTO business_account_members');
     expect(batched[2].query).toContain('UPDATE invitations');
     expect(batched[2].query).toContain('EXISTS');
+    // A stored auditor invitation must never become an accountant membership.
+    for (const statement of batched) {
+      expect(statement.query).toContain("role = 'ACCOUNTANT'");
+    }
   });
 
   it('does not reactivate a globally disabled identity', async () => {

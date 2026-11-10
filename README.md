@@ -31,7 +31,8 @@ Start with the guide that matches the job:
 
 ## Local setup — no Cloudflare account required
 
-Requirements: Node.js 22 or later and pnpm 10 or later.
+Requirements: Node.js 22.13 or later and pnpm 10 or later. Schema unit tests use
+Node's built-in SQLite engine.
 
 ```bash
 pnpm install

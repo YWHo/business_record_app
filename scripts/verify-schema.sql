@@ -2,6 +2,11 @@ PRAGMA quick_check;
 PRAGMA foreign_key_check;
 
 SELECT
+  (SELECT COUNT(*) FROM membership_access_scopes) AS membership_scopes,
+  (SELECT COUNT(*) FROM invitation_access_scopes) AS invitation_scopes,
+  (SELECT COUNT(*) FROM business_account_members WHERE role = 'AUDITOR') AS auditor_memberships;
+
+SELECT
   (SELECT COUNT(*) FROM users) AS users,
   (SELECT COUNT(*) FROM business_activities) AS business_activities,
   (SELECT COUNT(*) FROM vehicles) AS vehicles,

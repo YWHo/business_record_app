@@ -35,9 +35,10 @@ roles (ADMIN, BOOKKEEPER, MEMBER), malformed values, and unknown roles have no
 permissions. Returned bundles are frozen; callers cannot modify shared policy.
 
 `PermissionRole` describes policy roles only. Authenticated user types, session
-creation, invitations, and database constraints still support the existing
-roles; defining an auditor bundle must not enable auditor sign-in before
-membership scope, time-window checks, and route enforcement are ready.
+creation, and invitation acceptance still permit only the existing roles.
+Migration 0009 adds database support for auditors, scopes, and expiry, while
+explicit runtime guards keep auditor sign-in and accountant-path acceptance
+unavailable until scope, time-window checks, and route enforcement are ready.
 
 `hasPermission(context, permission)` evaluates only a predefined role grant.
 It does not establish authentication or check active membership, access dates,

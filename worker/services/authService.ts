@@ -16,6 +16,7 @@ export async function createSession(
          ON business_accounts.id=business_account_members.business_account_id
       WHERE business_account_members.user_id=?
         AND business_account_members.status='ACTIVE'
+        AND business_account_members.role IN ('OWNER', 'ACCOUNTANT')
         AND business_accounts.status='ACTIVE'
         ${businessAccountId ? 'AND business_account_members.business_account_id=?' : ''}
       ORDER BY business_account_members.created_at
@@ -60,6 +61,7 @@ export async function requestLoginLink(
        JOIN business_accounts ON business_accounts.id = business_account_members.business_account_id
       WHERE users.email = ?
         AND business_account_members.status = 'ACTIVE'
+        AND business_account_members.role IN ('OWNER', 'ACCOUNTANT')
         AND business_accounts.status = 'ACTIVE'
       ORDER BY business_account_members.created_at
       LIMIT 1`,

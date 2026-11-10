@@ -45,6 +45,39 @@ A partial unique index permits at most one active `OWNER` membership per busines
 
 ## Account and entity separation
 
+Migration 0009 adds the auditor access foundation. It rebuilds the role CHECK
+constraints on users, memberships, and invitations using deferred foreign-key
+checks and validates the full reference graph before completing. Actor IDs,
+sessions, invitation hashes, outboxes, status, and display names are preserved.
+
+`business_account_members` retains its composite account/user primary key and
+active-owner uniqueness. Membership status is separate from role and supports
+INVITED, ACTIVE, DISABLED, and EXPIRED. Optional access windows use canonical
+UTC timestamps (`YYYY-MM-DDTHH:mm:ss.sssZ`), with a strictly later expiry than
+start. Auditor memberships and invitations require an explicit expiry. Access
+windows are distinct from the invitation token's existing `expires_at`.
+
+`membership_access_scopes` identifies a membership by account and user;
+`invitation_access_scopes` retains grants before invitation acceptance. Each
+has an opaque ID and one ACCOUNT, BUSINESS, or LEGAL_ENTITY scope, with optional
+inclusive accounting-effective date bounds. Composite foreign keys bind the
+membership/invitation and business/entity to the same account. Shape and valid
+calendar-date constraints reject ambiguous or cross-account grants. Historical
+scope references restrict deletion; lifecycle administration must preserve them
+or deliberately replace grants rather than cascade away history.
+
+Existing owner/accountant memberships and accountant invitations receive
+account-wide grants without adding access expiry. Insert triggers preserve
+that behavior for existing bootstrap, accountant acceptance, and seed paths.
+Auditor and reserved roles receive no implicit grants. Scope/date query indexes
+supplement the existing account/business/entity/date record indexes.
+
+This is schema support only. Until permission and scope enforcement is ready,
+the Worker permits authentication/session creation only for OWNER/ACCOUNTANT,
+and the accountant acceptance path explicitly rejects stored AUDITOR
+invitations. No auditor login, invitation UI, or scoped access is enabled by
+this migration. A missing grant will mean no access when scope checks land.
+
 `business_accounts` identifies an application workspace and reserves plan/subscription fields for later commercial use. `business_entities` holds optional legal and trading names, NZBN/company identifiers, entity type, country, and lifecycle independently of the workspace. `business_account_members` owns workspace roles. Consequently, the `OWNER` role describes application administration and is not stored or displayed as legal ownership.
 
 Migration 0006 backfills the existing private dataset into `business-account-primary` and adds account-leading indexes across records, details, attachments, comments, audit history, filters, retention settings, sessions, invitations, and exports. The Worker generates tenant-prefixed R2 keys. Commercial signup/billing and ownership transfer remain future platform-admin workflows.

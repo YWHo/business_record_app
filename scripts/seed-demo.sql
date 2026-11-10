@@ -1,5 +1,7 @@
 PRAGMA foreign_keys = ON;
 
+DELETE FROM invitation_access_scopes;
+DELETE FROM membership_access_scopes;
 DELETE FROM export_history;
 DELETE FROM development_auth_outbox;
 DELETE FROM authentication_challenges;

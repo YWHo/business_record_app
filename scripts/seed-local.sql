@@ -1,5 +1,8 @@
 PRAGMA foreign_keys = ON;
 
+DELETE FROM invitation_access_scopes;
+DELETE FROM membership_access_scopes;
+
 DELETE FROM export_history;
 DELETE FROM development_auth_outbox;
 DELETE FROM authentication_challenges;
@@ -21,6 +24,7 @@ DELETE FROM saved_filters;
 DELETE FROM clients;
 DELETE FROM vehicles;
 DELETE FROM business_entity_periods;
+UPDATE expense_categories SET business_id = NULL;
 DELETE FROM businesses;
 DELETE FROM business_activities;
 DELETE FROM business_entities WHERE id <> 'business-entity-primary';

@@ -62,12 +62,18 @@ export async function requireUser(
         AND sessions.expires_at > ?
         AND users.status = 'ACTIVE'
         AND business_account_members.status = 'ACTIVE'
+        AND business_account_members.role IN ('OWNER', 'ACCOUNTANT')
         AND business_accounts.status = 'ACTIVE'`,
   )
     .bind(tokenHash, new Date().toISOString())
     .first<AuthenticatedUser>();
 
-  if (!user || user.status !== 'ACTIVE') {
+  // Schema support precedes auditor enforcement: never activate it early.
+  if (
+    !user ||
+    user.status !== 'ACTIVE' ||
+    !['OWNER', 'ACCOUNTANT'].includes(user.role)
+  ) {
     throw new HttpError(401, 'Authentication required.');
   }
 

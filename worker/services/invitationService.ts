@@ -119,6 +119,7 @@ export async function acceptAccountantInvitation(
     `SELECT id, business_account_id
        FROM invitations
       WHERE token_hash = ?
+        AND role = 'ACCOUNTANT'
         AND email = ?
         AND accepted_at IS NULL
         AND expires_at > ?`,
@@ -140,6 +141,7 @@ export async function acceptAccountantInvitation(
           WHERE EXISTS (
             SELECT 1 FROM invitations
              WHERE id = ? AND business_account_id = ? AND token_hash = ?
+               AND role = 'ACCOUNTANT'
                AND email = ? AND accepted_at IS NULL AND expires_at > ?
           )`,
       ).bind(
@@ -163,6 +165,7 @@ export async function acceptAccountantInvitation(
          FROM invitations
          JOIN users ON users.id = ? AND users.status = 'ACTIVE'
         WHERE invitations.id = ? AND invitations.business_account_id = ?
+          AND invitations.role = 'ACCOUNTANT'
           AND invitations.token_hash = ? AND invitations.email = ?
           AND invitations.accepted_at IS NULL AND invitations.expires_at > ?
        ON CONFLICT(business_account_id, user_id) DO UPDATE SET
@@ -182,6 +185,7 @@ export async function acceptAccountantInvitation(
       `UPDATE invitations
           SET accepted_at = ?
         WHERE id = ? AND business_account_id = ? AND token_hash = ?
+          AND role = 'ACCOUNTANT'
           AND email = ? AND accepted_at IS NULL AND expires_at > ?
           AND EXISTS (
             SELECT 1

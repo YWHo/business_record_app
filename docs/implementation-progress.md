@@ -1232,3 +1232,55 @@ model at the user's request.
   reporting assertion failures, then stalled before process exit and was
   stopped. Full-run completion is not certified because of the local teardown
   issue; screenshot matching is no longer part of that command.
+
+## Auditor role Phase 3: Schema migration
+
+Status: Complete
+
+Acceptance criteria implemented:
+
+- Added migration 0009 without modifying applied migrations. Extended role
+  constraints on identities, memberships, and invitations while preserving
+  historical rows, display names, actor references, sessions, tokens, outboxes,
+  indexes, and active-owner uniqueness.
+- Added separate membership status/window fields and required explicit auditor
+  expiry. Canonical UTC windows and valid inclusive calendar-date scopes have
+  database constraints for malformed dates and inverted ranges.
+- Added membership and invitation scope tables with composite account-bound
+  foreign keys, explicit ACCOUNT/BUSINESS/LEGAL_ENTITY shapes, and lookup
+  indexes. Existing record indexes already cover business/entity/date queries.
+- Backfilled owner/accountant memberships and accountant invitations to
+  account-wide grants with no new expiry. Legacy insert triggers preserve
+  bootstrap and invitation behavior; auditors receive no implicit scope.
+- Kept auditor authentication and acceptance unavailable with staged runtime
+  guards, including every guarded statement in accountant acceptance. Runtime
+  user types and UI remain owner/accountant only until enforcement is ready.
+- Updated deterministic local/demo seed cleanup for restrictive scope
+  references and repeated seeding. Only test state was reset during validation;
+  no development showcase or remote resources were changed.
+- Updated the populated migration regression to include migration 0009 and
+  its transaction boundary, and documented the data model and staged policy.
+
+Validation:
+
+- All 266 unit/component tests pass, including populated financial-history and
+  generated-distance preservation, rollback on broken historical references,
+  scope/date/window constraints, safe reseeding, and actual SQL-backed staging
+  guards for sessions, login links, and accountant invitation acceptance.
+- Existing legacy upgrade, demo seed, and showcase regression assertions pass
+  using a temporary Node SQLite adapter because the sqlite3 CLI is absent.
+  This executes their actual SQL and assertions; it does not change the scripts'
+  normal CLI dependency. Schema unit tests require Node 22.13 or later.
+- Migration 0009 applies successfully in the real simulated D1 runtime. Both
+  Playwright API scenarios pass, including the new schema-only auditor test.
+- All ten functional/responsive browser scenarios also pass after an independent
+  test-state reset, using the separately managed local server.
+- Lint, typecheck, formatting, diff whitespace, application build, and Storybook
+  build pass. No visual components
+  or flows were added, so no new Storybook stories are applicable.
+- Playwright's managed server teardown stalls in this sandbox. The API
+  assertions were rerun successfully using an ignored temporary config and a
+  separately managed local server, with workspace-local Wrangler config/logs.
+
+Notes: No commit is made. Wait for the user's commit and explicit request before
+starting Phase 4 (central permission, scope, and access-window enforcement).

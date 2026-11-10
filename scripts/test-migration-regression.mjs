@@ -24,6 +24,7 @@ const upgradeNames = [
   '0006_business_account_tenancy.sql',
   '0007_business_identity_foundation.sql',
   '0008_business_identity_backfill.sql',
+  '0009_auditor_access_foundation.sql',
 ];
 
 const readSql = (filePath) => readFileSync(filePath, 'utf8');
@@ -31,7 +32,10 @@ const migrationSql = migrationNames
   .map((name) => readSql(path.join(migrationDirectory, name)))
   .join('\n');
 const upgradeSql = upgradeNames
-  .map((name) => readSql(path.join(migrationDirectory, name)))
+  .map((name) => {
+    const sql = readSql(path.join(migrationDirectory, name));
+    return name.startsWith('0009_') ? `BEGIN;\n${sql}\nCOMMIT;` : sql;
+  })
   .join('\n');
 
 const verificationSql = `
