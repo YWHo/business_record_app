@@ -1284,3 +1284,54 @@ Validation:
 
 Notes: No commit is made. Wait for the user's commit and explicit request before
 starting Phase 4 (central permission, scope, and access-window enforcement).
+
+## Auditor role Phase 4: Central authorization service
+
+Status: Complete
+
+Acceptance criteria implemented:
+
+- Added `worker/services/accessControlService.ts` with fresh account/user-bound
+  membership loading, permission assertions, access-window validation, and
+  business, legal-entity, and record visibility checks.
+- Kept session authentication separate. Only trusted authenticated actor IDs
+  select the current membership; browser/session role claims do not determine
+  its role or scopes. Contexts and grants are immutable and must be reloaded
+  per request so revocation, scope changes, and expiry take effect promptly.
+- Enforced active user/account/membership state, inclusive starts, exclusive
+  expiry, required auditor expiry, and fail-closed handling of missing,
+  malformed, mismatched, or excessive grants. Scope loading is capped at
+  sixteen grants, with an extra sentinel row to detect overflow safely.
+- Matched each grant's identity and date restrictions together, then combined
+  grants as a union. Record access uses persisted historical entity attribution
+  rather than a business's current operator.
+- Checked account-owned directory identity and overlapping historical operating
+  periods in bounded SQL. Directory visibility grants minimal identity, not
+  unrestricted access to related histories, totals, or records.
+- Added parameterized SQL record predicates for expenses, income, and work
+  sessions so Phase 5 can scope rows before aggregation/counts/pagination.
+  Auckland midnight bounds handle both 23-hour and 25-hour DST days; income
+  uses its persisted accounting-effective calendar date.
+- Documented service contracts, scope/binding limits, parent-inherited evidence
+  scope, domain-rule boundaries, and the explicit read-only demo integration
+  still required in Phase 5.
+- Preserved existing route behavior and staged auditor login/acceptance guards.
+  No new endpoint, browser flow, schema migration, or UI component is exposed.
+
+Validation:
+
+- All 313 unit/component tests pass, including 47 new service/SQLite checks for
+  role permissions, status/windows, scope unions, malformed grants, account
+  isolation, historical periods, source dates, DST boundaries, and agreement
+  between per-record checks and SQL-filtered counts/pagination.
+- Both existing API integration scenarios pass against real local Worker/D1/R2,
+  including the schema-stage auditor denial scenario. All ten functional browser
+  scenarios pass after an independent reset. Both groups use the separately
+  managed server approach to avoid the sandbox's Playwright teardown stall.
+- Lint, typecheck, formatting, whitespace checks, application build, and
+  Storybook build pass. No new visual surface
+  requires a Storybook story or screenshot baseline update.
+
+Notes: Phase 3 was committed by the user as `ad413e0`. No commit is made for
+Phase 4. Wait for the user's commit and explicit request before beginning
+Phase 5, which wires permissions and scopes into every applicable API path.
