@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { AuditorAccessPanel } from '../features/members/AuditorAccessPanel';
 import {
   apiRequest,
   type AuthUser,
@@ -9,13 +10,16 @@ import {
 interface Invitation {
   id: string;
   email: string;
-  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED';
+  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
   expires_at: string;
 }
+type ManagedUser = Omit<AuthUser, 'status'> & {
+  status: 'ACTIVE' | 'DISABLED' | 'INVITED' | 'EXPIRED';
+};
 
 export function UserManagementPage() {
   const { configuration, user } = useAuth();
-  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -23,7 +27,7 @@ export function UserManagementPage() {
 
   const load = useCallback(async () => {
     const [userResult, invitationResult] = await Promise.all([
-      apiRequest<{ users: AuthUser[] }>('/api/users'),
+      apiRequest<{ users: ManagedUser[] }>('/api/users'),
       apiRequest<{ invitations: Invitation[] }>('/api/invitations'),
     ]);
     setUsers(userResult.users);
@@ -85,8 +89,8 @@ export function UserManagementPage() {
           <span className="eyebrow">Owner settings</span>
           <h1 id="users-heading">Users and invitations</h1>
           <p>
-            Invite accountants and revoke future access without removing
-            history.
+            Invite accountants or auditors and revoke future access without
+            removing history.
           </p>
         </div>
       </div>
@@ -116,6 +120,8 @@ export function UserManagementPage() {
         ) : null}
       </section>
 
+      <AuditorAccessPanel />
+
       <section className="panel table-wrap">
         <h2>Accounts</h2>
         <table>
@@ -136,7 +142,8 @@ export function UserManagementPage() {
                 <td>{account.role}</td>
                 <td>{account.status}</td>
                 <td>
-                  {account.role !== 'OWNER' && account.status === 'ACTIVE' ? (
+                  {account.role === 'ACCOUNTANT' &&
+                  account.status === 'ACTIVE' ? (
                     <button
                       type="button"
                       className="danger-button"

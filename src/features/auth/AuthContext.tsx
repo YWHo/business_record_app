@@ -18,7 +18,7 @@ import { fetchWithRateLimitRetry } from '../../lib/rateLimitRetry';
 export interface AuthUser {
   id: string;
   email: string;
-  role: 'OWNER' | 'ACCOUNTANT';
+  role: 'OWNER' | 'ACCOUNTANT' | 'AUDITOR';
   status: 'ACTIVE' | 'DISABLED';
   businessAccountId?: string;
 }
@@ -111,8 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void apiRequest<AuthConfiguration>('/api/auth/config')
       .then(async (config) => {
         publicDemo = config.environment === 'demo';
-        const role = sessionStorage.getItem(demoRoleKey) as
-          AuthUser['role'] | null;
+        const storedRole = sessionStorage.getItem(demoRoleKey);
+        const role =
+          storedRole === 'OWNER' || storedRole === 'ACCOUNTANT'
+            ? storedRole
+            : null;
         const current = publicDemo
           ? role
             ? { user: demoUser(role) }
@@ -174,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-function demoUser(role: AuthUser['role']): AuthUser {
+function demoUser(role: 'OWNER' | 'ACCOUNTANT'): AuthUser {
   return {
     id: `browser-demo-${role.toLowerCase()}`,
     email: role === 'OWNER' ? 'owner@demo.invalid' : 'accountant@demo.invalid',

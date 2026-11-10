@@ -121,7 +121,7 @@ function ReviewPanel({
   onChanged,
 }: {
   record: Transaction;
-  role: 'OWNER' | 'ACCOUNTANT';
+  role: 'OWNER' | 'ACCOUNTANT' | 'AUDITOR';
   onChanged: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false),
@@ -213,25 +213,29 @@ function ReviewPanel({
               {error}
             </p>
           ) : null}
-          <div className="inline-form">
-            <label>
-              Status
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                {!statuses.includes(status) ? <option>{status}</option> : null}
-                {statuses.map((item) => (
-                  <option key={item} value={item}>
-                    {statusLabel(item)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" onClick={() => void updateStatus()}>
-              Update status
-            </button>
-          </div>
+          {role !== 'AUDITOR' && (
+            <div className="inline-form">
+              <label>
+                Status
+                <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                >
+                  {!statuses.includes(status) ? (
+                    <option>{status}</option>
+                  ) : null}
+                  {statuses.map((item) => (
+                    <option key={item} value={item}>
+                      {statusLabel(item)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" onClick={() => void updateStatus()}>
+                Update status
+              </button>
+            </div>
+          )}
           <div className="comment-thread">
             {comments.length ? (
               comments.map((comment) => (
@@ -247,21 +251,23 @@ function ReviewPanel({
               <p>No comments yet.</p>
             )}
           </div>
-          <form
-            className="inline-form"
-            onSubmit={(event) => void addComment(event)}
-          >
-            <label>
-              Add comment
-              <textarea
-                required
-                maxLength={4000}
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-              />
-            </label>
-            <button>Add comment</button>
-          </form>
+          {role !== 'AUDITOR' && (
+            <form
+              className="inline-form"
+              onSubmit={(event) => void addComment(event)}
+            >
+              <label>
+                Add comment
+                <textarea
+                  required
+                  maxLength={4000}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                />
+              </label>
+              <button>Add comment</button>
+            </form>
+          )}
         </div>
       ) : null}
     </section>

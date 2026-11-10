@@ -1,5 +1,23 @@
 # Permission policy
 
+Owner membership management now includes Auditor invitations and grants under
+Account settings. `/api/auditor-access` and `/api/auditor-invitations` require
+MEMBER_MANAGE and an active owner; the public demo rejects them. Invites require
+one to sixteen validated account/business/entity scopes and a future expiry.
+Record-date windows narrow each scope; multiple scopes grant additive access.
+
+Acceptance preserves the invited role, scopes, and access window, consumes the
+hashed token once, and creates no session. Existing account memberships cannot be
+overwritten or reactivated through an invitation. Eligible auditors use normal
+email sign-in with the existing production challenge and rate limits. Access
+cannot begin before its configured start and ends at its exclusive expiry.
+
+Owners can edit scopes/windows, expire access now, revoke access, or revoke a
+pending invitation. Changes use optimistic revisions, atomic audit writes and
+session invalidation. Editing preserves membership status; restoration requires
+explicit owner selection and an active global identity. Identities, scopes and
+historical references remain retained. See [ADR 018](adr/018-auditor-membership-lifecycle.md).
+
 Status: Phase 5 backend enforcement implemented. Auditor invitation/session
 creation and the dedicated auditor UI remain later phases.
 

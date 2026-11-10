@@ -1405,3 +1405,60 @@ Notes: Phase 4 was committed by the user as `965b688`. No Phase 5 commit is made
 Wait for the user's commit and explicit request before Phase 6 membership
 management. Auditor invitation/login workflows and the dedicated auditor UI
 are not complete in this phase.
+
+## Auditor role feature — Phase 6: Membership management
+
+- Added migration 0010 for invitation revocation, optimistic revisions and the
+  transient atomic-batch precondition guard. Existing identities and scopes are
+  preserved. No applied migration was rewritten.
+- Added owner-only API and focused UI pages for inviting Auditors, viewing
+  effective status/scopes/windows, editing grants, expiring access immediately,
+  revoking accepted access and revoking pending invitations. Scope selection
+  starts with a single business and never defaults to a whole-account grant.
+- Grants require a future expiry, optional start and one to sixteen validated
+  account/business/entity scopes with optional inclusive record-date bounds.
+  All references are checked within the owner's account.
+- Acceptance copies the invited role, scopes and window, hashes and consumes the
+  single-use token, and creates no session. It cannot overwrite any existing
+  membership or reactivate a disabled identity. Legacy Accountant acceptance
+  retains its account-wide grant through the same guarded transaction.
+- Enabled normal email sign-in for eligible Auditors. Scheduled acceptance is
+  allowed; sign-in before start, after expiry or after revocation is denied.
+  Existing production Turnstile, origin, rate limits and private outboxes remain.
+- Lifecycle batches include audit evidence and session invalidation. Revisions
+  reject stale edits; failed audit writes roll back the entire operation.
+  Ordinary edits retain status; restoration requires explicit owner intent.
+  Explicit expiry retains the configured dates, avoiding invalid future windows.
+- Delivery failure revokes the token while retaining scope references. Demo
+  member administration stays disabled. No demo Auditor was introduced.
+- Added native SQLite lifecycle/rollback/concurrency tests, owner-form component
+  and route tests, real browser lifecycle coverage, and nine Storybook states
+  across reusable grant forms and summaries. Added ADR 018 and updated README,
+  permissions, data model and security notes.
+
+Validation:
+
+- All 402 unit/component tests pass, including real SQLite lifecycle SQL,
+  concurrent acceptance, audit-failure rollback, scheduled/expired sign-in,
+  token replay and stale grant edits.
+- All three API e2e scenarios and all eleven functional/responsive browser
+  scenarios pass against local Worker/D1/R2. The new browser scenario covers
+  owner forms, draft protection, acceptance without a session, normal email
+  sign-in, scoped directory access, administrative denial, scope edits ending
+  sessions, immediate expiry/revocation and pending-invitation cancellation.
+- The browser sign-in step waits for the destination heading before filling the
+  identically labelled email field, avoiding a route-transition race. Builds
+  and browser runs are sequenced so Vite reloads do not interrupt workflows.
+- Lint, typecheck, application build, Storybook build, changed-file formatting
+  and patch whitespace checks pass. The repository-wide formatting check flags
+  174 untouched files; those unrelated changes were not included. A normal
+  Storybook rebuild recovered from a sandbox cache-resolution error.
+- Populated migration, demo-seed and local-showcase SQL/assertions pass through
+  Node's SQLite adapter because the sqlite3 CLI is unavailable here.
+- E2e uses independently reset `.wrangler/state/e2e` data, a separately managed
+  server and ignored temporary Playwright configuration. Development showcase
+  state, remote resources and visual baseline images were not changed.
+
+Phase 7's dedicated Auditor navigation, scope indicator and action visibility
+remain out of scope. No Phase 6 commit is made; wait for the user's commit and
+request to proceed.

@@ -32,7 +32,9 @@ export function AcceptInvitationPage() {
         method: 'POST',
         body: JSON.stringify({ email, token }),
       });
-      setMessage('Invitation accepted. You can now request a sign-in link.');
+      setMessage(
+        'Invitation accepted. Request a sign-in link during your access window.',
+      );
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -45,7 +47,7 @@ export function AcceptInvitationPage() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <span className="eyebrow">Accountant access</span>
+        <span className="eyebrow">Member access</span>
         <h1>Accept invitation</h1>
         <p>Enter the same email address that received this invitation.</p>
         <form onSubmit={(event) => void submit(event)} className="stack-form">

@@ -33,6 +33,7 @@ import {
 } from './routes/SetupPage';
 import { TransactionsPage } from './routes/TransactionsPage';
 import { UserManagementPage } from './routes/UserManagementPage';
+import { AuditorAccessPage } from './routes/AuditorAccessPage';
 import { VerifyLoginPage } from './routes/VerifyLoginPage';
 import { WorkSessionDetailPage } from './routes/WorkSessionDetailPage';
 import { WorkSessionFormPage } from './routes/WorkSessionFormPage';
@@ -83,6 +84,14 @@ export function App() {
               <Route path="reports" element={<ExportsPage />} />
               <Route path="more" element={<AccountMorePage />} />
               <Route path="settings/account" element={<UserManagementPage />} />
+              <Route
+                path="settings/account/auditors/new"
+                element={<AuditorAccessPage />}
+              />
+              <Route
+                path="settings/account/auditors/:userId"
+                element={<AuditorAccessPage />}
+              />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
 

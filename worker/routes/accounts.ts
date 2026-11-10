@@ -7,10 +7,10 @@ import {
 } from '../lib/http';
 import { writeAudit } from '../services/auditService';
 import {
-  acceptAccountantInvitation,
   createAccountantInvitation,
   normalizeEmail,
 } from '../services/invitationService';
+import { acceptManagedInvitation } from '../services/membershipInvitationService';
 import {
   constantTimeEqual,
   enforceRateLimit,
@@ -194,7 +194,7 @@ export async function disableUser(
     await writeAudit(
       env,
       owner,
-      'USER_DISABLED',
+      target.role === 'AUDITOR' ? 'AUDITOR_DISABLED' : 'USER_DISABLED',
       'USER',
       userId,
       'Account access disabled and active sessions revoked.',
@@ -212,9 +212,10 @@ export async function listInvitations(
   requireRole(owner, ['OWNER']);
   const now = new Date().toISOString();
   const result = await env.DB.prepare(
-    `SELECT id, email, role, expires_at, accepted_at, created_at,
+    `SELECT id, email, role, expires_at, accepted_at, created_at,revoked_at,
             CASE
               WHEN accepted_at IS NOT NULL THEN 'ACCEPTED'
+              WHEN revoked_at IS NOT NULL THEN 'REVOKED'
               WHEN expires_at <= ? THEN 'EXPIRED'
               ELSE 'PENDING'
             END AS status
@@ -242,14 +243,6 @@ export async function inviteAccountant(
     owner,
     getRequiredString(body, 'email'),
   );
-  await writeAudit(
-    env,
-    owner,
-    'INVITATION_CREATED',
-    'INVITATION',
-    invitation.id,
-    'Accountant invitation created.',
-  );
 
   return json(
     {
@@ -273,18 +266,10 @@ export async function acceptInvitation(
   if (env.APP_ENV === 'demo') throw new HttpError(404, 'Not found.');
   await enforceRateLimit(request, env.INVITE_RATE_LIMITER, 'accept');
   const body = await readJsonObject(request);
-  const user = await acceptAccountantInvitation(
+  const user = await acceptManagedInvitation(
     env,
     getRequiredString(body, 'email'),
     getRequiredString(body, 'token'),
-  );
-  await writeAudit(
-    env,
-    user,
-    'INVITATION_ACCEPTED',
-    'USER',
-    user.id,
-    'Accountant invitation accepted.',
   );
   return json({ user: { email: user.email, role: user.role } });
 }

@@ -473,11 +473,13 @@ flow, profit, or final tax treatment; insurance source amounts are full
 premiums. Report CSVs contain no evidence files or full transaction archive.
 
 The auditor backend enforces temporary, business/entity/date-scoped read-only
-access on existing sessions. Auditors can view permitted records, supporting
+access through owner-managed invitations and normal email sign-in. Auditors can view permitted records, supporting
 evidence previews, financial audit history, and summary reports. Mutations,
 individual downloads, report exports, archives, and administration are denied
-by default. Invitation/login management and the dedicated read-only auditor
-UI are subsequent implementation phases. See [permission policy](docs/permissions.md).
+by default. Owners manage auditor scopes, access windows, expiry and revocation
+under Account settings. The dedicated read-only auditor navigation is a subsequent
+phase. Apply local migrations with `pnpm db:migrate:local` before using the new
+membership screens; existing showcase data is preserved. See [permission policy](docs/permissions.md).
 
 Open **Exports** to download a monthly period, a configured tax year, or every
 retained record. An export is a repeatable read: it never moves or deletes cloud

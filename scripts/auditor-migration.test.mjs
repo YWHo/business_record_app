@@ -347,6 +347,7 @@ describe('auditor schema populated upgrade', () => {
 
   it('keeps persisted auditors out of sessions, login links, and accountant acceptance', async () => {
     applyUpgrade();
+    db.exec(read('../migrations/0010_auditor_access_lifecycle.sql'));
     insertAuditor();
     insertMembership();
     const hash = (value) => createHash('sha256').update(value).digest('hex');

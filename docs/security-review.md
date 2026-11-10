@@ -46,6 +46,18 @@ Relevant attackers include an unauthenticated internet client, an authenticated 
 
 ## Deployment gate
 
+Auditor lifecycle additions use owner-only, account-bound administration and
+validated fixed grants. Invitation acceptance copies the invited scope/window
+without signing in or overwriting any existing membership. Disabled identities
+stay disabled. Revisions and a CHECK-backed D1 batch guard make token consumption,
+scope changes, session invalidation and audit evidence atomic; failed operations
+roll back and stale forms conflict. Delivery failure revokes an unaccepted token
+without deleting restrictive scope references. Production challenge verification
+and rate limits remain enabled; demo administration is denied. SQLite rollback,
+concurrent acceptance, replay, role tampering and login-window cases are covered
+in `scripts/auditor-lifecycle.integration.test.mjs`; real local browser coverage
+is in `e2e/auditor-membership.spec.ts`. See [ADR 018](adr/018-auditor-membership-lifecycle.md).
+
 Before production release, replace every placeholder binding/origin, set all documented Wrangler secrets, bind Turnstile to the exact public hostname, keep R2 private, apply migrations to the explicitly named environment, configure WAF/DDoS and observability alerts, verify response headers and origin rejection, run the dependency audit and full automated suite, create and verify a complete export, and rehearse recovery in an isolated environment. Phase 21 turns this gate into the final deployment and recovery runbook.
 
 For the demo, keep the Free plan unless a later review deliberately changes it; confirm demo/production binding separation and the absence of a demo R2 binding; verify the read limiter, ten-minute JSON response cache, and universal write rejection; leave server upload, archive, email, and purge disabled; keep only synthetic data; periodically inspect Workers/D1 usage and 429/5xx trends; and treat budget alerts as notifications rather than hard caps. Static hashed assets are cached immutably and the application shell does not require D1 or R2.

@@ -25,6 +25,7 @@ const upgradeNames = [
   '0007_business_identity_foundation.sql',
   '0008_business_identity_backfill.sql',
   '0009_auditor_access_foundation.sql',
+  '0010_auditor_access_lifecycle.sql',
 ];
 
 const readSql = (filePath) => readFileSync(filePath, 'utf8');

@@ -5,6 +5,15 @@ import {
   loadAuthorizationContext,
 } from './services/accessControlService';
 import { scopedReadDatabase } from './services/scopedReadDatabase';
+import {
+  listAuditorAccess,
+  getAuditorAccess,
+  inviteAuditor,
+  editAuditorAccess,
+  revokeAuditor,
+  expireAuditor,
+  cancelAuditorInvitation,
+} from './routes/auditorAccess';
 import type { Permission } from '../src/lib/permissions';
 import { viewReport, exportReport } from './routes/reports';
 import { matchRoutePattern, type RouteParameters } from './lib/router';
@@ -143,6 +152,41 @@ interface Route {
 }
 
 const routes: Route[] = [
+  {
+    method: 'GET',
+    pathname: '/api/auditor-access',
+    handler: listAuditorAccess,
+  },
+  {
+    method: 'GET',
+    pathname: '/api/auditor-access/:userId',
+    handler: getAuditorAccess,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/auditor-invitations',
+    handler: inviteAuditor,
+  },
+  {
+    method: 'PATCH',
+    pathname: '/api/auditor-access/:userId',
+    handler: editAuditorAccess,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/auditor-access/:userId/revoke',
+    handler: revokeAuditor,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/auditor-access/:userId/expire',
+    handler: expireAuditor,
+  },
+  {
+    method: 'POST',
+    pathname: '/api/auditor-invitations/:invitationId/revoke',
+    handler: cancelAuditorInvitation,
+  },
   {
     method: 'GET',
     pathname: '/api/health',
@@ -532,6 +576,18 @@ const routes: Route[] = [
 // Every registered protected handler has an explicit capability. A new handler
 // without a policy fails closed, rather than inheriting generic authenticated access.
 const permissionGroups: [Permission, RouteHandler[]][] = [
+  [
+    'MEMBER_MANAGE',
+    [
+      listAuditorAccess,
+      getAuditorAccess,
+      inviteAuditor,
+      editAuditorAccess,
+      revokeAuditor,
+      expireAuditor,
+      cancelAuditorInvitation,
+    ],
+  ],
   [
     'RECORD_VIEW',
     [
