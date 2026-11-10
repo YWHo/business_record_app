@@ -37,8 +37,18 @@ export function secureApiResponse(
   requestId: string,
 ): Response {
   const headers = new Headers(response.headers);
+  const inlineEvidence =
+    headers.get('content-disposition')?.startsWith('inline;') &&
+    [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ].includes(headers.get('content-type') ?? '');
   headers.set('x-content-type-options', 'nosniff');
-  headers.set('x-frame-options', 'DENY');
+  headers.set('cross-origin-resource-policy', 'same-origin');
+  headers.set('x-frame-options', inlineEvidence ? 'SAMEORIGIN' : 'DENY');
   headers.set('referrer-policy', 'no-referrer');
   headers.set(
     'permissions-policy',
@@ -46,7 +56,7 @@ export function secureApiResponse(
   );
   headers.set(
     'content-security-policy',
-    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    `default-src 'none'; frame-ancestors ${inlineEvidence ? "'self'" : "'none'"}; base-uri 'none'`,
   );
   headers.set('x-request-id', requestId);
   if (env.APP_ENV !== 'local') {

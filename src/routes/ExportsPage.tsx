@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackupReminder } from '../features/exports/BackupReminder';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { hasPermission } from '../lib/permissions';
+import { ExportDownloadLink } from '../features/exports/ExportDownloadLink';
+import { useParams } from 'react-router-dom';
 
 interface ExportHistory {
   id: string;
@@ -16,7 +19,9 @@ interface ExportStatus {
 }
 
 export function ExportsPage() {
-  const { configuration } = useAuth();
+  const { configuration, user } = useAuth();
+  const archive = hasPermission(user, 'ARCHIVE_EXPORT');
+  const { businessId } = useParams();
   const isDemo = configuration?.environment === 'demo';
   const now = new Date();
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -45,8 +50,9 @@ export function ExportsPage() {
     const query = new URLSearchParams({ scope });
     if (scope === 'MONTH') query.set('month', month);
     if (scope === 'TAX_YEAR') query.set('taxYear', taxYear);
-    return `/api/exports/archive?${query}`;
-  }, [month, scope, taxYear]);
+    if (!archive && businessId) query.set('businessId', businessId);
+    return `${archive ? '/api/exports/archive' : '/api/reports/export'}?${query}`;
+  }, [archive, businessId, month, scope, taxYear]);
   function started() {
     setError('');
     window.setTimeout(() => void load().catch(() => undefined), 1500);
@@ -56,14 +62,17 @@ export function ExportsPage() {
       <div className="page-heading">
         <div>
           <span className="eyebrow">Portable copies</span>
-          <h1 id="exports-heading">Exports and local backup</h1>
+          <h1 id="exports-heading">
+            {archive ? 'Exports and local backup' : 'Reports'}
+          </h1>
           <p>
-            Download repeatable ZIP archives containing CSV data, source
-            documents, a readable summary, and a SHA-256 manifest.
+            {archive
+              ? 'Download repeatable ZIP archives containing CSV data, source documents, a readable summary, and a SHA-256 manifest.'
+              : 'Download source totals grouped by record family and currency. These figures are not cash flow, profit, or final tax treatment.'}
           </p>
         </div>
       </div>
-      <BackupReminder />
+      {archive ? <BackupReminder /> : null}
       {error ? (
         <p className="notice error" role="alert">
           {error}
@@ -94,7 +103,9 @@ export function ExportsPage() {
                 >
                   <option value="MONTH">Monthly</option>
                   <option value="TAX_YEAR">Tax year</option>
-                  <option value="FULL">Complete archive</option>
+                  <option value="FULL">
+                    {archive ? 'Complete archive' : 'All retained records'}
+                  </option>
                 </select>
               </label>
               {scope === 'MONTH' ? (
@@ -121,9 +132,11 @@ export function ExportsPage() {
                   />
                 </label>
               ) : null}
-              <a className="button-link" href={href} onClick={started} download>
-                Download portable ZIP
-              </a>
+              <ExportDownloadLink
+                role={user?.role}
+                href={href}
+                onDownload={started}
+              />
             </div>
           </>
         )}

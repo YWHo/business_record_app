@@ -1,4 +1,5 @@
 import { HttpError } from '../lib/http';
+import { hasPermission } from '../../src/lib/permissions';
 
 export type ReviewRecordType = 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
 export type RecordStatus =
@@ -35,10 +36,12 @@ export function reviewStatus(value: unknown): RecordStatus {
 }
 
 export function ensureStatusPermission(
-  role: 'OWNER' | 'ACCOUNTANT',
+  role: 'OWNER' | 'ACCOUNTANT' | 'AUDITOR',
   current: string,
   next: RecordStatus,
 ) {
+  if (!hasPermission({ role }, 'REVIEW_UPDATE'))
+    throw new HttpError(403, 'Your role cannot assign this status.');
   if (current === 'VOIDED' && next !== 'VOIDED')
     throw new HttpError(400, 'Voided records preserve their final status.');
   if (next === 'REVIEWED' && current !== 'READY_FOR_REVIEW')

@@ -367,6 +367,8 @@ describe('auditor schema populated upgrade', () => {
               return {
                 first: () =>
                   Promise.resolve(statement.get(...bindings) ?? null),
+                all: () =>
+                  Promise.resolve({ results: statement.all(...bindings) }),
               };
             },
           };
@@ -391,7 +393,7 @@ describe('auditor schema populated upgrade', () => {
         }),
         env,
       ),
-    ).rejects.toMatchObject({ status: 401 });
+    ).rejects.toMatchObject({ status: 403 });
     await expect(
       acceptAccountantInvitation(
         env,

@@ -18,12 +18,15 @@ export const permissions = Object.freeze([
   'ENTITY_MANAGE',
   'MEMBER_MANAGE',
   'RETENTION_MANAGE',
+  'RETENTION_VIEW',
+  'ARCHIVE_HISTORY_VIEW',
+  'FILTER_MANAGE',
 ] as const);
 
 export type Permission = (typeof permissions)[number];
 
-// Policy roles are separate from authenticated roles until schema/enforcement
-// support exists. Defining AUDITOR here does not enable auditor sign-in.
+// Reserved database roles are deliberately unsupported until defined here.
+// A role bundle alone never enables sign-in or bypasses membership checks.
 export type PermissionRole = 'OWNER' | 'ACCOUNTANT' | 'AUDITOR';
 
 const rolePermissions: Readonly<Record<PermissionRole, readonly Permission[]>> =
@@ -39,6 +42,9 @@ const rolePermissions: Readonly<Record<PermissionRole, readonly Permission[]>> =
       'REPORT_VIEW',
       'REPORT_EXPORT',
       'AUDIT_VIEW',
+      'RETENTION_VIEW',
+      'ARCHIVE_HISTORY_VIEW',
+      'FILTER_MANAGE',
     ] as const),
     AUDITOR: Object.freeze([
       'RECORD_VIEW',

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { requireUser } from './authorization';
 import type { Env } from '../types';
 
-describe('schema-only auditor rollout', () => {
-  it.each(['AUDITOR', 'ADMIN', 'BOOKKEEPER', 'MEMBER', 'UNKNOWN'])(
+describe('unsupported membership roles', () => {
+  it.each(['ADMIN', 'BOOKKEEPER', 'MEMBER', 'UNKNOWN'])(
     'rejects a live session for unsupported role %s',
     async (role) => {
       const env = {

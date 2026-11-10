@@ -43,7 +43,7 @@ test('@api-smoke @non-ui auditor schema remains inaccessible before permission e
   expect(result.status, result.stderr).toBe(0);
   const headers = { cookie: `br_session=${session}` };
   for (const path of ['/api/auth/me', '/api/businesses', '/api/transactions']) {
-    expect((await request.get(path, { headers })).status()).toBe(401);
+    expect((await request.get(path, { headers })).status()).toBe(403);
   }
   expect(
     (
@@ -52,7 +52,7 @@ test('@api-smoke @non-ui auditor schema remains inaccessible before permission e
         data: { recordType: 'EXPENSE', recordId: 'guessed', body: 'denied' },
       })
     ).status(),
-  ).toBe(401);
+  ).toBe(403);
   expect(
     (
       await request.post('/api/dev/auth/login', {

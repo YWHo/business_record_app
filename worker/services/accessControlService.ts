@@ -320,6 +320,39 @@ function businessMidnight(date: string): string {
 
 export type RecordFamily = 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
 
+export function businessDateBounds(
+  from: string | null,
+  to: string | null,
+): { fromInstant: string | null; toInstant: string | null } {
+  if ((from !== null && !validDate(from)) || (to !== null && !validDate(to)))
+    throw new HttpError(400, 'Report dates are invalid.');
+  let toInstant: string | null = null;
+  if (to !== null) {
+    const next = new Date(`${to}T00:00:00.000Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    toInstant = businessMidnight(next.toISOString().slice(0, 10));
+  }
+  return {
+    fromInstant: from === null ? null : businessMidnight(from),
+    toInstant,
+  };
+}
+
+/** One JSON bind supports reuse across several scoped CTEs within D1's bind cap. */
+export function authorizationScopeJson(context: AuthorizationContext): string {
+  assertPermission(context, 'RECORD_VIEW');
+  return JSON.stringify(
+    context.scopes.map((scope) => {
+      const bounds = businessDateBounds(scope.dateFrom, scope.dateTo);
+      return {
+        ...scope,
+        instantFrom: bounds.fromInstant,
+        instantTo: bounds.toInstant,
+      };
+    }),
+  );
+}
+
 /** Bind this predicate before COUNT, aggregation, pagination, or returning rows.
  * The caller supplies a trusted SQL alias, and must retain existing tenant and
  * lifecycle conditions. Attachments/comments inherit their parent's predicate.

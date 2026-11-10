@@ -387,6 +387,8 @@ export async function purgeFromTrash(request: Request, env: Env) {
     id,
     'Retention-approved permanent purge completed.',
     record.business_activity_id,
+    null,
+    { businessId: record.business_id, legalEntityId: record.legal_entity_id },
   );
   return json({ purged: { id, recordType, purgedAt: now } });
 }

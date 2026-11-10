@@ -2055,7 +2055,13 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
     {},
     accountantCookie,
   );
-  expectStatus(taxYearExport, 200, 'accountant tax-year export');
+  expectStatus(taxYearExport, 403, 'accountant archive denial');
+  const accountantReport = await request(
+    '/api/reports/export?scope=TAX_YEAR&taxYear=2027',
+    {},
+    accountantCookie,
+  );
+  expectStatus(accountantReport, 200, 'accountant summary report export');
   const firstFullExport = await request(
     '/api/exports/archive?scope=FULL',
     {},
@@ -2077,7 +2083,7 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
   if (
     completedExportStatus.body.backup.due ||
     !completedExportStatus.body.backup.lastSuccessfulExportAt ||
-    completedExportStatus.body.exports.length !== 4
+    completedExportStatus.body.exports.length !== 3
   ) {
     throw new Error(
       'successful export history or backup reminder was incorrect',

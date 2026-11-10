@@ -1,4 +1,5 @@
 import { requireRole, requireUser } from '../auth/authorization';
+import { hasPermission } from '../../src/lib/permissions';
 import { HttpError, json } from '../lib/http';
 import type { RouteParameters } from '../lib/router';
 import {
@@ -55,7 +56,7 @@ const attachmentSelect = `SELECT attachments.id, attachments.record_type,
   attachments.is_current, attachments.display_rotation_degrees,
   users.email AS creator_email
   FROM attachments JOIN users ON users.id = attachments.created_by`;
-const serialize = (row: AttachmentRow) => ({
+const serialize = (row: AttachmentRow, canDownload = true) => ({
   id: row.id,
   recordType: row.record_type,
   recordId: row.record_id,
@@ -69,7 +70,10 @@ const serialize = (row: AttachmentRow) => ({
   versionNumber: row.version_number,
   isCurrent: row.is_current === 1,
   displayRotationDegrees: row.display_rotation_degrees,
-  downloadUrl: `/api/attachments/file?id=${encodeURIComponent(row.id)}`,
+  downloadUrl: canDownload
+    ? `/api/attachments/file?id=${encodeURIComponent(row.id)}`
+    : null,
+  previewUrl: `/api/attachments/preview?id=${encodeURIComponent(row.id)}`,
 });
 
 async function parent(
@@ -155,7 +159,7 @@ export async function listBusinessDocuments(
     .all<BusinessDocumentRow>();
   return json({
     documents: rows.results.map((row) => ({
-      ...serialize(row),
+      ...serialize(row, hasPermission(actor, 'ATTACHMENT_DOWNLOAD')),
       businessId: row.business_id,
       legalEntityId: row.legal_entity_id,
       recordLabel: row.record_label,
@@ -201,7 +205,11 @@ export async function listAttachments(request: Request, env: Env) {
   )
     .bind(actor.businessAccountId, recordType, recordId)
     .all<AttachmentRow>();
-  return json({ attachments: rows.results.map(serialize) });
+  return json({
+    attachments: rows.results.map((row) =>
+      serialize(row, hasPermission(actor, 'ATTACHMENT_DOWNLOAD')),
+    ),
+  });
 }
 
 export async function uploadAttachment(request: Request, env: Env) {
@@ -391,6 +399,14 @@ export async function uploadAttachment(request: Request, env: Env) {
 }
 
 export async function downloadAttachment(request: Request, env: Env) {
+  return serveAttachment(request, env, false);
+}
+
+export async function previewAttachment(request: Request, env: Env) {
+  return serveAttachment(request, env, true);
+}
+
+async function serveAttachment(request: Request, env: Env, inline: boolean) {
   if (env.APP_ENV === 'demo') requireDocumentStorage(env);
   const actor = await requireUser(request, env);
   const id = queryValue(new URL(request.url), 'id');
@@ -401,6 +417,23 @@ export async function downloadAttachment(request: Request, env: Env) {
     .first<AttachmentRow>();
   if (!row) throw new HttpError(404, 'Attachment not found.');
   await parent(env, actor.businessAccountId, row.record_type, row.record_id);
+  if (!hasPermission(actor, inline ? 'ATTACHMENT_VIEW' : 'ATTACHMENT_DOWNLOAD'))
+    throw new HttpError(403, 'Evidence access is not permitted.');
+  if (
+    inline &&
+    ![
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ].includes(row.mime_type)
+  ) {
+    throw new HttpError(
+      415,
+      'Inline preview is unavailable for this file type.',
+    );
+  }
   const object = await requireDocumentStorage(env).get(row.object_key);
   if (!object) throw new HttpError(404, 'Attachment file is unavailable.');
   const encoded = encodeURIComponent(row.original_filename);
@@ -409,7 +442,7 @@ export async function downloadAttachment(request: Request, env: Env) {
   headers.set('content-length', String(row.file_size));
   headers.set(
     'content-disposition',
-    `attachment; filename="${safeDownloadFilename(row.original_filename)}"; filename*=UTF-8''${encoded}`,
+    `${inline ? 'inline' : 'attachment'}; filename="${safeDownloadFilename(row.original_filename)}"; filename*=UTF-8''${encoded}`,
   );
   headers.set('cache-control', 'private, no-store');
   headers.set('x-content-type-options', 'nosniff');

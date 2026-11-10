@@ -1335,3 +1335,73 @@ Validation:
 Notes: Phase 3 was committed by the user as `ad413e0`. No commit is made for
 Phase 4. Wait for the user's commit and explicit request before beginning
 Phase 5, which wires permissions and scopes into every applicable API path.
+
+## Auditor role Phase 5: Backend enforcement
+
+Status: Complete
+
+Acceptance criteria implemented:
+
+- Applied explicit capability requirements to every protected Worker handler;
+  newly registered handlers without a policy fail closed. Authentication,
+  invitation-token acceptance, bootstrap secrets, same-origin checks, and
+  guarded local helpers retain their independent boundaries.
+- Loaded current membership/scope state into a request-local environment;
+  private scope and role claims never come from browser JSON or headers.
+  Existing auditor sessions require active, unexpired, explicitly granted
+  access. New auditor session/invitation creation remains Phase 6 work.
+- Added a read-only scoped D1 adapter that supplies account-bound filtered CTEs
+  for financial roots, typed detail rows, evidence versions, comments,
+  reconciliations, directory/period history, reference data, and audit history.
+  Nested queries, aggregates, counts, pagination, and direct-ID lookups are
+  filtered before results are returned. Two bound values carry account and
+  validated grant JSON without multiplying D1 parameters across UNIONs.
+- Denied all auditor mutations, including personal filters and review/comment/
+  reconciliation paths. Preserved owner source edits, accountant review and
+  allocation boundaries, status-transition rules, and retention protections.
+- Separated inline evidence preview from downloads. Permitted images/PDFs use
+  private/no-store streams, same-origin framing/resource policy, and scoped
+  parent validation. Auditor metadata contains a preview URL and no download
+  action or raw R2 key/URL. Other API responses retain framing denial.
+- Made full archives owner-only with unrestricted account scope. Added bounded
+  JSON/CSV summaries under separate REPORT_VIEW/REPORT_EXPORT permissions;
+  accountants retain CSV summaries and individual evidence downloads. Report
+  groups preserve source subtype/currency and full insurance premiums, use
+  Auckland date bounds, and reject totals outside safe integer representation.
+- Added explicit retention-view, archive-history-view, and filter-management
+  capabilities to preserve existing owner/accountant access without granting
+  administrative read surfaces to auditors.
+- Retained financial audit attribution, including new business/entity evidence
+  on purge events. Unassignable purged history is omitted for restricted grants
+  rather than inferred; private membership/authentication events stay hidden.
+- Kept the demo's independent immutable read/cost boundary and disabled report
+  downloads there. No private demo authentication or real auditor demo persona
+  was added.
+- Added export action unit coverage and four Storybook role states, updated
+  README/security/permission documentation, and recorded the scoped query
+  boundary and its extension constraints in ADR 017.
+
+Validation:
+
+- All 370 unit/component tests pass. The new HTTP/SQLite suite exercises the
+  actual Worker router and handler SQL, including 44 legacy/business mutation
+  denials, scoped lists/totals, guessed IDs, history, scope/window changes,
+  preview/download separation, SQL binding protection, report precision, and
+  owner/accountant compatibility.
+- All three API e2e scenarios pass against real local Worker/D1/R2. The new
+  auditor scenario verifies business/date isolation, legal-entity scope changes,
+  direct mutation denial, real R2 preview bytes, denied file/report/archive
+  downloads, expiry, and immediate revocation.
+- All ten functional/responsive browser scenarios pass after an independent
+  test-state reset. Both e2e groups use a separately managed local server and
+  ignored temporary configuration to avoid the known sandbox teardown stall.
+- Lint, typecheck, application build, Storybook build, formatting, and patch
+  whitespace checks pass. A transient Storybook cache-resolution failure
+  recovered on a normal rebuild; no cache deletion was performed.
+- No remote resources, applied migrations, development showcase state, or
+  visual baseline images were changed.
+
+Notes: Phase 4 was committed by the user as `965b688`. No Phase 5 commit is made.
+Wait for the user's commit and explicit request before Phase 6 membership
+management. Auditor invitation/login workflows and the dedicated auditor UI
+are not complete in this phase.

@@ -1,5 +1,6 @@
 import { HttpError } from '../lib/http';
 import type { AuthenticatedUser, Env, UserRole } from '../types';
+import { loadAuthorizationContext } from '../services/accessControlService';
 
 const sessionCookieName = 'br_session';
 
@@ -30,6 +31,7 @@ export async function requireUser(
   request: Request,
   env: Env,
 ): Promise<AuthenticatedUser> {
+  if (env.REQUEST_USER) return env.REQUEST_USER;
   if (env.APP_ENV === 'demo') {
     return {
       id: 'demo-readonly-principal',
@@ -62,21 +64,23 @@ export async function requireUser(
         AND sessions.expires_at > ?
         AND users.status = 'ACTIVE'
         AND business_account_members.status = 'ACTIVE'
-        AND business_account_members.role IN ('OWNER', 'ACCOUNTANT')
+        AND business_account_members.role IN ('OWNER', 'ACCOUNTANT', 'AUDITOR')
         AND business_accounts.status = 'ACTIVE'`,
   )
     .bind(tokenHash, new Date().toISOString())
     .first<AuthenticatedUser>();
 
-  // Schema support precedes auditor enforcement: never activate it early.
   if (
     !user ||
     user.status !== 'ACTIVE' ||
-    !['OWNER', 'ACCOUNTANT'].includes(user.role)
+    !['OWNER', 'ACCOUNTANT', 'AUDITOR'].includes(user.role)
   ) {
     throw new HttpError(401, 'Authentication required.');
   }
 
+  if (user.role === 'AUDITOR') {
+    user.authorization = await loadAuthorizationContext(env.DB, user);
+  }
   return user;
 }
 

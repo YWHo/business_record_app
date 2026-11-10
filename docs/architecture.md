@@ -267,6 +267,14 @@ Purge first marks D1 record and attachment metadata as pending, then removes pri
 
 ## Portable export boundary
 
+Full archives require ARCHIVE_EXPORT and unrestricted account scope; the owner
+bundle grants this capability and the accountant/auditor bundles do not.
+Accountants use a separate bounded summary CSV export. Auditor REPORT_VIEW
+does not imply REPORT_EXPORT or ATTACHMENT_DOWNLOAD. The route policy,
+request-local scope context, filtered SQL read boundary, and preview/download
+separation are documented in [the permission policy](permissions.md) and
+[ADR 017](adr/017-scoped-read-query-boundary.md).
+
 The Worker builds monthly, configured tax-year, and full retained-record snapshots directly from D1 plus private R2. Exports include live and trashed records but never already-purged sources. A fixed set of CSV projections covers common transactions, typed income, mileage, fuel, parking, insurance/allocation, reconciliation, comments, audit events, attachment metadata, reference data, and the retention policy. Text cells beginning with spreadsheet formula markers are prefixed with an apostrophe so opening an archive in spreadsheet software cannot execute record content as a formula. This makes the archive understandable without executing application code.
 
 Before returning an archive, the Worker resolves the exact included record IDs, selects every matching attachment version, and preflights its R2 size and stored SHA-256 metadata. Generated files are hashed from their actual bytes. The versioned JSON manifest lists paths, sizes, digests, scope, dates, units, and expected/exported counts. The manifest's own hash is retained in D1 with the export completion; it is excluded from its own non-recursive file list.

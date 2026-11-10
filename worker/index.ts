@@ -1,4 +1,12 @@
 import { HttpError, json, methodNotAllowed } from './lib/http';
+import { requireUser } from './auth/authorization';
+import {
+  assertPermission,
+  loadAuthorizationContext,
+} from './services/accessControlService';
+import { scopedReadDatabase } from './services/scopedReadDatabase';
+import type { Permission } from '../src/lib/permissions';
+import { viewReport, exportReport } from './routes/reports';
 import { matchRoutePattern, type RouteParameters } from './lib/router';
 import {
   authConfiguration,
@@ -74,6 +82,7 @@ import {
 } from './routes/incomeRecords';
 import {
   downloadAttachment,
+  previewAttachment,
   listBusinessDocuments,
   listAttachments,
   uploadAttachment,
@@ -404,6 +413,11 @@ const routes: Route[] = [
   },
   {
     method: 'GET',
+    pathname: '/api/attachments/preview',
+    handler: previewAttachment,
+  },
+  {
+    method: 'GET',
     pathname: '/api/transactions',
     handler: listTransactions,
   },
@@ -456,6 +470,8 @@ const routes: Route[] = [
   },
   { method: 'GET', pathname: '/api/exports/status', handler: exportStatus },
   { method: 'GET', pathname: '/api/exports/archive', handler: downloadExport },
+  { method: 'GET', pathname: '/api/reports/summary', handler: viewReport },
+  { method: 'GET', pathname: '/api/reports/export', handler: exportReport },
   {
     method: 'POST',
     pathname: '/api/admin/bootstrap-owner',
@@ -513,6 +529,188 @@ const routes: Route[] = [
   },
 ];
 
+// Every registered protected handler has an explicit capability. A new handler
+// without a policy fails closed, rather than inheriting generic authenticated access.
+const permissionGroups: [Permission, RouteHandler[]][] = [
+  [
+    'RECORD_VIEW',
+    [
+      accountDetails,
+      listBusinessRecords,
+      listLegalEntityRecords,
+      businessDetails,
+      listBusinessPeriods,
+      listBusinessExpenses,
+      getBusinessExpense,
+      listIncomeRecords,
+      getIncomeRecord,
+      listWorkSessions,
+      getWorkSession,
+      listTransactions,
+      listComments,
+      listTrash,
+      listActivities,
+      listVehicles,
+      listExpenseCategories,
+      listClients,
+      listFuelRecords,
+      listGeneralExpenses,
+      listParkingRecords,
+      listInsuranceRecords,
+      checkRecordsPermission,
+    ],
+  ],
+  ['REPORT_VIEW', [dashboard, businessDashboard, viewReport]],
+  ['REPORT_EXPORT', [exportReport]],
+  [
+    'RECORD_CREATE',
+    [
+      createBusinessExpense,
+      createIncomeRecord,
+      createWorkSession,
+      createFuelRecord,
+      createGeneralExpense,
+      createParkingRecord,
+      createInsuranceRecord,
+    ],
+  ],
+  [
+    'RECORD_EDIT',
+    [
+      updateBusinessExpense,
+      updateIncomeRecord,
+      updateWorkSession,
+      updateFuelWorkflow,
+      updateFuelRecord,
+      updateGeneralExpense,
+      updateParkingRecord,
+      updateInsuranceRecord,
+    ],
+  ],
+  ['RECORD_DELETE', [moveToTrash, restoreFromTrash, purgeFromTrash]],
+  ['ACCOUNTING_ADJUST', [adjustInsuranceAllocation, reconcileIncome]],
+  ['REVIEW_UPDATE', [updateRecordStatus]],
+  ['COMMENT_CREATE', [createComment]],
+  [
+    'ATTACHMENT_VIEW',
+    [listAttachments, listBusinessDocuments, previewAttachment],
+  ],
+  ['ATTACHMENT_UPLOAD', [uploadAttachment]],
+  ['ATTACHMENT_DOWNLOAD', [downloadAttachment]],
+  ['AUDIT_VIEW', [listAuditLog]],
+  [
+    'BUSINESS_MANAGE',
+    [
+      createActivity,
+      updateActivity,
+      createVehicle,
+      updateVehicle,
+      createExpenseCategory,
+      updateExpenseCategory,
+      createClient,
+      updateClient,
+      updateBusinessDetails,
+    ],
+  ],
+  ['ENTITY_MANAGE', [changeBusinessLegalEntity]],
+  [
+    'MEMBER_MANAGE',
+    [
+      listUsers,
+      disableUser,
+      listInvitations,
+      inviteAccountant,
+      listDevelopmentAuthOutbox,
+      listDevelopmentOutbox,
+      createDevelopmentInvitation,
+      checkOwnerPermission,
+      readStorageProbe,
+      writeStorageProbe,
+    ],
+  ],
+  ['RETENTION_MANAGE', [updateRetentionSettings]],
+  ['RETENTION_VIEW', [getRetentionSettings]],
+  ['ARCHIVE_HISTORY_VIEW', [exportStatus]],
+  ['ARCHIVE_EXPORT', [downloadExport]],
+  [
+    'FILTER_MANAGE',
+    [listSavedFilters, createSavedFilter, updateSavedFilter, deleteSavedFilter],
+  ],
+];
+const handlerPermissions = new Map<RouteHandler, Permission>(
+  permissionGroups.flatMap(([permission, handlers]) =>
+    handlers.map((handler) => [handler, permission] as const),
+  ),
+);
+const publicRoutes = new Set([
+  'GET /api/health',
+  'GET /api/auth/config',
+  'POST /api/auth/login',
+  'POST /api/auth/verify',
+  'POST /api/auth/logout',
+  'POST /api/dev/auth/login',
+  'POST /api/admin/bootstrap-owner',
+  'POST /api/invitations/accept',
+  'POST /api/dev/invitations/accept',
+]);
+
+async function authorizeRoute(
+  request: Request,
+  env: Env,
+  route: Route,
+): Promise<Env> {
+  if (
+    env.APP_ENV === 'demo' ||
+    publicRoutes.has(`${route.method} ${route.pathname}`)
+  )
+    return env;
+  const permission =
+    route.pathname === '/api/auth/me'
+      ? 'RECORD_VIEW'
+      : handlerPermissions.get(route.handler);
+  if (!permission) throw new HttpError(403, 'This route has no access policy.');
+  const actor = await requireUser(request, env);
+  const access =
+    actor.authorization ?? (await loadAuthorizationContext(env.DB, actor));
+  assertPermission(access, permission);
+  const unrestricted = access.scopes.some(
+    (scope) =>
+      scope.scopeType === 'ACCOUNT' &&
+      scope.dateFrom === null &&
+      scope.dateTo === null,
+  );
+  if (
+    !unrestricted &&
+    [
+      'ARCHIVE_EXPORT',
+      'ARCHIVE_HISTORY_VIEW',
+      'MEMBER_MANAGE',
+      'BUSINESS_MANAGE',
+      'ENTITY_MANAGE',
+      'RETENTION_VIEW',
+      'RETENTION_MANAGE',
+      'FILTER_MANAGE',
+    ].includes(permission)
+  ) {
+    throw new HttpError(403, 'This action requires account-wide access.');
+  }
+  if (request.method !== 'GET' && !unrestricted && actor.role !== 'AUDITOR') {
+    throw new HttpError(
+      403,
+      'Restricted memberships cannot change account data.',
+    );
+  }
+  return {
+    ...env,
+    REQUEST_USER: actor,
+    REQUEST_AUTHORIZATION: access,
+    DB:
+      actor.role === 'AUDITOR' || !unrestricted
+        ? scopedReadDatabase(env.DB, access)
+        : env.DB,
+  };
+}
+
 async function handleRequest(
   request: Request,
   env: Env,
@@ -547,7 +745,12 @@ async function handleRequest(
   if (match) {
     const cache = await prepareDemoCache(request, env);
     if (cache?.response) return cache.response;
-    const response = await match.route.handler(request, env, match.params);
+    const authorizedEnv = await authorizeRoute(request, env, match.route);
+    const response = await match.route.handler(
+      request,
+      authorizedEnv,
+      match.params,
+    );
     if (cache) {
       const cacheWrite = cache.store(response.clone());
       if (context) context.waitUntil(cacheWrite);

@@ -28,6 +28,9 @@ const expectedGrants: Record<PermissionRole, readonly Permission[]> = {
     'ENTITY_MANAGE',
     'MEMBER_MANAGE',
     'RETENTION_MANAGE',
+    'RETENTION_VIEW',
+    'ARCHIVE_HISTORY_VIEW',
+    'FILTER_MANAGE',
   ],
   ACCOUNTANT: [
     'RECORD_VIEW',
@@ -39,6 +42,9 @@ const expectedGrants: Record<PermissionRole, readonly Permission[]> = {
     'REPORT_VIEW',
     'REPORT_EXPORT',
     'AUDIT_VIEW',
+    'RETENTION_VIEW',
+    'ARCHIVE_HISTORY_VIEW',
+    'FILTER_MANAGE',
   ],
   AUDITOR: ['RECORD_VIEW', 'ATTACHMENT_VIEW', 'REPORT_VIEW', 'AUDIT_VIEW'],
 };

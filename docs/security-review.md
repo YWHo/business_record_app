@@ -1,6 +1,20 @@
 # Security and reliability review
 
-Review date: 2026-09-14
+Auditor Phase 5 adds server-side capability checks for every protected handler
+and fresh membership/scope/window checks on private requests. A read-only D1
+query boundary filters source records and their related evidence, history,
+directory, reference, and aggregate projections before pagination or return.
+See [ADR 017](adr/017-scoped-read-query-boundary.md) for constraints and tests.
+
+Auditors cannot mutate, download evidence, export reports, or generate archives
+under the default policy. Evidence previews require permitted parent records,
+passive supported MIME types, private/no-store responses, same-origin resource
+policy, and same-origin framing. Other API responses retain framing denial.
+Previews transfer evidence bytes and cannot provide absolute copy prevention.
+Accountant CSV summaries and owner evidence archives use separate capabilities.
+
+Baseline review date: 2026-09-14. Auditor controls were validated during Phase 5
+on 2026-11-10.
 
 Scope: Phase 20 review plus the version 2 public-demo cost/abuse addendum covering the React PWA, Cloudflare Worker, D1, private R2 storage, local/demo/production configuration, portable exports, retention workflow, and resolved dependency graph.
 

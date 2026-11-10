@@ -1,8 +1,12 @@
+import type { AuthorizationContext } from './services/accessControlService';
+import type { PermissionRole } from '../src/lib/permissions';
 export type AppEnvironment = 'local' | 'demo' | 'production';
-export type UserRole = 'OWNER' | 'ACCOUNTANT';
+export type UserRole = PermissionRole;
 export type UserStatus = 'ACTIVE' | 'DISABLED';
 
 export interface Env {
+  REQUEST_USER?: AuthenticatedUser;
+  REQUEST_AUTHORIZATION?: AuthorizationContext;
   APP_ENV: AppEnvironment;
   LOCAL_AUTH_ENABLED: string;
   DEV_OWNER_EMAIL: string;
@@ -36,4 +40,5 @@ export interface AuthenticatedUser {
   role: UserRole;
   status: UserStatus;
   businessAccountId: string;
+  authorization?: AuthorizationContext;
 }
