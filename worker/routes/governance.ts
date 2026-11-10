@@ -97,6 +97,14 @@ export async function listAuditLog(request: Request, env: Env) {
     }
   }
   const pagination = requestPagination(url);
+  const businessId = url.searchParams.get('businessId')?.trim();
+  if (businessId) {
+    where.push(`(audit_log.business_id=? OR (audit_log.business_id IS NULL AND (
+      (audit_log.entity_type='EXPENSE' AND EXISTS (SELECT 1 FROM expenses p WHERE p.id=audit_log.entity_id AND p.business_id=?)) OR
+      (audit_log.entity_type='INCOME' AND EXISTS (SELECT 1 FROM income_records p WHERE p.id=audit_log.entity_id AND p.business_id=?)) OR
+      (audit_log.entity_type='WORK_SESSION' AND EXISTS (SELECT 1 FROM work_sessions p WHERE p.id=audit_log.entity_id AND p.business_id=?)))))`);
+    bindings.push(businessId, businessId, businessId, businessId);
+  }
   const rows = await env.DB.prepare(
     `SELECT audit_log.id,audit_log.action,audit_log.entity_type,audit_log.entity_id,
       audit_log.business_activity_id,audit_log.summary,audit_log.changed_fields_json,

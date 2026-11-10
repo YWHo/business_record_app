@@ -1462,3 +1462,78 @@ Validation:
 Phase 7's dedicated Auditor navigation, scope indicator and action visibility
 remain out of scope. No Phase 6 commit is made; wait for the user's commit and
 request to proceed.
+
+## Auditor role feature — Phase 7: Auditor UI
+
+- Phase 6 was committed by the user as `2bad4a6`; the tree was clean at the start
+  of this phase. No migration or demo persona was added.
+- Added read-only account/business navigation with a persistent Auditor notice
+  showing grant labels, inclusive record dates, and explicit New Zealand expiry.
+  The session endpoint returns displayable grant metadata instead of internal
+  authorization objects for Auditors. Label lookups remain account/scoped and
+  bounded by the existing sixteen-grant limit.
+- Removed accountant/admin navigation and unavailable destinations from Auditor
+  mobile More menus. Decoded, case-insensitive route guards redirect direct
+  source create/edit, business settings, legal-entity and member URLs before
+  those workflows mount. Worker authorization remains authoritative.
+- Kept search, filters, pagination, drill-down and existing comment viewing.
+  Hid saved-filter mutations, review/status controls, comment composition,
+  source mutation, upload and download actions. Owner/accountant policy grants
+  retain their existing actions; Accountant cleanup remains Phase 8.
+- Added read-only source-summary reports without export/archive-history calls,
+  and a dedicated paginated financial audit trail without retention/trash/admin
+  requests. Business audit filters narrow persisted attribution or a surviving
+  legacy parent while intersecting the existing grant. Event-date filters are
+  labelled UTC. Report/history views reset on business changes and ignore older
+  responses when a newer request is pending.
+- Added inline image/PDF evidence viewing in documents, receipts and detail
+  screens, retaining owner/accountant download links and immutable version data.
+  Preview-only presentation does not prevent browser saving or screenshots.
+- Recheck Auditor sessions on window focus and at known expiry. Ended access
+  removes the workspace with sign-in guidance; temporary network/service failure
+  does not imply revocation. The known expiry also closes the workspace offline.
+- Added unit/component/real-SQLite coverage and a real browser workflow for
+  scoped navigation, responsive notice visibility, record inspection, private
+  preview bytes, comments, summaries, audit history, direct URLs and revocation.
+  Ten Storybook states cover notices, missing metadata, preview permissions and
+  desktop/phone Auditor workspaces. Updated README and permission documentation.
+
+Validation:
+
+- All 428 unit/component tests pass, including current-session display metadata,
+  real SQLite business audit filtering with legacy parent attribution, direct
+  URL guards, report failures/empty states, preview permissions, ended sessions,
+  known expiry and temporary service failure.
+- All three API e2e scenarios and all twelve functional/responsive browser
+  scenarios pass against local Worker/D1/R2. The new Auditor scenario verifies
+  the notice at phone/tablet/desktop widths, actual private image loading,
+  source summaries, existing comments, financial history, absence of forbidden
+  API requests/actions, direct URLs and workspace removal after revocation.
+- The new fixture uses the business expense endpoint to persist attribution;
+  the legacy account endpoint intentionally leaves business attribution empty
+  and such records remain invisible to a restricted business grant. The account
+  search selector matches its existing distinct accessible label.
+- Lint, typecheck, application build, Storybook build, changed-file formatting
+  and patch whitespace checks pass. Standalone Storybook builds recover from the
+  sandbox manager-cache resolution issue. Application assets build successfully;
+  a sandbox-only Wrangler diagnostic log write to AppData was denied.
+- E2e resets only `.wrangler/state/e2e`, uses a separately managed local server
+  and ignored validation configuration to avoid the known managed-server
+  teardown stall. Builds precede browser runs. No development showcase state,
+  remote resources, applied migrations or visual baseline PNGs were changed.
+
+No Phase 7 commit is made; wait for the user's commit and request before Phase 8.
+
+Storybook follow-up: the evidence preview stories now open a 960×640 random
+Picsum photo automatically, replacing the one-pixel placeholder. The Accountant
+example links to the same sample rather than a nonexistent API fixture. These
+Storybook examples need internet access; app/e2e fixtures remain deterministic.
+After the user installed `@faker-js/faker` locally, the stories now generate the
+photo URL with `faker.image.urlPicsumPhotos`, requesting an unblurred, full-colour
+960×640 image. Faker remains a development dependency used only by Storybook.
+
+Preview layout follow-up: filenames and preview controls now sit in a spaced,
+wrapping header. The visible button reads Preview/Close preview, while its
+accessible name still identifies the file. Added a long-filename phone story.
+The seven focused attachment tests, typecheck, lint and Storybook build pass.
+Browser checks confirm no header overlap or horizontal overflow at 1280px and 390px.

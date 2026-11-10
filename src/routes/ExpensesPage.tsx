@@ -125,7 +125,9 @@ export function ExpensesPage() {
           <div>
             <h2>No matching expenses</h2>
             <p>
-              Adjust the filters or add the first expense for this business.
+              {user?.role === 'AUDITOR'
+                ? 'No permitted expenses match these filters. Adjust the filters or check your granted record dates.'
+                : 'Adjust the filters or add the first expense for this business.'}
             </p>
           </div>
         </div>

@@ -1,5 +1,26 @@
 # Permission policy
 
+Auditor screens use a dedicated read-only navigation and a persistent notice of
+the current grant labels, record-date limits and New Zealand access expiry.
+`/api/auth/me` returns only displayable grant information for this notice, without
+internal authorization objects. Metadata is refreshed on window focus and the
+workspace closes at its known expiry. A failed current-session check removes
+the workspace; temporary network/service failures do not imply revocation.
+
+Auditors can search, filter, paginate, inspect records and read existing comments.
+Saved-filter mutations, comment composers, review controls, source editing,
+uploads, retention, trash and administration are hidden. Direct form/settings
+URLs redirect to read-only destinations before those workflows mount. These
+are presentation guards; the Worker remains authoritative on every request.
+
+Reports use `/api/reports/summary`, without archive status or download requests.
+The dedicated `/app/audit-trail` and business `/audit-trail` screens read bounded
+financial audit history. A business filter matches persisted attribution or a
+surviving legacy parent, then intersects the existing server-enforced grant.
+Evidence is previewed inline through scoped private preview URLs; owner and
+accountant download permissions are preserved. Browser saving and screenshots
+cannot be prevented by a preview-only UI.
+
 Owner membership management now includes Auditor invitations and grants under
 Account settings. `/api/auditor-access` and `/api/auditor-invitations` require
 MEMBER_MANAGE and an active owner; the public demo rejects them. Invites require

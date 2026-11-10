@@ -147,6 +147,7 @@ export function ExpenseDetailPage() {
         recordType="EXPENSE"
         recordId={expense.id}
         canManage={user?.role === 'OWNER'}
+        canDownload={user?.role === 'OWNER' || user?.role === 'ACCOUNTANT'}
         localOnly={configuration?.environment === 'demo'}
       />
     </section>

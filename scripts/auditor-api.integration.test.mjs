@@ -118,6 +118,50 @@ beforeEach(() => {
 afterEach(() => db.close());
 
 describe('HTTP auditor authorization and SQL visibility', () => {
+  it('returns only displayable auditor grants on the normal session endpoint', async () => {
+    scope('BUSINESS', business, '2026-04-01', '2027-03-31');
+    const response = await request('/api/auth/me');
+    expect(response.status, await response.clone().text()).toBe(200);
+    const { user } = await response.json();
+    expect(user.role).toBe('AUDITOR');
+    expect(user.access.accessExpiresAt).toBe('2099-01-01T00:00:00.000Z');
+    expect(user.access.scopes).toEqual([
+      {
+        scopeType: 'BUSINESS',
+        label: db
+          .prepare('SELECT name FROM businesses WHERE id=?')
+          .get(business).name,
+        dateFrom: '2026-04-01',
+        dateTo: '2027-03-31',
+      },
+    ]);
+    expect(user).not.toHaveProperty('authorization');
+    expect(JSON.stringify(user.access)).not.toContain('businessAccountId');
+  });
+
+  it('narrows business audit history including legacy parent-attributed events', async () => {
+    for (const [id, parent] of [
+      ['ui-visible', expense],
+      ['ui-other', otherExpense],
+    ])
+      db.prepare(
+        `INSERT INTO audit_log (id,business_account_id,user_id,action,entity_type,entity_id,summary,created_at) VALUES (?,?,'dev-owner','UI_FIXTURE','EXPENSE',?,'UI synthetic event','2026-09-01T00:00:00.000Z')`,
+      ).run(id, account, parent);
+    scope('ACCOUNT', null);
+    const response = await request(
+      `/api/audit-log?businessId=${business}&action=UI_FIXTURE`,
+    );
+    expect(response.status, await response.clone().text()).toBe(200);
+    expect(
+      (await response.json()).auditEvents.map((event) => event.id),
+    ).toEqual(['ui-visible']);
+    scope('BUSINESS', business);
+    const hidden = await request(
+      `/api/audit-log?businessId=${otherBusiness}&action=UI_FIXTURE`,
+    );
+    expect(hidden.status).toBe(200);
+    expect((await hidden.json()).auditEvents).toEqual([]);
+  });
   it('scopes directory summaries, legacy and business lists, and direct-ID routes', async () => {
     const directory = await request('/api/businesses');
     expect(directory.status).toBe(200);

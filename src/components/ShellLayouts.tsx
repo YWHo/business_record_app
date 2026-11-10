@@ -18,6 +18,12 @@ const accountNavigation: ShellNavigationItem[] = [
 
 export function AccountShell() {
   const { configuration, user } = useAuth();
+  const auditor = user?.role === 'AUDITOR';
+  const navigation = auditor
+    ? accountNavigation
+        .filter((item) => item.to !== '/app/accountant')
+        .concat({ to: '/app/audit-trail', label: 'Audit trail', icon: '✓' })
+    : accountNavigation;
   const settings =
     user?.role === 'OWNER' && !configuration?.demoHelper
       ? [
@@ -32,12 +38,16 @@ export function AccountShell() {
   return (
     <AppShell
       contextLabel="Account"
-      navigation={accountNavigation}
+      navigation={navigation}
       secondaryNavigation={settings}
       mobileNavigation={[
         { ...accountNavigation[0], label: 'Home' },
-        accountNavigation[1],
-        { ...accountNavigation[2], label: 'Transactions' },
+        auditor
+          ? { ...accountNavigation[2], label: 'Transactions' }
+          : accountNavigation[1],
+        auditor
+          ? accountNavigation[3]
+          : { ...accountNavigation[2], label: 'Transactions' },
         { to: '/app/more', label: 'More', icon: '•••' },
       ]}
     />
@@ -46,6 +56,7 @@ export function AccountShell() {
 
 export function BusinessShell() {
   const { configuration, user } = useAuth();
+  const auditor = user?.role === 'AUDITOR';
   const { businessId = '' } = useParams();
   const { businesses, error, loading, reload } = useBusinessDirectory();
   const location = useLocation();
@@ -92,6 +103,15 @@ export function BusinessShell() {
     },
     { to: `${base}/governance`, label: 'Governance', icon: '✓' },
   ];
+  if (auditor) {
+    navigation[0] = { ...navigation[0], label: 'Overview' };
+    navigation.push({
+      to: `${base}/audit-trail`,
+      label: 'Audit trail',
+      icon: '✓',
+    });
+    settings.length = 0;
+  }
   const switchBusiness = (nextBusinessId: string) => {
     if (!nextBusinessId || nextBusinessId === business.id) return;
     const currentSuffix = location.pathname.slice(base.length);

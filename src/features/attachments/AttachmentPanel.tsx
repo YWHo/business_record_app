@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, apiRequest } from '../auth/AuthContext';
+import { EvidencePreview } from './EvidencePreview';
 
 type RecordType = 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
 type Rotation = 0 | 90 | 180 | 270;
@@ -13,7 +14,8 @@ interface Attachment {
   versionNumber: number;
   isCurrent: boolean;
   displayRotationDegrees: Rotation;
-  downloadUrl: string;
+  downloadUrl: string | null;
+  previewUrl?: string;
 }
 
 const acceptedDocuments = 'image/jpeg,image/png,image/webp,application/pdf';
@@ -24,12 +26,14 @@ export function AttachmentPanel({
   canManage,
   uploadsEnabled = true,
   localOnly = false,
+  canDownload = true,
 }: {
   recordType: RecordType;
   recordId: string;
   canManage: boolean;
   uploadsEnabled?: boolean;
   localOnly?: boolean;
+  canDownload?: boolean;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -168,7 +172,7 @@ export function AttachmentPanel({
             key={attachment.id}
           >
             <div>
-              <a href={attachment.downloadUrl}>{attachment.originalFilename}</a>
+              <EvidencePreview file={attachment} canDownload={canDownload} />
               <small>
                 Version {attachment.versionNumber} ·{' '}
                 {(attachment.fileSize / 1024).toLocaleString('en-NZ', {

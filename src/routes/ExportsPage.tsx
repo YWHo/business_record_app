@@ -4,6 +4,7 @@ import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { hasPermission } from '../lib/permissions';
 import { ExportDownloadLink } from '../features/exports/ExportDownloadLink';
 import { useParams } from 'react-router-dom';
+import { ReadOnlyReportsPage } from './ReadOnlyReportsPage';
 
 interface ExportHistory {
   id: string;
@@ -19,6 +20,15 @@ interface ExportStatus {
 }
 
 export function ExportsPage() {
+  const { user } = useAuth();
+  return user?.role === 'AUDITOR' ? (
+    <ReadOnlyReportsPage />
+  ) : (
+    <ExportWorkspace />
+  );
+}
+
+function ExportWorkspace() {
   const { configuration, user } = useAuth();
   const archive = hasPermission(user, 'ARCHIVE_EXPORT');
   const { businessId } = useParams();

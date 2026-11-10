@@ -129,7 +129,51 @@ export async function currentUser(
   env: Env,
 ): Promise<Response> {
   const user = await requireUser(request, env);
-  return json({ user });
+  const context = user.authorization;
+  if (user.role !== 'AUDITOR' || !context) return json({ user });
+  const scopes = await Promise.all(
+    context.scopes.map(async (scope) => {
+      const target =
+        scope.scopeType === 'ACCOUNT'
+          ? null
+          : await env.DB.prepare(
+              scope.scopeType === 'BUSINESS'
+                ? 'SELECT name AS label FROM businesses WHERE id=? AND business_account_id=?'
+                : 'SELECT COALESCE(legal_name,trading_name) AS label FROM business_entities WHERE id=? AND business_account_id=?',
+            )
+              .bind(
+                scope.businessId ?? scope.legalEntityId,
+                user.businessAccountId,
+              )
+              .first<{ label: string | null }>();
+      return {
+        scopeType: scope.scopeType,
+        label:
+          scope.scopeType === 'ACCOUNT'
+            ? 'Whole account'
+            : (target?.label ??
+              (scope.scopeType === 'BUSINESS'
+                ? 'Selected business'
+                : 'Selected legal entity')),
+        dateFrom: scope.dateFrom,
+        dateTo: scope.dateTo,
+      };
+    }),
+  );
+  return json({
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      businessAccountId: user.businessAccountId,
+      access: {
+        accessStartsAt: context.accessStartsAt,
+        accessExpiresAt: context.accessExpiresAt,
+        scopes,
+      },
+    },
+  });
 }
 
 export async function logout(request: Request, env: Env): Promise<Response> {

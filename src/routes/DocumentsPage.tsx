@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { apiRequest } from '../features/auth/AuthContext';
+import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { hasPermission } from '../lib/permissions';
+import { EvidencePreview } from '../features/attachments/EvidencePreview';
 
 interface BusinessDocument {
   id: string;
@@ -14,7 +16,8 @@ interface BusinessDocument {
   recordLabel: string;
   recordDate: string;
   recordStatus: string;
-  downloadUrl: string;
+  downloadUrl: string | null;
+  previewUrl?: string;
 }
 
 interface MissingDocumentRecord {
@@ -48,6 +51,7 @@ function recordPath(
 }
 
 export function DocumentsPage() {
+  const { user } = useAuth();
   const { businessId = '' } = useParams();
   const [view, setView] = useState<'FILES' | 'MISSING'>('FILES');
   const [documents, setDocuments] = useState<BusinessDocument[]>([]);
@@ -151,9 +155,10 @@ export function DocumentsPage() {
               {documents.map((document) => (
                 <tr key={document.id}>
                   <td data-label="File">
-                    <a href={document.downloadUrl}>
-                      {document.originalFilename}
-                    </a>
+                    <EvidencePreview
+                      file={document}
+                      canDownload={hasPermission(user, 'ATTACHMENT_DOWNLOAD')}
+                    />
                     <small>{document.mimeType}</small>
                   </td>
                   <td data-label="Record">

@@ -302,3 +302,55 @@ export const MobileBottomNavigation: Story = {
     </div>
   ),
 };
+
+const auditorNavigation = [
+  { to: '/overview', label: 'Overview', icon: '⌂' },
+  { to: '/transactions', label: 'Transactions', icon: '▤' },
+  { to: '/expenses', label: 'Expenses', icon: '▣' },
+  { to: '/income', label: 'Income', icon: '$' },
+  { to: '/documents', label: 'Documents', icon: '▧' },
+  { to: '/reports', label: 'Reports', icon: '▥' },
+  { to: '/audit-trail', label: 'Audit trail', icon: '✓' },
+];
+export const AuditorWorkspace: Story = {
+  globals: { viewport: { value: 'desktop', isRotated: false } },
+  render: () => (
+    <AppShellPresentation
+      contextLabel="Uber Eats"
+      userEmail="auditor@example.invalid"
+      onLogout={() => undefined}
+      auditor
+      auditorAccess={{
+        accessStartsAt: null,
+        accessExpiresAt: '2028-06-30T11:59:00.000Z',
+        scopes: [
+          {
+            scopeType: 'BUSINESS',
+            label: 'Uber Eats',
+            dateFrom: '2026-04-01',
+            dateTo: '2027-03-31',
+          },
+        ],
+      }}
+      navigation={auditorNavigation}
+      mobileNavigation={[
+        auditorNavigation[0],
+        auditorNavigation[2],
+        auditorNavigation[3],
+        { to: '/more', label: 'More', icon: '•••' },
+      ]}
+    >
+      <section>
+        <h1>Uber Eats</h1>
+        <p>
+          Inspect records and supporting evidence within your granted scope.
+        </p>
+        <ExpenseTable expenses={expenses} businessId="business-delivery" />
+      </section>
+    </AppShellPresentation>
+  ),
+};
+export const AuditorPhone: Story = {
+  ...AuditorWorkspace,
+  globals: { viewport: { value: 'phonePortrait', isRotated: false } },
+};

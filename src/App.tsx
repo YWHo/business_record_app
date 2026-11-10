@@ -34,6 +34,8 @@ import {
 import { TransactionsPage } from './routes/TransactionsPage';
 import { UserManagementPage } from './routes/UserManagementPage';
 import { AuditorAccessPage } from './routes/AuditorAccessPage';
+import { AuditorRouteGate } from './features/auth/AuditorRouteGate';
+import { AuditTrailPage } from './routes/AuditTrailPage';
 import { VerifyLoginPage } from './routes/VerifyLoginPage';
 import { WorkSessionDetailPage } from './routes/WorkSessionDetailPage';
 import { WorkSessionFormPage } from './routes/WorkSessionFormPage';
@@ -75,124 +77,143 @@ export function App() {
         <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
 
         <Route element={<WorkspaceGate />}>
-          <Route element={<DirectoryLayout />}>
-            <Route path="/app" element={<AccountShell />}>
-              <Route index element={<Navigate to="businesses" replace />} />
-              <Route path="businesses" element={<BusinessesPage />} />
-              <Route path="accountant" element={<AccountantPage />} />
-              <Route path="transactions" element={<TransactionsPage />} />
-              <Route path="reports" element={<ExportsPage />} />
-              <Route path="more" element={<AccountMorePage />} />
-              <Route path="settings/account" element={<UserManagementPage />} />
-              <Route
-                path="settings/account/auditors/new"
-                element={<AuditorAccessPage />}
-              />
-              <Route
-                path="settings/account/auditors/:userId"
-                element={<AuditorAccessPage />}
-              />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-
-            <Route
-              path="/app/businesses/:businessId"
-              element={<BusinessShell />}
-            >
-              <Route index element={<DashboardPage />} />
-              <Route path="transactions" element={<TransactionsPage />} />
-              <Route path="expenses" element={<ExpensesPage />} />
-              <Route
-                path="expenses/new"
-                element={<ExpenseFormPage mode="create" />}
-              />
-              <Route
-                path="expenses/:expenseId"
-                element={<ExpenseDetailPage />}
-              />
-              <Route
-                path="expenses/:expenseId/edit"
-                element={<ExpenseFormPage mode="edit" />}
-              />
-              <Route
-                path="expenses/fuel"
-                element={<LegacyExpenseFilterRedirect type="FUEL" />}
-              />
-              <Route
-                path="expenses/insurance"
-                element={<LegacyExpenseFilterRedirect type="INSURANCE" />}
-              />
-              <Route path="income" element={<IncomeListPage />} />
-              <Route
-                path="income/new"
-                element={<IncomeFormPage mode="create" />}
-              />
-              <Route path="income/:incomeId" element={<IncomeDetailPage />} />
-              <Route
-                path="income/:incomeId/edit"
-                element={<IncomeFormPage mode="edit" />}
-              />
-              <Route path="mileage" element={<MileageListPage />} />
-              <Route
-                path="mileage/new"
-                element={<WorkSessionFormPage mode="create" />}
-              />
-              <Route
-                path="mileage/:sessionId"
-                element={<WorkSessionDetailPage />}
-              />
-              <Route
-                path="mileage/:sessionId/edit"
-                element={<WorkSessionFormPage mode="edit" />}
-              />
-              <Route path="documents" element={<DocumentsPage />} />
-              <Route path="reports" element={<ExportsPage />} />
-              <Route path="more" element={<BusinessMorePage />} />
-              <Route path="settings" element={<BusinessSettingsLayout />}>
-                <Route index element={<Navigate to="details" replace />} />
+          <Route element={<AuditorRouteGate />}>
+            <Route element={<DirectoryLayout />}>
+              <Route path="/app" element={<AccountShell />}>
+                <Route index element={<Navigate to="businesses" replace />} />
+                <Route path="businesses" element={<BusinessesPage />} />
+                <Route path="accountant" element={<AccountantPage />} />
+                <Route path="transactions" element={<TransactionsPage />} />
+                <Route path="reports" element={<ExportsPage />} />
+                <Route path="audit-trail" element={<AuditTrailPage />} />
+                <Route path="more" element={<AccountMorePage />} />
                 <Route
-                  path="details"
-                  element={<BusinessDetailsSettingsPage />}
+                  path="settings/account"
+                  element={<UserManagementPage />}
                 />
                 <Route
-                  path="legal-entity"
-                  element={<LegalEntitySettingsPage />}
+                  path="settings/account/auditors/new"
+                  element={<AuditorAccessPage />}
                 />
                 <Route
-                  path="legal-entity/change"
-                  element={<LegalEntityChangePage />}
+                  path="settings/account/auditors/:userId"
+                  element={<AuditorAccessPage />}
                 />
-                <Route path="activities" element={<ActivitiesSettingsPage />} />
-                <Route path="vehicles" element={<VehiclesSettingsPage />} />
-                <Route path="categories" element={<CategoriesSettingsPage />} />
-                <Route path="clients" element={<ClientsSettingsPage />} />
-                <Route path="members" element={<MembersSettingsPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
-              <Route path="governance" element={<GovernancePage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-          </Route>
 
-          <Route path="/" element={<Navigate to="/app/businesses" replace />} />
-          {[
-            '/records',
-            '/mileage',
-            '/fuel',
-            '/insurance',
-            '/income',
-            '/transactions',
-            '/governance',
-            '/exports',
-            '/setup',
-            '/settings/users',
-          ].map((path) => (
+              <Route
+                path="/app/businesses/:businessId"
+                element={<BusinessShell />}
+              >
+                <Route index element={<DashboardPage />} />
+                <Route path="transactions" element={<TransactionsPage />} />
+                <Route path="expenses" element={<ExpensesPage />} />
+                <Route
+                  path="expenses/new"
+                  element={<ExpenseFormPage mode="create" />}
+                />
+                <Route
+                  path="expenses/:expenseId"
+                  element={<ExpenseDetailPage />}
+                />
+                <Route
+                  path="expenses/:expenseId/edit"
+                  element={<ExpenseFormPage mode="edit" />}
+                />
+                <Route
+                  path="expenses/fuel"
+                  element={<LegacyExpenseFilterRedirect type="FUEL" />}
+                />
+                <Route
+                  path="expenses/insurance"
+                  element={<LegacyExpenseFilterRedirect type="INSURANCE" />}
+                />
+                <Route path="income" element={<IncomeListPage />} />
+                <Route
+                  path="income/new"
+                  element={<IncomeFormPage mode="create" />}
+                />
+                <Route path="income/:incomeId" element={<IncomeDetailPage />} />
+                <Route
+                  path="income/:incomeId/edit"
+                  element={<IncomeFormPage mode="edit" />}
+                />
+                <Route path="mileage" element={<MileageListPage />} />
+                <Route
+                  path="mileage/new"
+                  element={<WorkSessionFormPage mode="create" />}
+                />
+                <Route
+                  path="mileage/:sessionId"
+                  element={<WorkSessionDetailPage />}
+                />
+                <Route
+                  path="mileage/:sessionId/edit"
+                  element={<WorkSessionFormPage mode="edit" />}
+                />
+                <Route path="documents" element={<DocumentsPage />} />
+                <Route path="reports" element={<ExportsPage />} />
+                <Route path="more" element={<BusinessMorePage />} />
+                <Route path="settings" element={<BusinessSettingsLayout />}>
+                  <Route index element={<Navigate to="details" replace />} />
+                  <Route
+                    path="details"
+                    element={<BusinessDetailsSettingsPage />}
+                  />
+                  <Route
+                    path="legal-entity"
+                    element={<LegalEntitySettingsPage />}
+                  />
+                  <Route
+                    path="legal-entity/change"
+                    element={<LegalEntityChangePage />}
+                  />
+                  <Route
+                    path="activities"
+                    element={<ActivitiesSettingsPage />}
+                  />
+                  <Route path="vehicles" element={<VehiclesSettingsPage />} />
+                  <Route
+                    path="categories"
+                    element={<CategoriesSettingsPage />}
+                  />
+                  <Route path="clients" element={<ClientsSettingsPage />} />
+                  <Route path="members" element={<MembersSettingsPage />} />
+                </Route>
+                <Route path="governance" element={<GovernancePage />} />
+                <Route path="audit-trail" element={<AuditTrailPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Route>
+
             <Route
-              key={path}
-              path={path}
+              path="/"
               element={<Navigate to="/app/businesses" replace />}
             />
-          ))}
-          <Route path="*" element={<Navigate to="/app/businesses" replace />} />
+            {[
+              '/records',
+              '/mileage',
+              '/fuel',
+              '/insurance',
+              '/income',
+              '/transactions',
+              '/governance',
+              '/exports',
+              '/setup',
+              '/settings/users',
+            ].map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={<Navigate to="/app/businesses" replace />}
+              />
+            ))}
+            <Route
+              path="*"
+              element={<Navigate to="/app/businesses" replace />}
+            />
+          </Route>
         </Route>
       </Routes>
     </>

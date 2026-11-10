@@ -222,6 +222,7 @@ export function WorkSessionDetailPage() {
         recordType="WORK_SESSION"
         recordId={session.id}
         canManage={user?.role === 'OWNER'}
+        canDownload={user?.role === 'OWNER' || user?.role === 'ACCOUNTANT'}
         localOnly={configuration?.environment === 'demo'}
       />
     </section>

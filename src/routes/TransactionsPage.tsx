@@ -9,6 +9,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
+import { hasPermission } from '../lib/permissions';
 
 type RecordType = 'EXPENSE' | 'INCOME';
 interface Transaction {
@@ -204,7 +205,13 @@ function ReviewPanel({
         className="secondary-button"
         onClick={() => void toggle()}
       >
-        {open ? 'Close review' : 'Review and comments'}
+        {open
+          ? role === 'AUDITOR'
+            ? 'Close comments'
+            : 'Close review'
+          : role === 'AUDITOR'
+            ? 'View comments'
+            : 'Review and comments'}
       </button>
       {open ? (
         <div className="review-content">
@@ -213,7 +220,7 @@ function ReviewPanel({
               {error}
             </p>
           ) : null}
-          {role !== 'AUDITOR' && (
+          {hasPermission({ role }, 'REVIEW_UPDATE') && (
             <div className="inline-form">
               <label>
                 Status
@@ -251,7 +258,7 @@ function ReviewPanel({
               <p>No comments yet.</p>
             )}
           </div>
-          {role !== 'AUDITOR' && (
+          {hasPermission({ role }, 'COMMENT_CREATE') && (
             <form
               className="inline-form"
               onSubmit={(event) => void addComment(event)}
@@ -279,6 +286,7 @@ export function TransactionsPage() {
   const location = useLocation();
   const { businesses } = useBusinessDirectory();
   const { configuration, user } = useAuth();
+  const canSaveFilters = hasPermission(user, 'FILTER_MANAGE');
   const businessNames = useMemo(
     () => new Map(businesses.map((business) => [business.id, business.name])),
     [businesses],
@@ -327,12 +335,16 @@ export function TransactionsPage() {
     (key: keyof Filters) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setFilters({ ...filters, [key]: event.target.value });
-  const loadSaved = useCallback(async (filterMode: typeof mode) => {
-    const result = await apiRequest<{ savedFilters: SavedFilter[] }>(
-      `/api/saved-filters?filterType=${filterMode}`,
-    );
-    setSaved(result.savedFilters);
-  }, []);
+  const loadSaved = useCallback(
+    async (filterMode: typeof mode) => {
+      if (!canSaveFilters) return;
+      const result = await apiRequest<{ savedFilters: SavedFilter[] }>(
+        `/api/saved-filters?filterType=${filterMode}`,
+      );
+      setSaved(result.savedFilters);
+    },
+    [canSaveFilters],
+  );
   const search = useCallback(
     async (activeFilters: Filters, activeMode: typeof mode, pageNumber = 1) => {
       const query = new URLSearchParams();
@@ -490,14 +502,18 @@ export function TransactionsPage() {
     <section aria-labelledby="transactions-heading">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">Find and review</span>
+          <span className="eyebrow">
+            {user?.role === 'AUDITOR' ? 'Find and inspect' : 'Find and review'}
+          </span>
           <h1 id="transactions-heading">
             {businessId ? 'Transactions' : 'Transactions and receipts'}
           </h1>
           <p>
-            {businessId
-              ? 'Search this business’s income and expenses and continue the review conversation.'
-              : 'Search income and expenses, find missing evidence, and preserve the review conversation.'}
+            {user?.role === 'AUDITOR'
+              ? 'Search permitted income and expenses, inspect evidence, and read existing comments.'
+              : businessId
+                ? 'Search this business’s income and expenses and continue the review conversation.'
+                : 'Search income and expenses, find missing evidence, and preserve the review conversation.'}
           </p>
         </div>
       </div>
@@ -867,7 +883,7 @@ export function TransactionsPage() {
             </div>
           </form>
         )}
-        {!businessId ? (
+        {!businessId && canSaveFilters ? (
           <form
             className="inline-form saved-filter-form"
             onSubmit={(event) => void saveFilter(event)}
@@ -885,7 +901,7 @@ export function TransactionsPage() {
             <button>Save filter</button>
           </form>
         ) : null}
-        {!businessId ? (
+        {!businessId && canSaveFilters ? (
           <div className="saved-filter-list">
             {saved.map((item) => (
               <div key={item.id}>
@@ -1063,6 +1079,7 @@ export function TransactionsPage() {
                     recordType={record.recordType}
                     recordId={record.id}
                     canManage={user?.role === 'OWNER'}
+                    canDownload={hasPermission(user, 'ATTACHMENT_DOWNLOAD')}
                     localOnly={configuration?.environment === 'demo'}
                   />
                 ) : null}

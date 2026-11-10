@@ -39,13 +39,37 @@ export function AccountMorePage() {
       description: 'Manage users and accountant invitations.',
     });
 
+  if (user?.role === 'AUDITOR')
+    links.splice(
+      0,
+      links.length,
+      {
+        to: '/app/transactions',
+        label: 'Transactions',
+        description: 'Search permitted records and evidence.',
+      },
+      {
+        to: '/app/reports',
+        label: 'Reports',
+        description: 'View source totals within your scope.',
+      },
+      {
+        to: '/app/audit-trail',
+        label: 'Audit trail',
+        description: 'Inspect permitted financial history.',
+      },
+    );
   return (
     <section aria-labelledby="account-more-heading">
       <div className="page-heading">
         <div>
           <span className="eyebrow">Account navigation</span>
           <h1 id="account-more-heading">More</h1>
-          <p>Reports, backups, and account administration.</p>
+          <p>
+            {user?.role === 'AUDITOR'
+              ? 'Read-only records, reports, and history.'
+              : 'Reports, backups, and account administration.'}
+          </p>
         </div>
       </div>
       <MoreLinks links={links} />
@@ -101,13 +125,43 @@ export function BusinessMorePage() {
       description: 'Manage users and accountant invitations.',
     });
 
+  if (user?.role === 'AUDITOR') {
+    const permitted = links
+      .filter(
+        (link) =>
+          !link.to.endsWith('/settings') && !link.to.endsWith('/governance'),
+      )
+      .map((link) =>
+        link.to.endsWith('/reports')
+          ? {
+              ...link,
+              label: 'Reports',
+              description: 'View source totals within your scope.',
+            }
+          : link.to.endsWith('/transactions')
+            ? {
+                ...link,
+                description: 'Search permitted records and read comments.',
+              }
+            : link,
+      );
+    links.splice(0, links.length, ...permitted, {
+      to: `${base}/audit-trail`,
+      label: 'Audit trail',
+      description: 'Inspect this business’s permitted financial history.',
+    });
+  }
   return (
     <section aria-labelledby="business-more-heading">
       <div className="page-heading">
         <div>
           <span className="eyebrow">Business navigation</span>
           <h1 id="business-more-heading">More</h1>
-          <p>Records, reports, settings, and account destinations.</p>
+          <p>
+            {user?.role === 'AUDITOR'
+              ? 'Read-only records, evidence, reports, and history.'
+              : 'Records, reports, settings, and account destinations.'}
+          </p>
         </div>
       </div>
       <MoreLinks links={links} />

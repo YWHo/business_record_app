@@ -125,6 +125,7 @@ export function IncomeDetailPage() {
         recordType="INCOME"
         recordId={record.id}
         canManage={user?.role === 'OWNER'}
+        canDownload={user?.role === 'OWNER' || user?.role === 'ACCOUNTANT'}
         localOnly={configuration?.environment === 'demo'}
       />
     </section>

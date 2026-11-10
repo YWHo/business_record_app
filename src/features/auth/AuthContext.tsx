@@ -14,6 +14,7 @@ import {
   resetDemoData,
 } from '../demo/demoStore';
 import { fetchWithRateLimitRetry } from '../../lib/rateLimitRetry';
+import type { AuditorAccessDetails } from '../../lib/accessPresentation';
 
 export interface AuthUser {
   id: string;
@@ -21,6 +22,7 @@ export interface AuthUser {
   role: 'OWNER' | 'ACCOUNTANT' | 'AUDITOR';
   status: 'ACTIVE' | 'DISABLED';
   businessAccountId?: string;
+  access?: AuditorAccessDetails;
 }
 
 export interface AuthConfiguration {
@@ -34,6 +36,7 @@ export interface AuthConfiguration {
 interface AuthContextValue {
   configuration: AuthConfiguration | null;
   configurationError?: string;
+  accessEnded?: boolean;
   loading: boolean;
   user: AuthUser | null;
   refresh: () => Promise<void>;
@@ -96,15 +99,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [configurationError, setConfigurationError] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [accessEnded, setAccessEnded] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
       const result = await apiRequest<{ user: AuthUser }>('/api/auth/me');
       setUser(result.user);
-    } catch {
+      setAccessEnded(false);
+    } catch (caught) {
+      if (!(caught instanceof ApiError) || ![401, 403].includes(caught.status))
+        throw caught;
       setUser(null);
+      setAccessEnded(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'AUDITOR') return;
+    const expiry = user.access?.accessExpiresAt;
+    const check = () => {
+      if (expiry && Date.now() >= Date.parse(expiry)) {
+        setUser(null);
+        setAccessEnded(true);
+        return;
+      }
+      void refresh().catch(() => undefined);
+    };
+    window.addEventListener('focus', check);
+    const delay = expiry
+      ? Math.max(0, Math.min(Date.parse(expiry) - Date.now() + 100, 2147483647))
+      : 60000;
+    const timer = window.setTimeout(
+      check,
+      Number.isFinite(delay) ? delay : 60000,
+    );
+    return () => {
+      window.removeEventListener('focus', check);
+      window.clearTimeout(timer);
+    };
+  }, [refresh, user?.role, user?.access]);
 
   useEffect(() => {
     let active = true;
@@ -146,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       configuration,
       configurationError,
+      accessEnded,
       loading,
       user,
       refresh,
@@ -155,23 +189,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           { method: 'POST', body: JSON.stringify({ email }) },
         );
         setUser(result.user);
+        setAccessEnded(false);
       },
       demoLogin: (role) => {
         sessionStorage.setItem(demoRoleKey, role);
         setUser(demoUser(role));
+        setAccessEnded(false);
         return Promise.resolve();
       },
       logout: async () => {
         if (publicDemo) sessionStorage.removeItem(demoRoleKey);
         else await apiRequest('/api/auth/logout', { method: 'POST' });
         setUser(null);
+        setAccessEnded(false);
       },
       resetDemo: async () => {
         await resetDemoData();
         window.location.reload();
       },
     }),
-    [configuration, configurationError, loading, refresh, user],
+    [configuration, configurationError, accessEnded, loading, refresh, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

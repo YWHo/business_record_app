@@ -477,8 +477,10 @@ access through owner-managed invitations and normal email sign-in. Auditors can 
 evidence previews, financial audit history, and summary reports. Mutations,
 individual downloads, report exports, archives, and administration are denied
 by default. Owners manage auditor scopes, access windows, expiry and revocation
-under Account settings. The dedicated read-only auditor navigation is a subsequent
-phase. Apply local migrations with `pnpm db:migrate:local` before using the new
+under Account settings. Auditor navigation shows the granted scope, record dates
+and expiry, with read-only reports, financial audit history and inline evidence
+previews. Search and filters remain available; unavailable mutation and download
+actions are hidden. Apply local migrations with `pnpm db:migrate:local` before using the new
 membership screens; existing showcase data is preserved. See [permission policy](docs/permissions.md).
 
 Open **Exports** to download a monthly period, a configured tax year, or every
