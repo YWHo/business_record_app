@@ -23,6 +23,30 @@ function EditablePage() {
 }
 
 describe('UnsavedChangesGuard', () => {
+  it('prevents unloading only while changes are unsaved and removes the listener on unmount', () => {
+    const router = createMemoryRouter(
+      [{ path: '/edit', element: <EditablePage /> }],
+      { initialEntries: ['/edit'] },
+    );
+    const { unmount } = render(<RouterProvider router={router} />);
+
+    const cleanUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(cleanUnload);
+    expect(cleanUnload.defaultPrevented).toBe(false);
+
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Changed' },
+    });
+    const dirtyUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(dirtyUnload);
+    expect(dirtyUnload.defaultPrevented).toBe(true);
+
+    unmount();
+    const afterUnmount = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(afterUnmount);
+    expect(afterUnmount.defaultPrevented).toBe(false);
+  });
+
   it('keeps focus in the confirmation and lets the user stay or leave', () => {
     const router = createMemoryRouter(
       [

@@ -13,7 +13,6 @@ export function UnsavedChangesGuard({ when }: { when: boolean }) {
         return;
       }
       event.preventDefault();
-      event.returnValue = '';
     },
     { capture: true },
   );
