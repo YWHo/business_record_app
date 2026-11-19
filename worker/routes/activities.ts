@@ -153,7 +153,10 @@ export async function updateActivity(
   )
     .bind(id, owner.businessAccountId)
     .first<ActivityRow>();
-  if (!row) throw new HttpError(404, 'Business activity not found.');
+
+  if (!row) {
+    throw new HttpError(404, 'Business activity not found.');
+  }
 
   const values = activityValues(body, currentValues(row));
   await assertUniqueName(env, owner.businessAccountId, values.name, id);

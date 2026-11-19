@@ -92,9 +92,10 @@ export function BusinessDirectoryProvider({
 
 export function useBusinessDirectory(): BusinessDirectoryValue {
   const context = useContext(BusinessDirectoryContext);
-  if (!context)
+  if (!context) {
     throw new Error(
       'useBusinessDirectory must be used inside BusinessDirectoryProvider.',
     );
+  }
   return context;
 }

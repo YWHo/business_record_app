@@ -6,8 +6,9 @@ export function retainedRecordType(value: unknown): RetainedRecordType {
   if (
     typeof value !== 'string' ||
     !['EXPENSE', 'INCOME', 'WORK_SESSION'].includes(value)
-  )
+  ) {
     throw new HttpError(400, 'Record type is invalid.');
+  }
   return value as RetainedRecordType;
 }
 
@@ -31,8 +32,9 @@ export function retentionSettingsValues(input: Record<string, unknown>) {
       !Number.isInteger(value) ||
       value < min ||
       value > max
-    )
+    ) {
       throw new HttpError(400, `${field} is invalid.`);
+    }
     return value;
   };
   const retentionTaxYears = integer('retentionTaxYears', 7, 100);
@@ -43,8 +45,9 @@ export function retentionSettingsValues(input: Record<string, unknown>) {
   if (
     calendar.getUTCMonth() !== taxYearEndMonth - 1 ||
     calendar.getUTCDate() !== taxYearEndDay
-  )
+  ) {
     throw new HttpError(400, 'Tax year end must be a valid calendar date.');
+  }
   return {
     retentionTaxYears,
     taxYearEndMonth,

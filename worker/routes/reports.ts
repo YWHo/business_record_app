@@ -19,7 +19,9 @@ async function reportRows(request: Request, env: Env) {
   )
     .bind(actor.businessAccountId)
     .first<{ tax_year_end_month: number; tax_year_end_day: number }>();
-  if (!settings) throw new HttpError(503, 'Report settings are unavailable.');
+  if (!settings) {
+    throw new HttpError(503, 'Report settings are unavailable.');
+  }
   const url = new URL(request.url);
   const period = exportPeriod(
     url.searchParams.get('scope') ?? 'FULL',
@@ -69,8 +71,9 @@ async function reportRows(request: Request, env: Env) {
   )
     .bind(...instantValues, ...values)
     .all<ReportRow>();
-  if (result.results.length > 100)
+  if (result.results.length > 100) {
     throw new HttpError(422, 'Narrow the report period or business filter.');
+  }
   const rows = result.results.map((row) => ({
     ...row,
     recorded_total_minor: Number(row.recorded_total_minor),
@@ -99,11 +102,12 @@ export async function viewReport(request: Request, env: Env) {
 }
 
 export async function exportReport(request: Request, env: Env) {
-  if (env.APP_ENV === 'demo')
+  if (env.APP_ENV === 'demo') {
     throw new HttpError(
       403,
       'Report downloads are unavailable in the public demo.',
     );
+  }
   const report = await reportRows(request, env);
   return new Response(
     csvDocument(

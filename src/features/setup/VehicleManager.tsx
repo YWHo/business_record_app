@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
@@ -64,7 +64,7 @@ export function VehicleManager({ canManage }: { canManage: boolean }) {
     );
   }, [load]);
 
-  async function create(event: FormEvent) {
+  const create = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setMessage('');
@@ -81,11 +81,13 @@ export function VehicleManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to add vehicle.',
       );
     }
-  }
+  };
 
-  async function save(event: FormEvent) {
+  const save = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editId) return;
+    if (!editId) {
+      return;
+    }
     setError('');
     setMessage('');
     try {
@@ -101,9 +103,9 @@ export function VehicleManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to update vehicle.',
       );
     }
-  }
+  };
 
-  async function toggle(vehicle: Vehicle) {
+  const toggle = async (vehicle: Vehicle) => {
     setError('');
     setMessage('');
     try {
@@ -118,7 +120,7 @@ export function VehicleManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to update vehicle.',
       );
     }
-  }
+  };
 
   return (
     <section

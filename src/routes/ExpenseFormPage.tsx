@@ -1,3 +1,4 @@
+import { confirmationWarnings } from '../lib/confirmationWarnings';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Link,
@@ -6,7 +7,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { FormError } from '../components/FormError';
-import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
+import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   type BusinessExpense,
@@ -17,6 +18,7 @@ import {
   GeneralExpenseForm,
   ParkingForm,
 } from '../features/expenses/ExpenseForms';
+import { saveExpense } from '../features/expenses/expenseSubmission';
 import {
   emptyExpenseDraft,
   emptyParkingDraft,
@@ -102,6 +104,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [vehicles, setVehicles] = useState<ReferenceOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const [pending, setPending] = useState<{
     submit: (confirmed: string[]) => Promise<void>;
     warnings: Warning[];
@@ -179,25 +182,18 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
     void load();
   }, [load]);
 
-  async function submit(body: object, confirmedWarnings: string[] = []) {
+  const submit = async (body: object, confirmedWarnings: string[] = []) => {
     setError('');
-    const path =
-      mode === 'edit'
-        ? `/api/businesses/${businessId}/expenses/${expenseId}`
-        : `/api/businesses/${businessId}/expenses`;
     try {
-      const result = await apiRequest<Record<string, unknown>>(path, {
-        method: mode === 'edit' ? 'PATCH' : 'POST',
-        body: JSON.stringify({
-          ...body,
-          expenseType,
-          confirmedWarnings,
-        }),
+      const created = await saveExpense({
+        mode,
+        businessId,
+        expenseId,
+        expenseType,
+        body,
+        confirmedWarnings,
       });
       setPending(null);
-      const created = Object.values(result).find(
-        (value) => value && typeof value === 'object' && 'id' in value,
-      ) as { id?: string } | undefined;
       if (
         mode === 'edit' ||
         configuration?.environment === 'demo' ||
@@ -208,12 +204,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
         void navigate(`/app/businesses/${businessId}/expenses/${created.id}`);
       }
     } catch (caught) {
-      const warnings =
-        caught instanceof ApiError &&
-        caught.status === 409 &&
-        Array.isArray(caught.body?.warnings)
-          ? (caught.body.warnings as Warning[])
-          : null;
+      const warnings = confirmationWarnings(caught);
       if (warnings?.length) {
         setPending({
           warnings,
@@ -226,7 +217,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
   const entity = business?.currentLegalEntity;
   const context = entity?.legalName || entity?.tradingName;
@@ -235,7 +226,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
       ? `/app/businesses/${businessId}/expenses/${expenseId}`
       : `/app/businesses/${businessId}/expenses`;
 
-  if (user?.role !== 'OWNER')
+  if (user?.role !== 'OWNER') {
     return (
       <section className="empty-state" role="alert">
         <div>
@@ -247,6 +238,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </div>
       </section>
     );
+  }
 
   return (
     <section aria-labelledby="expense-form-heading">

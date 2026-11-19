@@ -30,9 +30,13 @@ function initials(value: string): string {
 }
 
 function updatedLabel(value: string | null): string {
-  if (!value) return 'No records yet';
+  if (!value) {
+    return 'No records yet';
+  }
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Update date unavailable';
+  if (!Number.isFinite(date.getTime())) {
+    return 'Update date unavailable';
+  }
   return `Updated ${new Intl.DateTimeFormat('en-NZ', {
     day: 'numeric',
     month: 'short',

@@ -129,8 +129,9 @@ function parsedBody(body: BodyInit | null | undefined) {
   }
   if (typeof FormData !== 'undefined' && body instanceof FormData) {
     const result: Record<string, unknown> = {};
-    for (const [key, value] of body.entries())
+    for (const [key, value] of body.entries()) {
       result[key] = value instanceof File ? value.name : value;
+    }
     return result;
   }
   return {};
@@ -144,7 +145,9 @@ function stringValue(value: unknown): string {
 
 function routeBusinessId(pathname: string): string | null {
   const match = pathname.match(/^\/api\/businesses\/([^/]+)(?:\/|$)/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   try {
     return decodeURIComponent(match[1]);
   } catch {
@@ -153,15 +156,22 @@ function routeBusinessId(pathname: string): string | null {
 }
 
 function resourceForPath(pathname: string): string {
-  if (/^\/api\/businesses\/[^/]+$/.test(pathname)) return 'business-details';
+  if (/^\/api\/businesses\/[^/]+$/.test(pathname)) {
+    return 'business-details';
+  }
   const scoped = pathname.match(/^\/api\/businesses\/[^/]+\/(.+)$/);
   if (scoped) {
     const resource = scoped[1].replace(/^\/+|\/+$/g, '');
     const root = resource.split('/')[0];
-    if (root === 'income') return 'income-records';
-    if (root === 'work-sessions' && resource.endsWith('/fuel-workflow'))
+    if (root === 'income') {
+      return 'income-records';
+    }
+    if (root === 'work-sessions' && resource.endsWith('/fuel-workflow')) {
       return 'work-sessions/fuel-workflow';
-    if (['expenses', 'work-sessions'].includes(root)) return root;
+    }
+    if (['expenses', 'work-sessions'].includes(root)) {
+      return root;
+    }
     return resource;
   }
   return pathname.replace(/^\/api\//, '').replace(/^\/+|\/+$/g, '');
@@ -179,11 +189,16 @@ function recordIdFor(
   const explicit = stringValue(
     body.recordId ?? body.id ?? body.incomeId ?? body.expenseId,
   ).trim();
-  if (explicit) return explicit;
-  if (resourceForPath(pathname) === 'business-details')
+  if (explicit) {
+    return explicit;
+  }
+  if (resourceForPath(pathname) === 'business-details') {
     return routeBusinessId(pathname);
+  }
   const segments = pathname.split('/').filter(Boolean);
-  if (segments.at(-1) === 'fuel-workflow') return segments.at(-2) ?? null;
+  if (segments.at(-1) === 'fuel-workflow') {
+    return segments.at(-2) ?? null;
+  }
   return segments.length > 4 ? (segments.at(-1) ?? null) : null;
 }
 
@@ -195,11 +210,15 @@ function businessForOperation(
   const explicit = stringValue(
     body.businessId ?? body.business_id ?? routeBusinessId(pathname),
   ).trim();
-  if (explicit) return explicit;
+  if (explicit) {
+    return explicit;
+  }
   const fromActivity = businessFromActivity(
     body.businessActivityId ?? body.business_activity_id,
   );
-  if (fromActivity) return fromActivity;
+  if (fromActivity) {
+    return fromActivity;
+  }
   return recordId ? (recordScopes.get(recordId)?.businessId ?? null) : null;
 }
 
@@ -214,7 +233,9 @@ function calendarDate(value: string): string | null {
       : null;
   }
   const timestamp = Date.parse(value);
-  if (!Number.isFinite(timestamp)) return null;
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
   const parts = new Intl.DateTimeFormat('en-NZ', {
     timeZone: 'Pacific/Auckland',
     year: 'numeric',
@@ -236,7 +257,9 @@ function effectiveDate(body: Record<string, unknown>): string | null {
     'effectiveFrom',
   ]) {
     const value = stringValue(body[field]);
-    if (value) return calendarDate(value);
+    if (value) {
+      return calendarDate(value);
+    }
   }
   return null;
 }
@@ -249,7 +272,9 @@ function resolveLegalEntity(
 ): string | null {
   const scoped = recordId ? recordScopes.get(recordId) : null;
   const date = effectiveDate(body);
-  if (!date) return scoped?.legalEntityId ?? null;
+  if (!date) {
+    return scoped?.legalEntityId ?? null;
+  }
   const matches = periods.filter(
     (period) =>
       period.businessId === businessId &&
@@ -268,7 +293,9 @@ function normalizeOperation(
   const recordId = recordIdFor(operation.body, pathname);
   const businessId = businessForOperation(pathname, operation.body, recordId);
   const accountScoped = accountScopedResources.has(resource);
-  if (!accountScoped && !businessId) return null;
+  if (!accountScoped && !businessId) {
+    return null;
+  }
   return {
     schemaVersion: demoStorageSchemaVersion,
     id: operation.id,
@@ -305,15 +332,18 @@ function openDatabase(): Promise<IDBDatabase> {
       const operations = database.objectStoreNames.contains(operationStoreName)
         ? transaction.objectStore(operationStoreName)
         : database.createObjectStore(operationStoreName, { keyPath: 'id' });
-      if (!operations.indexNames.contains('by-business'))
+      if (!operations.indexNames.contains('by-business')) {
         operations.createIndex('by-business', 'businessId');
-      if (!operations.indexNames.contains('by-record'))
+      }
+      if (!operations.indexNames.contains('by-record')) {
         operations.createIndex('by-record', 'recordId');
+      }
       const periods = database.objectStoreNames.contains(periodStoreName)
         ? transaction.objectStore(periodStoreName)
         : database.createObjectStore(periodStoreName, { keyPath: 'id' });
-      if (!periods.indexNames.contains('by-business'))
+      if (!periods.indexNames.contains('by-business')) {
         periods.createIndex('by-business', 'businessId');
+      }
       const metadata = database.objectStoreNames.contains(metadataStoreName)
         ? transaction.objectStore(metadataStoreName)
         : database.createObjectStore(metadataStoreName);
@@ -421,7 +451,9 @@ function visit(
     value.forEach((item) => visit(item, update));
     return;
   }
-  if (!value || typeof value !== 'object') return;
+  if (!value || typeof value !== 'object') {
+    return;
+  }
   const object = value as Record<string, unknown>;
   update(object);
   Object.values(object).forEach((item) => visit(item, update));
@@ -431,7 +463,9 @@ function learnRecordScopes(payload: unknown): void {
   visit(payload, (item) => {
     const id = stringValue(item.id);
     const businessId = stringValue(item.businessId ?? item.business_id);
-    if (!id || !businessId) return;
+    if (!id || !businessId) {
+      return;
+    }
     recordScopes.set(id, {
       businessId,
       legalEntityId:
@@ -610,19 +644,23 @@ function applyOperation(
     operation.scope === 'BUSINESS' &&
     requestBusinessId &&
     requestBusinessId !== operation.businessId
-  )
+  ) {
     return;
+  }
   const requestResource = resourceForPath(requestUrl.pathname);
   const isRestore = operation.resource === 'trash/restore';
   const isTrash = operation.resource === 'trash';
   const crossCutting = crossRecordResources.has(operation.resource);
-  if (!crossCutting && requestResource !== operation.resource) return;
+  if (!crossCutting && requestResource !== operation.resource) {
+    return;
+  }
   if (
     ['attachments', 'comments'].includes(operation.resource) &&
     requestResource !== 'documents' &&
     requestUrl.searchParams.get('recordId') !== operation.recordId
-  )
+  ) {
     return;
+  }
   const recordId = operation.recordId ?? operation.id;
   const operationBody =
     operation.resource === 'expenses'
@@ -642,23 +680,27 @@ function applyOperation(
   }
   if (isTrash && requestResource !== 'trash') {
     visit(payload, (item) => {
-      for (const [key, value] of Object.entries(item))
-        if (Array.isArray(value))
+      for (const [key, value] of Object.entries(item)) {
+        if (Array.isArray(value)) {
           item[key] = value.filter((child: unknown) => {
-            if (!child || typeof child !== 'object') return true;
+            if (!child || typeof child !== 'object') {
+              return true;
+            }
             const record = child as Record<string, unknown>;
             return (
               stringValue(record.id) !== recordId ||
               !itemMatchesScope(record, operation)
             );
           });
+        }
+      }
     });
   }
   if (isTrash && operation.method === 'POST' && requestResource === 'trash') {
     const root = payload as Record<string, unknown>;
     const trash = Object.values(root).find(Array.isArray) as
       Array<Record<string, unknown>> | undefined;
-    if (trash && !trash.some((item) => stringValue(item.id) === recordId))
+    if (trash && !trash.some((item) => stringValue(item.id) === recordId)) {
       trash.unshift({
         ...operation.body,
         id: recordId,
@@ -668,33 +710,46 @@ function applyOperation(
         deletedAt: operation.createdAt,
         deleted_at: operation.createdAt,
       });
+    }
   }
   if (operation.method === 'DELETE') {
     visit(payload, (item) => {
-      for (const [key, value] of Object.entries(item))
-        if (Array.isArray(value))
+      for (const [key, value] of Object.entries(item)) {
+        if (Array.isArray(value)) {
           item[key] = value.filter((child: unknown) => {
-            if (!child || typeof child !== 'object') return true;
+            if (!child || typeof child !== 'object') {
+              return true;
+            }
             const record = child as Record<string, unknown>;
             return (
               stringValue(record.id) !== recordId ||
               !itemMatchesScope(record, operation)
             );
           });
+        }
+      }
     });
   }
   visit(payload, (item) => {
-    if (stringValue(item.id) !== recordId || !itemMatchesScope(item, operation))
+    if (
+      stringValue(item.id) !== recordId ||
+      !itemMatchesScope(item, operation)
+    ) {
       return;
-    if (operation.resource === 'record-status')
+    }
+    if (operation.resource === 'record-status') {
       item.status = operation.body.status;
-    else if (isTrash) {
+    } else if (isTrash) {
       item.status = 'TRASHED';
       item.deletedAt = operation.createdAt;
       item.deleted_at = operation.createdAt;
     } else if (isRestore) {
-      if ('deletedAt' in item) item.deletedAt = null;
-      if ('deleted_at' in item) item.deleted_at = null;
+      if ('deletedAt' in item) {
+        item.deletedAt = null;
+      }
+      if ('deleted_at' in item) {
+        item.deleted_at = null;
+      }
     } else if (operation.resource === 'work-sessions/fuel-workflow') {
       Object.assign(item, operationBody, {
         fuelCalculationStatus:
@@ -704,8 +759,9 @@ function applyOperation(
             ? 'EXACT'
             : 'ESTIMATE',
       });
-    } else if (operation.method === 'PUT' || operation.method === 'PATCH')
+    } else if (operation.method === 'PUT' || operation.method === 'PATCH') {
       Object.assign(item, operationBody);
+    }
   });
 
   if (
@@ -715,12 +771,15 @@ function applyOperation(
       !(
         operation.resource === 'attachments' && requestResource === 'documents'
       ))
-  )
+  ) {
     return;
+  }
   const root = payload as Record<string, unknown>;
   const firstArray = Object.values(root).find(Array.isArray) as
     Array<Record<string, unknown>> | undefined;
-  if (!firstArray) return;
+  if (!firstArray) {
+    return;
+  }
   let local: Record<string, unknown> = {
     ...operationBody,
     id: operation.id,
@@ -730,7 +789,7 @@ function applyOperation(
     createdAt: operation.createdAt,
     updatedAt: operation.createdAt,
   };
-  if (operation.resource === 'attachments')
+  if (operation.resource === 'attachments') {
     local = {
       ...local,
       originalFilename: operation.body.file,
@@ -747,10 +806,13 @@ function applyOperation(
       ),
       downloadUrl: '#local-demo-document',
     };
-  if (operation.resource === 'comments')
+  }
+  if (operation.resource === 'comments') {
     local = { ...local, authorEmail: 'browser-local-demo' };
-  if (!firstArray.some((item) => item.id === local.id))
+  }
+  if (!firstArray.some((item) => item.id === local.id)) {
     firstArray.unshift(local);
+  }
 }
 
 export async function applyDemoOverlay<T>(
@@ -772,8 +834,9 @@ export async function applyDemoOverlay<T>(
             later.recordId === operation.recordId &&
             later.businessId === operation.businessId,
         )
-    )
+    ) {
       continue;
+    }
     applyOperation(copy, operation, path);
   }
   const requestPath = new URL(path, origin()).pathname;
@@ -786,7 +849,9 @@ export async function applyDemoOverlay<T>(
     businesses.forEach((business) => {
       const entity = business.currentLegalEntity as
         Record<string, unknown> | null | undefined;
-      if (entity?.id) entities.set(stringValue(entity.id), entity);
+      if (entity?.id) {
+        entities.set(stringValue(entity.id), entity);
+      }
     });
     const localPeriods = await demoBusinessEntityPeriods();
     businesses.forEach((business) => {
@@ -795,9 +860,10 @@ export async function applyDemoOverlay<T>(
           period.businessId === stringValue(business.id) &&
           period.effectiveTo === null,
       );
-      if (current)
+      if (current) {
         business.currentLegalEntity =
           entities.get(current.legalEntityId) ?? null;
+      }
     });
     stored
       .filter((operation) => operation.resource === 'business-details')
@@ -805,7 +871,9 @@ export async function applyDemoOverlay<T>(
         const business = businesses.find(
           (candidate) => stringValue(candidate.id) === operation.businessId,
         );
-        if (business) Object.assign(business, operation.body);
+        if (business) {
+          Object.assign(business, operation.body);
+        }
       });
   }
   const businessId = routeBusinessId(requestPath);
@@ -819,7 +887,9 @@ export async function applyDemoOverlay<T>(
       )
       .forEach((operation) => {
         const business = root.business as Record<string, unknown> | undefined;
-        if (business) Object.assign(business, operation.body);
+        if (business) {
+          Object.assign(business, operation.body);
+        }
       });
     const seededPeriods = Array.isArray(root.operatingPeriods)
       ? (root.operatingPeriods as Array<Record<string, unknown>>)
@@ -827,11 +897,15 @@ export async function applyDemoOverlay<T>(
     const entities = new Map<string, unknown>();
     seededPeriods.forEach((period) => {
       const id = stringValue(period.legalEntityId);
-      if (id && period.legalEntity) entities.set(id, period.legalEntity);
+      if (id && period.legalEntity) {
+        entities.set(id, period.legalEntity);
+      }
     });
     const current = root.currentLegalEntity as
       Record<string, unknown> | null | undefined;
-    if (current?.id) entities.set(stringValue(current.id), current);
+    if (current?.id) {
+      entities.set(stringValue(current.id), current);
+    }
     const localPeriods = await demoBusinessEntityPeriods(businessId);
     root.operatingPeriods = localPeriods.map((period) => ({
       ...period,
@@ -862,17 +936,19 @@ export async function recordDemoMutation(
   const businessId = businessForOperation(pathname, body, recordId);
   const resource = resourceForPath(pathname);
   const accountScoped = accountScopedResources.has(resource);
-  if (!accountScoped && !businessId)
+  if (!accountScoped && !businessId) {
     throw new Error(
       'Choose a business before changing demo records. No data was saved.',
     );
+  }
   if (resource === 'legal-entity-periods') {
     const legalEntityId = stringValue(body.legalEntityId).trim();
     const effectiveFrom = stringValue(body.effectiveFrom).trim();
-    if (!businessId || !legalEntityId || !effectiveFrom)
+    if (!businessId || !legalEntityId || !effectiveFrom) {
       throw new Error(
         'Business, legal entity, and effective date are required.',
       );
+    }
     return {
       localDemo: true,
       operatingPeriods: await changeDemoBusinessLegalEntity({
@@ -903,11 +979,12 @@ export async function recordDemoMutation(
     createdAt: new Date().toISOString(),
   };
   await putOperation(operation);
-  if (operation.businessId)
+  if (operation.businessId) {
     recordScopes.set(operation.recordId ?? operation.id, {
       businessId: operation.businessId,
       legalEntityId: operation.legalEntityId,
     });
+  }
   return {
     localDemo: true,
     record: { id: operation.id, ...operation.body },
@@ -942,18 +1019,23 @@ export async function changeDemoBusinessLegalEntity(input: {
   notes?: string | null;
 }): Promise<DemoBusinessEntityPeriod[]> {
   const effectiveFrom = calendarDate(input.effectiveFrom);
-  if (!effectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom))
+  if (!effectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(input.effectiveFrom)) {
     throw new Error('Effective date must be a valid calendar date.');
+  }
   const periods = await demoBusinessEntityPeriods();
   const current = periods.find(
     (period) =>
       period.businessId === input.businessId && period.effectiveTo === null,
   );
-  if (!current) throw new Error('The demo business has no current period.');
-  if (current.legalEntityId === input.legalEntityId)
+  if (!current) {
+    throw new Error('The demo business has no current period.');
+  }
+  if (current.legalEntityId === input.legalEntityId) {
     throw new Error('Choose a different legal entity.');
-  if (effectiveFrom <= current.effectiveFrom)
+  }
+  if (effectiveFrom <= current.effectiveFrom) {
     throw new Error('The new period must start after the current period.');
+  }
   current.effectiveTo = previousDate(effectiveFrom);
   periods.push({
     id: crypto.randomUUID(),
@@ -1000,8 +1082,9 @@ export async function resetDemoData() {
     const periods = transaction.objectStore(periodStoreName);
     periods.clear();
     defaultDemoBusinessEntityPeriods.forEach((period) => periods.put(period));
-    if (database.objectStoreNames.contains(legacyStoreName))
+    if (database.objectStoreNames.contains(legacyStoreName)) {
       transaction.objectStore(legacyStoreName).put([], legacyOperationsKey);
+    }
     transaction.oncomplete = () => resolve();
     transaction.onerror = () =>
       reject(transaction.error ?? new Error('Unable to reset demo storage.'));

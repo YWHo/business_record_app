@@ -718,23 +718,31 @@ async function authorizeRoute(
   if (
     env.APP_ENV === 'demo' ||
     publicRoutes.has(`${route.method} ${route.pathname}`)
-  )
+  ) {
     return env;
+  }
+
   const permission =
     route.pathname === '/api/auth/me'
       ? 'RECORD_VIEW'
       : handlerPermissions.get(route.handler);
-  if (!permission) throw new HttpError(403, 'This route has no access policy.');
+
+  if (!permission) {
+    throw new HttpError(403, 'This route has no access policy.');
+  }
+
   const actor = await requireUser(request, env);
   const access =
     actor.authorization ?? (await loadAuthorizationContext(env.DB, actor));
   assertPermission(access, permission);
+
   const unrestricted = access.scopes.some(
     (scope) =>
       scope.scopeType === 'ACCOUNT' &&
       scope.dateFrom === null &&
       scope.dateTo === null,
   );
+
   if (
     !unrestricted &&
     [
@@ -750,12 +758,14 @@ async function authorizeRoute(
   ) {
     throw new HttpError(403, 'This action requires account-wide access.');
   }
+
   if (request.method !== 'GET' && !unrestricted && actor.role !== 'AUDITOR') {
     throw new HttpError(
       403,
       'Restricted memberships cannot change account data.',
     );
   }
+
   return {
     ...env,
     REQUEST_USER: actor,
@@ -800,17 +810,26 @@ async function handleRequest(
 
   if (match) {
     const cache = await prepareDemoCache(request, env);
-    if (cache?.response) return cache.response;
+
+    if (cache?.response) {
+      return cache.response;
+    }
+
     const authorizedEnv = await authorizeRoute(request, env, match.route);
+
     const response = await match.route.handler(
       request,
       authorizedEnv,
       match.params,
     );
+
     if (cache) {
       const cacheWrite = cache.store(response.clone());
-      if (context) context.waitUntil(cacheWrite);
-      else await cacheWrite;
+      if (context) {
+        context.waitUntil(cacheWrite);
+      } else {
+        await cacheWrite;
+      }
       return cache.miss(response);
     }
     return response;

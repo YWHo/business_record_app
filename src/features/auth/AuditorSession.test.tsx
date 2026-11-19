@@ -67,11 +67,13 @@ describe('auditor access refresh', () => {
       await waitFor(() =>
         expect(listeners).toHaveBeenCalledWith('focus', expect.any(Function)),
       );
-      if (cause === 'server revocation') ended = true;
-      else
+      if (cause === 'server revocation') {
+        ended = true;
+      } else {
         vi.spyOn(Date, 'now').mockReturnValue(
           Date.parse('2099-01-02T00:00:00.000Z'),
         );
+      }
       await act(async () => {
         fireEvent.focus(window);
         await Promise.resolve();

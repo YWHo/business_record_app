@@ -8,8 +8,9 @@ export const incomeTypeLabels: Record<IncomeType, string> = {
 };
 
 export function incomeTitle(record: IncomeRecord): string {
-  if (record.incomeType === 'PLATFORM')
+  if (record.incomeType === 'PLATFORM') {
     return String(record.details?.providerName || 'Platform payout');
+  }
   if (record.incomeType === 'CONTRACT') {
     const client = String(record.details?.clientName || 'Contract client');
     const invoice = String(record.details?.invoiceNumber || 'Invoice');

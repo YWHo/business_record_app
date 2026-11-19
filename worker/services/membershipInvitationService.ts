@@ -28,14 +28,16 @@ export async function createManagedInvitation(
   role: InviteRole,
   grant?: AuditorGrant,
 ) {
-  if (env.APP_ENV === 'demo')
+  if (env.APP_ENV === 'demo') {
     throw new HttpError(
       403,
       'Member administration is unavailable in the public demo.',
     );
+  }
   const email = normalizeEmail(rawEmail);
-  if (role === 'AUDITOR' && !grant)
+  if (role === 'AUDITOR' && !grant) {
     throw new HttpError(400, 'Auditor grants are required.');
+  }
   const instant = new Date(),
     now = instant.toISOString();
   const id = crypto.randomUUID(),
@@ -68,7 +70,7 @@ export async function createManagedInvitation(
       grant?.note ?? null,
     ),
   ];
-  for (const scope of scopes)
+  for (const scope of scopes) {
     statements.push(
       env.DB.prepare(
         `INSERT INTO invitation_access_scopes
@@ -86,13 +88,15 @@ export async function createManagedInvitation(
         now,
       ),
     );
-  if (env.APP_ENV === 'local')
+  }
+  if (env.APP_ENV === 'local') {
     statements.push(
       env.DB.prepare(
         `INSERT INTO development_outbox
     (id,invitation_id,recipient_email,invitation_url,created_at) VALUES (?,?,?,?,?)`,
       ).bind(crypto.randomUUID(), id, email, invitationUrl, now),
     );
+  }
   statements.push(
     accessAudit(
       env,
@@ -163,11 +167,12 @@ export async function acceptManagedInvitation(
   role: InviteRole;
   businessAccountId: string;
 }> {
-  if (env.APP_ENV === 'demo')
+  if (env.APP_ENV === 'demo') {
     throw new HttpError(
       403,
       'Invitation acceptance is unavailable in the public demo.',
     );
+  }
   const email = normalizeEmail(rawEmail),
     now = new Date().toISOString(),
     tokenHash = await hashToken(token);
@@ -178,15 +183,17 @@ export async function acceptManagedInvitation(
   )
     .bind(tokenHash, email, now, expectedRole ?? null, expectedRole ?? null)
     .first<StoredInvitation>();
-  if (!invitation)
+  if (!invitation) {
     throw new HttpError(400, 'Invitation is invalid or expired.');
+  }
   const existing = await env.DB.prepare(
     'SELECT id,status FROM users WHERE email=?',
   )
     .bind(email)
     .first<{ id: string; status: string }>();
-  if (existing && existing.status !== 'ACTIVE')
+  if (existing && existing.status !== 'ACTIVE') {
     throw new HttpError(400, 'Invitation is invalid or expired.');
+  }
   const userId = existing?.id ?? crypto.randomUUID(),
     accountId = invitation.business_account_id;
   const condition = `EXISTS (SELECT 1 FROM invitations i JOIN business_accounts a ON a.id=i.business_account_id
@@ -197,12 +204,13 @@ export async function acceptManagedInvitation(
     AND NOT EXISTS (SELECT 1 FROM business_account_members WHERE user_id=? AND business_account_id=?)
     AND NOT EXISTS (SELECT 1 FROM users WHERE email=? AND status<>'ACTIVE')`;
   const statements: D1PreparedStatement[] = [];
-  if (!existing)
+  if (!existing) {
     statements.push(
       env.DB.prepare(
         `INSERT INTO users (id,email,role,status,created_at,updated_at) VALUES (?,?,?,'ACTIVE',?,?)`,
       ).bind(userId, email, invitation.role, now, now),
     );
+  }
   statements.push(
     env.DB.prepare(
       `INSERT INTO business_account_members
@@ -211,7 +219,7 @@ export async function acceptManagedInvitation(
     ).bind(userId, now, now, invitation.id, accountId),
   );
   // Legacy accountant insert triggers already create the single ACCOUNT grant.
-  if (invitation.role === 'AUDITOR')
+  if (invitation.role === 'AUDITOR') {
     statements.push(
       env.DB.prepare(
         `INSERT INTO membership_access_scopes
@@ -220,6 +228,7 @@ export async function acceptManagedInvitation(
     WHERE invitation_id=? AND business_account_id=?`,
       ).bind(userId, now, now, invitation.id, accountId),
     );
+  }
   statements.push(
     env.DB.prepare(
       'UPDATE invitations SET accepted_at=?,access_revision=access_revision+1 WHERE id=? AND business_account_id=?',

@@ -22,7 +22,10 @@ export function AuditorAccessPage() {
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    if (!allowed) return;
+    if (!allowed) {
+      return;
+    }
+
     let active = true;
     void Promise.all([
       apiRequest<{ businesses: AccessOption[] }>('/api/businesses'),
@@ -40,7 +43,7 @@ export function AuditorAccessPage() {
         : Promise.resolve(undefined),
     ])
       .then(([businesses, entities, membership]) => {
-        if (active)
+        if (active) {
           setData({
             businesses: businesses.businesses,
             entities: entities.legalEntities.map((entity) => ({
@@ -49,21 +52,30 @@ export function AuditorAccessPage() {
             })),
             member: membership?.member,
           });
+        }
       })
       .catch((caught: unknown) => {
-        if (active)
+        if (active) {
           setError(
             caught instanceof Error
               ? caught.message
               : 'Unable to load auditor access.',
           );
+        }
       });
     return () => {
       active = false;
     };
   }, [allowed, userId]);
-  if (!allowed) return <Navigate to="/app/businesses" replace />;
-  if (saved) return <Navigate to="/app/settings/account" replace />;
+
+  if (!allowed) {
+    return <Navigate to="/app/businesses" replace />;
+  }
+
+  if (saved) {
+    return <Navigate to="/app/settings/account" replace />;
+  }
+
   return (
     <section>
       <div className="page-heading">

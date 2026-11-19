@@ -1,5 +1,5 @@
 import {
-  type FormEvent,
+  type SubmitEvent,
   useCallback,
   useEffect,
   useRef,
@@ -32,9 +32,9 @@ function AuditTrailView() {
     action: '',
   });
   const [applied, setApplied] = useState(filters);
-  const [result, setResult] = useState<AuditResult>(),
-    [error, setError] = useState(''),
-    [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<AuditResult>();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const latestRequest = useRef(0);
   const load = useCallback(
     async (criteria: typeof filters, page: number) => {
@@ -43,35 +43,50 @@ function AuditTrailView() {
       setError('');
       setResult(undefined);
       const query = new URLSearchParams({ page: String(page) });
-      for (const [key, value] of Object.entries(criteria))
-        if (value) query.set(key, value);
-      if (businessId) query.set('businessId', businessId);
+
+      for (const [key, value] of Object.entries(criteria)) {
+        if (value) {
+          query.set(key, value);
+        }
+      }
+
+      if (businessId) {
+        query.set('businessId', businessId);
+      }
+
       try {
         const result = await apiRequest<AuditResult>(`/api/audit-log?${query}`);
-        if (request === latestRequest.current) setResult(result);
+        if (request === latestRequest.current) {
+          setResult(result);
+        }
       } catch (caught) {
-        if (request === latestRequest.current)
+        if (request === latestRequest.current) {
           setError(
             caught instanceof Error
               ? caught.message
               : 'Unable to load audit history.',
           );
+        }
       } finally {
-        if (request === latestRequest.current) setLoading(false);
+        if (request === latestRequest.current) {
+          setLoading(false);
+        }
       }
     },
     [businessId],
   );
+
   useEffect(() => {
     // Synchronize the visible history with the selected business.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load({ dateFrom: '', dateTo: '', action: '' }, 1);
   }, [load]);
-  function submit(event: FormEvent) {
+  const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setApplied(filters);
     void load(filters, 1);
-  }
+  };
+
   return (
     <section>
       <div className="page-heading">

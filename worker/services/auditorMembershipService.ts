@@ -21,12 +21,11 @@ type InviteRow = Omit<AuditorInvitation, 'scopes' | 'note' | 'status'> & {
   acceptedAt: string | null;
   revokedAt: string | null;
 };
-const scopeJson = (
-  table: string,
-  key: string,
-  column: string,
-) => `(SELECT json_group_array(json_object('scopeType',s.scope_type,'businessId',s.business_id,'legalEntityId',s.legal_entity_id,'dateFrom',s.date_from,'dateTo',s.date_to))
+function scopeJson(table: string, key: string, column: string) {
+  return `(SELECT json_group_array(json_object('scopeType',s.scope_type,'businessId',s.business_id,'legalEntityId',s.legal_entity_id,'dateFrom',s.date_from,'dateTo',s.date_to))
   FROM (SELECT * FROM ${table} WHERE business_account_id=t.business_account_id AND ${key}=t.${column} ORDER BY id LIMIT 17) s)`;
+}
+
 const memberSelect = `SELECT t.user_id AS id,u.email,u.status AS userStatus,t.status,
   t.access_starts_at AS accessStartsAt,t.access_expires_at AS accessExpiresAt,t.access_revision AS revision,
   ${scopeJson('membership_access_scopes', 'user_id', 'user_id')} AS scopeJson
@@ -61,7 +60,9 @@ export async function auditorMember(
   const row = await env.DB.prepare(`${memberSelect} AND t.user_id=?`)
     .bind(accountId, userId)
     .first<MemberRow>();
-  if (!row) throw new HttpError(404, 'Auditor membership not found.');
+  if (!row) {
+    throw new HttpError(404, 'Auditor membership not found.');
+  }
   return member(row);
 }
 
@@ -105,11 +106,12 @@ export async function auditorDirectory(env: Env, accountId: string) {
 }
 
 export function accessRevision(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1)
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
     throw new HttpError(
       400,
       'Reload the current access revision before saving.',
     );
+  }
   return value;
 }
 
@@ -122,11 +124,12 @@ export async function updateAuditorMembership(
   restoreAccess: boolean,
 ) {
   const before = await auditorMember(env, owner.businessAccountId, userId);
-  if (restoreAccess && before.userStatus !== 'ACTIVE')
+  if (restoreAccess && before.userStatus !== 'ACTIVE') {
     throw new HttpError(
       400,
       'A disabled identity cannot be restored by changing membership access.',
     );
+  }
   const now = new Date().toISOString(),
     gate = ownerCondition(owner);
   const status = restoreAccess ? 'ACTIVE' : before.status;
@@ -146,7 +149,7 @@ export async function updateAuditorMembership(
       'DELETE FROM membership_access_scopes WHERE business_account_id=? AND user_id=?',
     ).bind(owner.businessAccountId, userId),
   ];
-  for (const scope of grant.scopes)
+  for (const scope of grant.scopes) {
     statements.push(
       env.DB.prepare(
         `INSERT INTO membership_access_scopes
@@ -163,6 +166,7 @@ export async function updateAuditorMembership(
         now,
       ),
     );
+  }
   statements.push(
     env.DB.prepare(
       'DELETE FROM sessions WHERE business_account_id=? AND user_id=?',
@@ -178,16 +182,22 @@ export async function updateAuditorMembership(
     .sort()
     .join('|');
   const actions: string[] = [];
-  if (oldScopes !== newScopes) actions.push('AUDITOR_SCOPE_CHANGED');
+  if (oldScopes !== newScopes) {
+    actions.push('AUDITOR_SCOPE_CHANGED');
+  }
   if (
     before.accessStartsAt !== grant.accessStartsAt ||
     before.accessExpiresAt !== grant.accessExpiresAt
-  )
+  ) {
     actions.push('AUDITOR_EXPIRY_CHANGED');
-  if (restoreAccess && before.status !== 'ACTIVE')
+  }
+  if (restoreAccess && before.status !== 'ACTIVE') {
     actions.push('AUDITOR_REACTIVATED');
-  if (!actions.length) actions.push('AUDITOR_ACCESS_CONFIRMED');
-  for (const action of actions)
+  }
+  if (!actions.length) {
+    actions.push('AUDITOR_ACCESS_CONFIRMED');
+  }
+  for (const action of actions) {
     statements.push(
       accessAudit(
         env,
@@ -200,6 +210,7 @@ export async function updateAuditorMembership(
         now,
       ),
     );
+  }
   await accessBatch(
     env,
     owner.businessAccountId,
@@ -228,8 +239,9 @@ export async function endAuditorAccess(
   if (
     before.status === status ||
     (action === 'EXPIRE' && before.status === 'DISABLED')
-  )
+  ) {
     return before;
+  }
   const now = new Date().toISOString(),
     gate = ownerCondition(owner);
   await accessBatch(
@@ -270,13 +282,18 @@ export async function revokeAuditorInvitation(
   )
     .bind(id, owner.businessAccountId)
     .first<{ accepted_at: string | null; revoked_at: string | null }>();
-  if (!row) throw new HttpError(404, 'Auditor invitation not found.');
-  if (row.accepted_at !== null)
+  if (!row) {
+    throw new HttpError(404, 'Auditor invitation not found.');
+  }
+  if (row.accepted_at !== null) {
     throw new HttpError(
       409,
       'The invitation was accepted. Manage the auditor membership instead.',
     );
-  if (row.revoked_at !== null) return;
+  }
+  if (row.revoked_at !== null) {
+    return;
+  }
   const now = new Date().toISOString(),
     gate = ownerCondition(owner);
   await accessBatch(

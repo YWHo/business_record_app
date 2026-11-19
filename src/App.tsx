@@ -43,13 +43,16 @@ import { WorkSessionFormPage } from './routes/WorkSessionFormPage';
 function WorkspaceGate() {
   const { loading, user } = useAuth();
 
-  if (loading)
+  if (loading) {
     return (
       <main className="auth-page">
         <p role="status">Loading secure workspace…</p>
       </main>
     );
-  if (!user) return <Navigate to="/login" replace />;
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
   return <Outlet />;
 }
 

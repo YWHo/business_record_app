@@ -19,14 +19,18 @@ interface ClientRow {
 }
 const select =
   'SELECT id, name, active, notes, created_at, updated_at FROM clients';
-const serialize = (row: ClientRow) => ({
-  id: row.id,
-  name: row.name,
-  active: row.active === 1,
-  notes: row.notes,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+
+function serialize(row: ClientRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    active: row.active === 1,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 async function unique(
   env: Env,
   businessAccountId: string,
@@ -39,9 +43,11 @@ async function unique(
     )
       .bind(businessAccountId, name, excluded)
       .first()
-  )
+  ) {
     throw new HttpError(409, 'A client with this name already exists.');
+  }
 }
+
 export async function listClients(request: Request, env: Env) {
   const actor = await requireUser(request, env);
   const rows = await env.DB.prepare(
@@ -51,6 +57,7 @@ export async function listClients(request: Request, env: Env) {
     .all<ClientRow>();
   return json({ clients: rows.results.map(serialize) });
 }
+
 export async function createClient(request: Request, env: Env) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
@@ -83,6 +90,7 @@ export async function createClient(request: Request, env: Env) {
   );
   return json({ client: serialize(row) }, { status: 201 });
 }
+
 export async function updateClient(request: Request, env: Env) {
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
@@ -93,7 +101,9 @@ export async function updateClient(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<ClientRow>();
-  if (!row) throw new HttpError(404, 'Client not found.');
+  if (!row) {
+    throw new HttpError(404, 'Client not found.');
+  }
   const name = Object.hasOwn(body, 'name')
     ? expenseText(body.name, 'Client name', 200, true)!
     : row.name;
@@ -101,8 +111,9 @@ export async function updateClient(request: Request, env: Env) {
     ? expenseText(body.notes, 'Notes', 2000)
     : row.notes;
   const active = Object.hasOwn(body, 'active') ? body.active : row.active === 1;
-  if (typeof active !== 'boolean')
+  if (typeof active !== 'boolean') {
     throw new HttpError(400, 'Active must be true or false.');
+  }
   await unique(env, owner.businessAccountId, name, id);
   const now = new Date().toISOString();
   await env.DB.prepare(

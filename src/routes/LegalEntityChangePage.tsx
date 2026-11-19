@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type SubmitEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FormError } from '../components/FormError';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
@@ -71,20 +71,25 @@ export function LegalEntityChangePage() {
       apiRequest<{ legalEntities: LegalEntity[] }>('/api/legal-entities'),
     ])
       .then(([businessDetails, legalEntityResult]) => {
-        if (!active) return;
+        if (!active) {
+          return;
+        }
         setDetails(businessDetails);
         setEntities(legalEntityResult.legalEntities);
       })
       .catch((caught: unknown) => {
-        if (active)
+        if (active) {
           setError(
             caught instanceof Error
               ? caught.message
               : 'Unable to load legal entities.',
           );
+        }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
     return () => {
       active = false;
@@ -103,13 +108,15 @@ export function LegalEntityChangePage() {
   const selectedEntity =
     entities.find((entity) => entity.id === legalEntityId) ?? null;
 
-  function continueFromDetails(event: FormEvent) {
+  const continueFromDetails = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!legalEntityId || !effectiveFrom) return;
+    if (!legalEntityId || !effectiveFrom) {
+      return;
+    }
     setStep(2);
-  }
+  };
 
-  async function confirmChange() {
+  const confirmChange = async () => {
     setSaving(true);
     setError('');
     try {
@@ -130,9 +137,9 @@ export function LegalEntityChangePage() {
       );
       setSaving(false);
     }
-  }
+  };
 
-  if (user?.role !== 'OWNER')
+  if (user?.role !== 'OWNER') {
     return (
       <section className="panel settings-panel" role="alert">
         <h2>Owner access required</h2>
@@ -140,7 +147,11 @@ export function LegalEntityChangePage() {
         <Link to={settingsPath}>Back to legal entity</Link>
       </section>
     );
-  if (loading) return <p role="status">Loading legal entities…</p>;
+  }
+
+  if (loading) {
+    return <p role="status">Loading legal entities…</p>;
+  }
 
   return (
     <section

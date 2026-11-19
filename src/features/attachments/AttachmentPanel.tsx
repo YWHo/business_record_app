@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError, apiRequest } from '../auth/AuthContext';
+import { apiRequest } from '../auth/AuthContext';
 import { EvidencePreview } from './EvidencePreview';
+import { attachmentUploadError, uploadAttachment } from './attachmentUpload';
 
 type RecordType = 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
 type Rotation = 0 | 90 | 180 | 270;
@@ -63,12 +64,14 @@ export function AttachmentPanel({
 
   useEffect(
     () => () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
     },
     [previewUrl],
   );
 
-  function selectFile(nextFile: File | null) {
+  const selectFile = (nextFile: File | null) => {
     setFile(nextFile);
     setPreviewUrl(
       nextFile && typeof URL.createObjectURL === 'function'
@@ -79,64 +82,46 @@ export function AttachmentPanel({
     setWarnings([]);
     setError('');
     setUploadFailed(false);
-  }
+  };
 
-  async function upload(confirmDuplicate = false) {
-    if (!file) return;
-    if (localOnly && file.size > 5 * 1024 * 1024) {
-      setError(
-        'Demo files must be 5 MB or smaller because they stay only in this browser.',
-      );
-      setUploadFailed(true);
+  const upload = async (confirmDuplicate = false) => {
+    if (!file) {
       return;
     }
-    if (!navigator.onLine) {
-      setError(
-        'You are offline. Reconnect, then retry this upload; the selected file will remain here.',
-      );
+    const validationError = attachmentUploadError(file, localOnly);
+    if (validationError) {
+      setError(validationError);
       setUploadFailed(true);
       return;
     }
     setSaving(true);
     setError('');
     setUploadFailed(false);
-    const form = new FormData();
-    form.set('recordType', recordType);
-    form.set('recordId', recordId);
-    form.set('file', file);
-    form.set('displayRotationDegrees', String(rotation));
-    if (replace) form.set('replaceAttachmentId', replace.id);
-    if (confirmDuplicate) form.set('confirmDuplicate', 'true');
     try {
-      await apiRequest('/api/attachments', { method: 'POST', body: form });
+      const duplicateWarnings = await uploadAttachment({
+        recordType,
+        recordId,
+        file,
+        rotation,
+        replaceAttachmentId: replace?.id,
+        confirmDuplicate,
+      });
+      if (duplicateWarnings !== null) {
+        setWarnings(duplicateWarnings);
+        return;
+      }
       selectFile(null);
       setReplace(null);
       await load();
     } catch (caught) {
-      if (
-        caught instanceof ApiError &&
-        caught.status === 409 &&
-        caught.body?.requiresConfirmation === true
-      ) {
-        setWarnings(
-          Array.isArray(caught.body.warnings)
-            ? caught.body.warnings.filter(
-                (item): item is string => typeof item === 'string',
-              )
-            : [],
-        );
-      } else {
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : 'Unable to upload document.',
-        );
-        setUploadFailed(true);
-      }
+      setError(
+        caught instanceof Error ? caught.message : 'Unable to upload document.',
+      );
+      setUploadFailed(true);
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   const isImage = file?.type.startsWith('image/') ?? false;
 

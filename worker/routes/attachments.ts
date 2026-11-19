@@ -56,25 +56,28 @@ const attachmentSelect = `SELECT attachments.id, attachments.record_type,
   attachments.is_current, attachments.display_rotation_degrees,
   users.email AS creator_email
   FROM attachments JOIN users ON users.id = attachments.created_by`;
-const serialize = (row: AttachmentRow, canDownload = true) => ({
-  id: row.id,
-  recordType: row.record_type,
-  recordId: row.record_id,
-  versionGroupId: row.version_group_id,
-  originalFilename: row.original_filename,
-  mimeType: row.mime_type,
-  fileSize: row.file_size,
-  sha256: row.sha256,
-  createdAt: row.created_at,
-  createdByEmail: row.creator_email,
-  versionNumber: row.version_number,
-  isCurrent: row.is_current === 1,
-  displayRotationDegrees: row.display_rotation_degrees,
-  downloadUrl: canDownload
-    ? `/api/attachments/file?id=${encodeURIComponent(row.id)}`
-    : null,
-  previewUrl: `/api/attachments/preview?id=${encodeURIComponent(row.id)}`,
-});
+
+function serialize(row: AttachmentRow, canDownload = true) {
+  return {
+    id: row.id,
+    recordType: row.record_type,
+    recordId: row.record_id,
+    versionGroupId: row.version_group_id,
+    originalFilename: row.original_filename,
+    mimeType: row.mime_type,
+    fileSize: row.file_size,
+    sha256: row.sha256,
+    createdAt: row.created_at,
+    createdByEmail: row.creator_email,
+    versionNumber: row.version_number,
+    isCurrent: row.is_current === 1,
+    displayRotationDegrees: row.display_rotation_degrees,
+    downloadUrl: canDownload
+      ? `/api/attachments/file?id=${encodeURIComponent(row.id)}`
+      : null,
+    previewUrl: `/api/attachments/preview?id=${encodeURIComponent(row.id)}`,
+  };
+}
 
 async function parent(
   env: Env,
@@ -95,7 +98,11 @@ async function parent(
   )
     .bind(recordId, businessAccountId)
     .first<ParentRow>();
-  if (!row) throw new HttpError(404, 'Record not found.');
+
+  if (!row) {
+    throw new HttpError(404, 'Record not found.');
+  }
+
   return row;
 }
 
@@ -106,7 +113,9 @@ export async function listBusinessDocuments(
 ) {
   const actor = await requireUser(request, env);
   const businessId = params.businessId;
-  if (!businessId) throw new HttpError(400, 'Business is required.');
+  if (!businessId) {
+    throw new HttpError(400, 'Business is required.');
+  }
   const business = await requireBusinessAccess(env.DB, actor, businessId);
   const rows = await env.DB.prepare(
     `SELECT attachments.id, attachments.record_type, attachments.record_id,
@@ -171,18 +180,24 @@ export async function listBusinessDocuments(
 
 function queryValue(url: URL, name: string) {
   const value = url.searchParams.get(name)?.trim();
-  if (!value) throw new HttpError(400, `${name} is required.`);
+  if (!value) {
+    throw new HttpError(400, `${name} is required.`);
+  }
   return value;
 }
 
 async function discardRequestBody(request: Request) {
   const reader = request.body?.getReader();
-  if (!reader) return;
+  if (!reader) {
+    return;
+  }
   let received = 0;
   try {
     while (true) {
       const chunk = await reader.read();
-      if (chunk.done) return;
+      if (chunk.done) {
+        return;
+      }
       received += chunk.value.byteLength;
       if (received > 27 * 1024 * 1024) {
         await reader.cancel();
@@ -227,7 +242,9 @@ export async function uploadAttachment(request: Request, env: Env) {
     await discardRequestBody(request);
     throw error;
   }
-  if (actor.role !== 'OWNER') await discardRequestBody(request);
+  if (actor.role !== 'OWNER') {
+    await discardRequestBody(request);
+  }
   requireRole(actor, ['OWNER']);
   await enforceRateLimit(
     request,
@@ -236,30 +253,40 @@ export async function uploadAttachment(request: Request, env: Env) {
     actor.businessAccountId,
   );
   const contentLength = Number(request.headers.get('content-length') ?? 0);
-  if (contentLength > 27 * 1024 * 1024)
+  if (contentLength > 27 * 1024 * 1024) {
     throw new HttpError(413, 'Upload request is too large.');
-  if (!request.headers.get('content-type')?.startsWith('multipart/form-data'))
+  }
+  if (!request.headers.get('content-type')?.startsWith('multipart/form-data')) {
     throw new HttpError(415, 'Upload must use multipart form data.');
+  }
   const form = await request.formData();
   const recordType = attachmentRecordType(form.get('recordType'));
   const recordIdValue = form.get('recordId');
-  if (typeof recordIdValue !== 'string' || !recordIdValue.trim())
+  if (typeof recordIdValue !== 'string' || !recordIdValue.trim()) {
     throw new HttpError(400, 'Record ID is required.');
+  }
   const recordId = recordIdValue.trim();
   const displayRotationDegrees = attachmentRotation(
     form.get('displayRotationDegrees'),
   );
+
   const target = await parent(
     env,
     actor.businessAccountId,
     recordType,
     recordId,
   );
-  if (target.deleted_at)
+
+  if (target.deleted_at) {
     throw new HttpError(409, 'Restore the record before adding documents.');
+  }
+
   const file = form.get('file');
-  if (!(file instanceof File))
+
+  if (!(file instanceof File)) {
     throw new HttpError(400, 'Select a file to upload.');
+  }
+
   const bytes = new Uint8Array(await file.arrayBuffer());
   const validated = validateAttachmentFile(file.name, file.type, bytes);
   const sha256 = await sha256Hex(bytes);
@@ -271,17 +298,20 @@ export async function uploadAttachment(request: Request, env: Env) {
   let versionGroupId: string = crypto.randomUUID();
   let versionNumber = 1;
   let prior: AttachmentRow | null = null;
+
   if (replaceAttachmentId) {
     prior = await env.DB.prepare(
       `${attachmentSelect} WHERE attachments.id = ? AND attachments.business_account_id = ? AND attachments.record_type = ? AND attachments.record_id = ? AND attachments.is_current = 1 AND attachments.purged_at IS NULL`,
     )
       .bind(replaceAttachmentId, actor.businessAccountId, recordType, recordId)
       .first<AttachmentRow>();
-    if (!prior)
+    if (!prior) {
       throw new HttpError(404, 'Current attachment version not found.');
+    }
     versionGroupId = prior.version_group_id;
     versionNumber = prior.version_number + 1;
   }
+
   const duplicates = await env.DB.prepare(
     `${attachmentSelect} WHERE attachments.business_account_id = ? AND attachments.purged_at IS NULL AND (attachments.sha256 = ? OR (attachments.record_type = ? AND attachments.record_id = ? AND attachments.is_current = 1 AND attachments.original_filename = ? COLLATE NOCASE)) ORDER BY attachments.created_at DESC LIMIT 10`,
   )
@@ -293,9 +323,11 @@ export async function uploadAttachment(request: Request, env: Env) {
       validated.originalFilename,
     )
     .all<AttachmentRow>();
+
   const hashDuplicate = duplicates.results.some(
     (item) => item.sha256 === sha256,
   );
+
   const filenameDuplicate = duplicates.results.some(
     (item) =>
       item.id !== prior?.id &&
@@ -305,10 +337,11 @@ export async function uploadAttachment(request: Request, env: Env) {
       item.original_filename.toLocaleLowerCase() ===
         validated.originalFilename.toLocaleLowerCase(),
   );
+
   if (
     (hashDuplicate || filenameDuplicate) &&
     form.get('confirmDuplicate') !== 'true'
-  )
+  ) {
     return json(
       {
         error:
@@ -329,6 +362,8 @@ export async function uploadAttachment(request: Request, env: Env) {
       },
       { status: 409 },
     );
+  }
+
   const id = crypto.randomUUID();
   const objectKey = `business-accounts/${actor.businessAccountId}/attachments/${recordType.toLowerCase()}/${recordId}/${versionGroupId}/v${versionNumber}-${id}`;
   const now = new Date().toISOString();
@@ -377,6 +412,7 @@ export async function uploadAttachment(request: Request, env: Env) {
     await requireDocumentStorage(env).delete(objectKey);
     throw error;
   }
+
   await writeAudit(
     env,
     actor,
@@ -388,13 +424,17 @@ export async function uploadAttachment(request: Request, env: Env) {
       : 'Attachment stored.',
     target.business_activity_id,
   );
+
   const stored = await env.DB.prepare(
     `${attachmentSelect} WHERE attachments.id = ? AND attachments.business_account_id = ?`,
   )
     .bind(id, actor.businessAccountId)
     .first<AttachmentRow>();
-  if (!stored)
+
+  if (!stored) {
     throw new HttpError(500, 'Attachment metadata could not be loaded.');
+  }
+
   return json({ attachment: serialize(stored) }, { status: 201 });
 }
 
@@ -407,7 +447,9 @@ export async function previewAttachment(request: Request, env: Env) {
 }
 
 async function serveAttachment(request: Request, env: Env, inline: boolean) {
-  if (env.APP_ENV === 'demo') requireDocumentStorage(env);
+  if (env.APP_ENV === 'demo') {
+    requireDocumentStorage(env);
+  }
   const actor = await requireUser(request, env);
   const id = queryValue(new URL(request.url), 'id');
   const row = await env.DB.prepare(
@@ -415,10 +457,19 @@ async function serveAttachment(request: Request, env: Env, inline: boolean) {
   )
     .bind(id, actor.businessAccountId)
     .first<AttachmentRow>();
-  if (!row) throw new HttpError(404, 'Attachment not found.');
+
+  if (!row) {
+    throw new HttpError(404, 'Attachment not found.');
+  }
+
   await parent(env, actor.businessAccountId, row.record_type, row.record_id);
-  if (!hasPermission(actor, inline ? 'ATTACHMENT_VIEW' : 'ATTACHMENT_DOWNLOAD'))
+
+  if (
+    !hasPermission(actor, inline ? 'ATTACHMENT_VIEW' : 'ATTACHMENT_DOWNLOAD')
+  ) {
     throw new HttpError(403, 'Evidence access is not permitted.');
+  }
+
   if (
     inline &&
     ![
@@ -434,8 +485,12 @@ async function serveAttachment(request: Request, env: Env, inline: boolean) {
       'Inline preview is unavailable for this file type.',
     );
   }
+
   const object = await requireDocumentStorage(env).get(row.object_key);
-  if (!object) throw new HttpError(404, 'Attachment file is unavailable.');
+  if (!object) {
+    throw new HttpError(404, 'Attachment file is unavailable.');
+  }
+
   const encoded = encodeURIComponent(row.original_filename);
   const headers = new Headers();
   headers.set('content-type', row.mime_type);

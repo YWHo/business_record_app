@@ -80,7 +80,7 @@ const businessRow = {
 describe('business-scoped read routes', () => {
   it('lists account businesses with their current entity and record summary', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses'))
+      if (query.sql.includes('FROM businesses')) {
         return [
           {
             ...businessRow,
@@ -98,6 +98,7 @@ describe('business-scoped read routes', () => {
             work_session_updated_at: '2026-09-09T00:00:00.000Z',
           },
         ];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -139,8 +140,12 @@ describe('business-scoped read routes', () => {
       updated_at: '2027-04-01T00:00:00.000Z',
     };
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.sql.includes('FROM expenses')) return [expenseRow];
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.sql.includes('FROM expenses')) {
+        return [expenseRow];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -171,8 +176,10 @@ describe('business-scoped read routes', () => {
 
   it('loads an expense detail only through account and business scope', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.sql.includes('FROM expenses'))
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.sql.includes('FROM expenses')) {
         return {
           id: 'expense-1',
           business_id: 'business-1',
@@ -192,6 +199,7 @@ describe('business-scoped read routes', () => {
           created_at: '2026-09-20T00:00:00.000Z',
           updated_at: '2026-09-20T00:00:00.000Z',
         };
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -223,7 +231,9 @@ describe('business-scoped read routes', () => {
 
   it('loads an income detail only through account and business scope', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
       if (query.sql.startsWith('SELECT id FROM income_records')) {
         return { id: 'income-1' };
       }
@@ -277,7 +287,9 @@ describe('business-scoped read routes', () => {
 
   it('loads a work-session detail only through account and business scope', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
       if (query.sql.startsWith('SELECT id FROM work_sessions')) {
         return { id: 'session-1' };
       }
@@ -345,10 +357,13 @@ describe('business-scoped read routes', () => {
 
   it('keeps dashboard attention and recent activity inside the authorized business', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.sql.includes('FROM retention_settings'))
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.sql.includes('FROM retention_settings')) {
         return { tax_year_end_month: 3, tax_year_end_day: 31 };
-      if (query.sql.includes('SELECT record_type,status,attachment_count'))
+      }
+      if (query.sql.includes('SELECT record_type,status,attachment_count')) {
         return [
           {
             record_type: 'EXPENSE',
@@ -356,9 +371,11 @@ describe('business-scoped read routes', () => {
             attachment_count: 0,
           },
         ];
-      if (query.sql.includes('payment_status IN'))
+      }
+      if (query.sql.includes('payment_status IN')) {
         return [{ currency: 'NZD', invoice_count: 1, outstanding_minor: 5000 }];
-      if (query.sql.includes('ORDER BY transaction_date DESC,id DESC'))
+      }
+      if (query.sql.includes('ORDER BY transaction_date DESC,id DESC')) {
         return [
           {
             id: 'expense-recent',
@@ -372,7 +389,10 @@ describe('business-scoped read routes', () => {
             status: 'MISSING_INFORMATION',
           },
         ];
-      if (query.operation === 'all') return [];
+      }
+      if (query.operation === 'all') {
+        return [];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -413,8 +433,12 @@ describe('business-scoped read routes', () => {
     ['work sessions', listWorkSessions, 'work_sessions.business_id = ?'],
   ])('authorizes and scopes %s lists', async (_label, handler, predicate) => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.operation === 'all') return [];
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.operation === 'all') {
+        return [];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -437,8 +461,12 @@ describe('business-scoped read routes', () => {
 
   it('binds account and business IDs for the transaction workspace', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.operation === 'all') return [];
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.operation === 'all') {
+        return [];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -463,7 +491,9 @@ describe('business-scoped read routes', () => {
 
   it('scopes account-level review to a legal entity', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.operation === 'all') return [];
+      if (query.operation === 'all') {
+        return [];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -488,8 +518,10 @@ describe('business-scoped read routes', () => {
 
   it('lists current documents only inside the selected business', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.operation === 'all')
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.operation === 'all') {
         return [
           {
             id: 'attachment-1',
@@ -513,6 +545,7 @@ describe('business-scoped read routes', () => {
             record_status: 'NEW',
           },
         ];
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     });
 
@@ -544,7 +577,7 @@ describe('business-scoped read routes', () => {
 describe('business settings routes', () => {
   it('updates details inside the authenticated account and writes scoped audit history', async () => {
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM sessions'))
+      if (query.sql.includes('FROM sessions')) {
         return {
           id: 'owner-1',
           email: 'owner@example.invalid',
@@ -552,10 +585,19 @@ describe('business settings routes', () => {
           status: 'ACTIVE',
           businessAccountId: 'business-account-primary',
         };
-      if (query.sql.startsWith('SELECT id FROM businesses')) return null;
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.sql.includes('UPDATE businesses')) return null;
-      if (query.sql.includes('INSERT INTO audit_log')) return null;
+      }
+      if (query.sql.startsWith('SELECT id FROM businesses')) {
+        return null;
+      }
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.sql.includes('UPDATE businesses')) {
+        return null;
+      }
+      if (query.sql.includes('INSERT INTO audit_log')) {
+        return null;
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     }, 'production');
     const response = await updateBusinessDetails(
@@ -614,7 +656,7 @@ describe('business settings routes', () => {
       notes: null,
     };
     const { env, queries } = fakeEnv((query) => {
-      if (query.sql.includes('FROM sessions'))
+      if (query.sql.includes('FROM sessions')) {
         return {
           id: 'owner-1',
           email: 'owner@example.invalid',
@@ -622,10 +664,14 @@ describe('business settings routes', () => {
           status: 'ACTIVE',
           businessAccountId: 'business-account-primary',
         };
-      if (query.sql.includes('FROM businesses')) return businessRow;
-      if (query.sql.includes('FROM business_entity_periods'))
+      }
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
+      if (query.sql.includes('FROM business_entity_periods')) {
         return [currentPeriod];
-      if (query.sql.includes('FROM business_entities'))
+      }
+      if (query.sql.includes('FROM business_entities')) {
         return {
           id: 'entity-company',
           business_account_id: 'business-account-primary',
@@ -640,12 +686,14 @@ describe('business settings routes', () => {
           created_at: '2026-04-01T00:00:00.000Z',
           updated_at: '2026-04-01T00:00:00.000Z',
         };
+      }
       if (
         query.sql.includes('UPDATE business_entity_periods') ||
         query.sql.includes('INSERT INTO business_entity_periods') ||
         query.sql.includes('INSERT INTO audit_log')
-      )
+      ) {
         return null;
+      }
       throw new Error(`Unexpected query: ${query.sql}`);
     }, 'production');
 
@@ -739,11 +787,15 @@ describe('business-scoped writes', () => {
           businessAccountId: 'business-account-primary',
         };
       }
-      if (query.sql.includes('FROM businesses')) return businessRow;
+      if (query.sql.includes('FROM businesses')) {
+        return businessRow;
+      }
       if (query.sql.includes('FROM business_entity_periods')) {
         return [periodRow];
       }
-      if (query.sql.includes('FROM business_entities')) return legalEntityRow;
+      if (query.sql.includes('FROM business_entities')) {
+        return legalEntityRow;
+      }
       if (query.sql.includes('SELECT active FROM business_activities')) {
         return { active: 1 };
       }
@@ -760,8 +812,12 @@ describe('business-scoped writes', () => {
           tax_year_end_day: 31,
         };
       }
-      if (query.sql.includes('INSERT INTO expenses')) return null;
-      if (query.sql.includes('INSERT INTO audit_log')) return null;
+      if (query.sql.includes('INSERT INTO expenses')) {
+        return null;
+      }
+      if (query.sql.includes('INSERT INTO audit_log')) {
+        return null;
+      }
       if (query.sql.includes('FROM expenses')) {
         return {
           id: 'expense-created',

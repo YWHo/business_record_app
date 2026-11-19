@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type SubmitEvent, useState } from 'react';
 import type {
   ExpenseDraft,
   ParkingDraft,
@@ -166,7 +166,7 @@ export function GeneralExpenseForm({
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
@@ -176,7 +176,7 @@ export function GeneralExpenseForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
   return (
     <form
       className="work-session-form"
@@ -227,7 +227,7 @@ export function ParkingForm({
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
@@ -240,7 +240,7 @@ export function ParkingForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
   return (
     <form
       className="work-session-form"

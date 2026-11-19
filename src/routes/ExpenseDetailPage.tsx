@@ -37,7 +37,7 @@ export function ExpenseDetailPage() {
     void load();
   }, [load]);
 
-  if (error)
+  if (error) {
     return (
       <section className="empty-state" role="alert">
         <div>
@@ -49,8 +49,11 @@ export function ExpenseDetailPage() {
         </div>
       </section>
     );
+  }
 
-  if (!expense) return <p role="status">Loading expense…</p>;
+  if (!expense) {
+    return <p role="status">Loading expense…</p>;
+  }
 
   return (
     <section aria-labelledby="expense-detail-heading">

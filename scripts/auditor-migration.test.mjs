@@ -10,7 +10,9 @@ import {
 import { requireUser } from '../worker/auth/authorization';
 import { acceptAccountantInvitation } from '../worker/services/invitationService';
 
-const read = (name) => readFileSync(new URL(name, import.meta.url), 'utf8');
+function read(name) {
+  return readFileSync(new URL(name, import.meta.url), 'utf8');
+}
 const migrations = readdirSync(
   new URL('../migrations/', import.meta.url),
 ).sort();
@@ -218,7 +220,7 @@ describe('auditor schema populated upgrade', () => {
       'membership_access_scopes_business_idx',
       'membership_access_scopes_entity_idx',
       'invitation_access_scopes_invitation_idx',
-    ])
+    ]) {
       expect(
         db
           .prepare(
@@ -226,6 +228,7 @@ describe('auditor schema populated upgrade', () => {
           )
           .get(name),
       ).toBeDefined();
+    }
     for (const expiry of [null, 'invalid', '2026-02-30T00:00:00.000Z']) {
       expect(() =>
         db
@@ -315,8 +318,9 @@ describe('auditor schema populated upgrade', () => {
         { date_from: 'garbage' },
         { date_to: '2026-02-30' },
         { date_from: '2027-01-01', date_to: '2026-01-01' },
-      ])
+      ]) {
         expect(() => scope(invalid, invitation)).toThrow();
+      }
     }
     expect(() =>
       db.exec("DELETE FROM business_account_members WHERE user_id='auditor'"),

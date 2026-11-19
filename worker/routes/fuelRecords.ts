@@ -168,8 +168,9 @@ async function retentionDate(
   )
     .bind(businessAccountId)
     .first<RetentionSettings>();
-  if (!settings)
+  if (!settings) {
     throw new HttpError(503, 'Retention settings are unavailable.');
+  }
   return calculateRetentionDate(
     occurredAt,
     settings.retention_tax_years,
@@ -256,14 +257,17 @@ export async function createFuelRecord(
     );
   }
   const warningResponse = confirmationRequired(values, input);
-  if (warningResponse) return warningResponse;
+  if (warningResponse) {
+    return warningResponse;
+  }
   const category = await env.DB.prepare(
     "SELECT id FROM expense_categories WHERE business_account_id = ? AND system_key = 'FUEL' AND active = 1",
   )
     .bind(owner.businessAccountId)
     .first<{ id: string }>();
-  if (!category)
+  if (!category) {
     throw new HttpError(503, 'Fuel expense category is unavailable.');
+  }
   if (business) {
     await requireBusinessScopedReference(
       env.DB,
@@ -349,7 +353,9 @@ export async function createFuelRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<FuelRow>();
-  if (!row) throw new HttpError(500, 'Fuel expense could not be loaded.');
+  if (!row) {
+    throw new HttpError(500, 'Fuel expense could not be loaded.');
+  }
   return json({ fuelRecord: serialize(row) }, { status: 201 });
 }
 
@@ -366,11 +372,15 @@ export async function updateFuelRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<FuelRow>();
-  if (!row) throw new HttpError(404, 'Fuel expense not found.');
+  if (!row) {
+    throw new HttpError(404, 'Fuel expense not found.');
+  }
   const values = fuelValues(input, currentValues(row));
   await assertReferences(env, owner.businessAccountId, values, row);
   const warningResponse = confirmationRequired(values, input);
-  if (warningResponse) return warningResponse;
+  if (warningResponse) {
+    return warningResponse;
+  }
   const retentionUntil = await retentionDate(
     env,
     owner.businessAccountId,
@@ -429,6 +439,8 @@ export async function updateFuelRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<FuelRow>();
-  if (!updated) throw new HttpError(500, 'Fuel expense could not be loaded.');
+  if (!updated) {
+    throw new HttpError(500, 'Fuel expense could not be loaded.');
+  }
   return json({ fuelRecord: serialize(updated) });
 }

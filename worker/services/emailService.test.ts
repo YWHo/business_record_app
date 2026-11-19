@@ -9,14 +9,15 @@ const message: EmailMessage = {
   actionUrl: 'https://records.example.invalid/action',
 };
 
-const environment = (overrides: Partial<Env> = {}) =>
-  ({
+function environment(overrides: Partial<Env> = {}) {
+  return {
     APP_ENV: 'production',
     EMAIL_DELIVERY_URL: 'https://relay.example.invalid/send',
     EMAIL_DELIVERY_BEARER_TOKEN: 'relay-secret',
     EMAIL_FROM: 'records@example.invalid',
     ...overrides,
-  }) as Env;
+  } as Env;
+}
 
 afterEach(() => vi.unstubAllGlobals());
 

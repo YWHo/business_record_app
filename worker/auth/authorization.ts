@@ -31,7 +31,10 @@ export async function requireUser(
   request: Request,
   env: Env,
 ): Promise<AuthenticatedUser> {
-  if (env.REQUEST_USER) return env.REQUEST_USER;
+  if (env.REQUEST_USER) {
+    return env.REQUEST_USER;
+  }
+
   if (env.APP_ENV === 'demo') {
     return {
       id: 'demo-readonly-principal',

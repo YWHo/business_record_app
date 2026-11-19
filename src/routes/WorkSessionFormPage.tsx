@@ -1,7 +1,8 @@
+import { confirmationWarnings } from '../lib/confirmationWarnings';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FormError } from '../components/FormError';
-import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
+import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import { WorkSessionForm } from '../features/mileage/WorkSessionForm';
 import {
@@ -59,7 +60,9 @@ export function WorkSessionFormPage({ mode }: { mode: 'create' | 'edit' }) {
           active: item.active,
         })),
       );
-      if (sessionResult) setSession(sessionResult.session);
+      if (sessionResult) {
+        setSession(sessionResult.session);
+      }
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -77,10 +80,10 @@ export function WorkSessionFormPage({ mode }: { mode: 'create' | 'edit' }) {
     void load();
   }, [load]);
 
-  async function submit(
+  const submit = async (
     draft: WorkSessionDraft,
     confirmedWarnings: string[] = [],
-  ) {
+  ) => {
     setError('');
     try {
       const result = await apiRequest<{ session: WorkSession }>(
@@ -96,19 +99,15 @@ export function WorkSessionFormPage({ mode }: { mode: 'create' | 'edit' }) {
         },
       );
       setPending(null);
-      if (mode === 'edit' || configuration?.environment === 'demo')
+      if (mode === 'edit' || configuration?.environment === 'demo') {
         void navigate(`/app/businesses/${businessId}/mileage`);
-      else
+      } else {
         void navigate(
           `/app/businesses/${businessId}/mileage/${result.session.id}`,
         );
+      }
     } catch (caught) {
-      const warnings =
-        caught instanceof ApiError &&
-        caught.status === 409 &&
-        Array.isArray(caught.body?.warnings)
-          ? (caught.body.warnings as Warning[])
-          : null;
+      const warnings = confirmationWarnings(caught);
       if (warnings?.length) {
         setPending({ draft, warnings });
         return;
@@ -120,9 +119,9 @@ export function WorkSessionFormPage({ mode }: { mode: 'create' | 'edit' }) {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
-  if (user?.role !== 'OWNER')
+  if (user?.role !== 'OWNER') {
     return (
       <section className="empty-state" role="alert">
         <div>
@@ -136,6 +135,8 @@ export function WorkSessionFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </div>
       </section>
     );
+  }
+
   const context =
     business?.currentLegalEntity?.legalName ||
     business?.currentLegalEntity?.tradingName;

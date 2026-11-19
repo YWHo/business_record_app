@@ -19,6 +19,7 @@ export function AuditorAccessPanel() {
   const [busy, setBusy] = useState(false);
   const [entities, setEntities] = useState<AccessOption[]>([]);
   const { businesses } = useBusinessDirectory();
+
   const load = useCallback(async () => {
     const [directory, entityResult] = await Promise.all([
       apiRequest<Directory>('/api/auditor-access'),
@@ -38,6 +39,7 @@ export function AuditorAccessPanel() {
       })),
     );
   }, []);
+
   useEffect(() => {
     // Synchronize the owner directory with the server.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -49,7 +51,8 @@ export function AuditorAccessPanel() {
       ),
     );
   }, [load]);
-  async function end(path: string, revision: number) {
+
+  const end = async (path: string, revision: number) => {
     setBusy(true);
     setError('');
     try {
@@ -67,7 +70,8 @@ export function AuditorAccessPanel() {
     } finally {
       setBusy(false);
     }
-  }
+  };
+
   return (
     <section className="panel" aria-labelledby="auditor-access-heading">
       <h2 id="auditor-access-heading">Auditor access</h2>

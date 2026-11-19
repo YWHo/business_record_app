@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
@@ -16,10 +16,12 @@ export function ClientManager({ canManage }: { canManage: boolean }) {
   const [edit, setEdit] = useState<Client | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
   const load = useCallback(async () => {
     const result = await apiRequest<{ clients: Client[] }>('/api/clients');
     setClients(result.clients);
   }, []);
+
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -29,7 +31,8 @@ export function ClientManager({ canManage }: { canManage: boolean }) {
       ),
     );
   }, [load]);
-  async function create(event: FormEvent) {
+
+  const create = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     try {
@@ -46,8 +49,9 @@ export function ClientManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to add client.',
       );
     }
-  }
-  async function update(client: Client, changes: Partial<Client>) {
+  };
+
+  const update = async (client: Client, changes: Partial<Client>) => {
     setError('');
     try {
       await apiRequest('/api/clients', {
@@ -62,7 +66,8 @@ export function ClientManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to update client.',
       );
     }
-  }
+  };
+
   return (
     <section
       className="panel reference-panel"

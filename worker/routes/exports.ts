@@ -38,12 +38,14 @@ interface AttachmentExportRow {
 }
 
 const encoder = new TextEncoder();
-const html = (value: unknown) =>
-  String(value)
+
+function html(value: unknown) {
+  return String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
 
 function dateClause(
   table: string,
@@ -63,7 +65,9 @@ function dateClause(
       };
 }
 
-const columns = (keys: string[]) => keys.map((key) => ({ key }));
+function columns(keys: string[]) {
+  return keys.map((key) => ({ key }));
+}
 
 async function textFile(path: string, contents: string) {
   const bytes = encoder.encode(contents);
@@ -149,8 +153,9 @@ export async function downloadExport(request: Request, env: Env) {
   )
     .bind(actor.businessAccountId)
     .first<RetentionSettingsRow>();
-  if (!settings)
+  if (!settings) {
     throw new HttpError(500, 'Retention settings are unavailable.');
+  }
   const url = new URL(request.url);
   const period = exportPeriod(
     url.searchParams.get('scope'),
@@ -325,8 +330,11 @@ export async function downloadExport(request: Request, env: Env) {
     ...income.results.map((row) => `INCOME:${String(row.id)}`),
     ...sessions.results.map((row) => `WORK_SESSION:${String(row.id)}`),
   ]);
-  if (transactionRows.length + sessions.results.length !== recordKeys.size)
+
+  if (transactionRows.length + sessions.results.length !== recordKeys.size) {
     throw new HttpError(500, 'Export record count verification failed.');
+  }
+
   const incomeIds = new Set(income.results.map((row) => String(row.id)));
   const [
     reconciliations,
@@ -399,27 +407,35 @@ export async function downloadExport(request: Request, env: Env) {
   const attachmentIndex: Array<Record<string, unknown>> = [];
   for (const attachment of attachments) {
     const object = await documents.head(attachment.object_key);
-    if (!object || object.size !== attachment.file_size)
+
+    if (!object || object.size !== attachment.file_size) {
       throw new HttpError(409, 'An expected source attachment is unavailable.');
+    }
+
     if (
       object.customMetadata?.sha256 &&
       object.customMetadata.sha256 !== attachment.sha256
-    )
+    ) {
       throw new HttpError(
         409,
         'A source attachment failed integrity verification.',
       );
+    }
+
     const path = `documents/${attachment.record_type.toLowerCase()}/${attachment.record_id}/${attachment.version_group_id}/v${attachment.version_number}-${safeArchiveName(attachment.original_filename)}`;
     attachmentEntries.push({
       path,
       size: attachment.file_size,
       load: async () => {
         const stored = await documents.get(attachment.object_key);
-        if (!stored)
+        if (!stored) {
           throw new HttpError(500, 'An attachment disappeared during export.');
+        }
+
         const bytes = new Uint8Array(await stored.arrayBuffer());
-        if ((await sha256Hex(bytes)) !== attachment.sha256)
+        if ((await sha256Hex(bytes)) !== attachment.sha256) {
           throw new HttpError(500, 'An attachment changed during export.');
+        }
         return bytes;
       },
     });
@@ -812,11 +828,14 @@ export async function downloadExport(request: Request, env: Env) {
       ...attachmentManifest,
     ],
   };
+
   if (
     manifest.counts.expectedAttachmentCount !==
     manifest.counts.exportedAttachmentCount
-  )
+  ) {
     throw new HttpError(500, 'Export attachment count verification failed.');
+  }
+
   const manifestText = `${JSON.stringify(manifest, null, 2)}\n`;
   const manifestFile = await textFile('manifest.json', manifestText);
   const archiveEntries = [

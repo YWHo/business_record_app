@@ -9,7 +9,9 @@ export function UnsavedChangesGuard({ when }: { when: boolean }) {
 
   useBeforeUnload(
     (event) => {
-      if (!when) return;
+      if (!when) {
+        return;
+      }
       event.preventDefault();
       event.returnValue = '';
     },
@@ -17,25 +19,31 @@ export function UnsavedChangesGuard({ when }: { when: boolean }) {
   );
 
   useEffect(() => {
-    if (blocker.state !== 'blocked') return;
+    if (blocker.state !== 'blocked') {
+      return;
+    }
     previousFocus.current = document.activeElement as HTMLElement | null;
     stayButton.current?.focus();
     return () => previousFocus.current?.focus();
   }, [blocker.state]);
 
-  if (blocker.state !== 'blocked') return null;
-
-  function stay() {
-    blocker.reset?.();
+  if (blocker.state !== 'blocked') {
+    return null;
   }
 
-  function keyDown(event: KeyboardEvent<HTMLDivElement>) {
+  const stay = () => {
+    blocker.reset?.();
+  };
+
+  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       stay();
       return;
     }
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab') {
+      return;
+    }
     if (event.shiftKey && document.activeElement === stayButton.current) {
       event.preventDefault();
       leaveButton.current?.focus();
@@ -46,7 +54,7 @@ export function UnsavedChangesGuard({ when }: { when: boolean }) {
       event.preventDefault();
       stayButton.current?.focus();
     }
-  }
+  };
 
   return (
     <div className="dialog-backdrop" onKeyDown={keyDown}>

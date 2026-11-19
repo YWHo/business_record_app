@@ -8,7 +8,9 @@ const excludedPaths = new Set([
 ]);
 
 export function isDemoCacheableRequest(request: Request): boolean {
-  if (request.method !== 'GET') return false;
+  if (request.method !== 'GET') {
+    return false;
+  }
   const url = new URL(request.url);
   return (
     !url.pathname.startsWith('/api/dev/') && !excludedPaths.has(url.pathname)

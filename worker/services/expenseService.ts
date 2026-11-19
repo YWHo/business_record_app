@@ -38,14 +38,18 @@ export function expenseText(
   required = false,
 ): string | null {
   if (value === undefined || value === null || value === '') {
-    if (required) throw new HttpError(400, `${label} is required.`);
+    if (required) {
+      throw new HttpError(400, `${label} is required.`);
+    }
     return null;
   }
-  if (typeof value !== 'string')
+  if (typeof value !== 'string') {
     throw new HttpError(400, `${label} must be text.`);
+  }
   const normalized = value.trim();
-  if (!normalized && required)
+  if (!normalized && required) {
     throw new HttpError(400, `${label} is required.`);
+  }
   if (normalized.length > maximum) {
     throw new HttpError(
       400,
@@ -70,7 +74,9 @@ export function moneyToMinor(
   nullable = false,
 ): number | null {
   if (value === undefined || value === null || value === '') {
-    if (nullable) return null;
+    if (nullable) {
+      return null;
+    }
     throw new HttpError(400, `${label} is required.`);
   }
   if (typeof value !== 'string' && typeof value !== 'number') {
@@ -106,7 +112,9 @@ function choice<T extends string>(
 }
 
 function optionalInstant(value: unknown, label: string): string | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   return parseInstant(value, label);
 }
 
@@ -117,8 +125,9 @@ export function commonExpenseValues(
   const totalAmountMinor = has(input, 'totalAmount')
     ? moneyToMinor(input.totalAmount, 'Total amount')!
     : (current?.totalAmountMinor ?? -1);
-  if (totalAmountMinor < 0)
+  if (totalAmountMinor < 0) {
     throw new HttpError(400, 'Total amount is required.');
+  }
   const gstAmountMinor = has(input, 'gstAmount')
     ? moneyToMinor(input.gstAmount, 'GST amount', true)
     : (current?.gstAmountMinor ?? null);

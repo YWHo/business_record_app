@@ -1578,3 +1578,21 @@ snapshot comparisons were not run. E2E resets used only the isolated test profil
 development showcase and remote resources were unchanged.
 
 No Phase 8 commit is made; wait for the user's commit and request before Phase 9.
+
+## Component handler refactor
+
+- Replaced deprecated React FormEvent annotations with SubmitEvent<HTMLFormElement>.
+- Converted all 67 component-local function declarations into arrow functions.
+  Component declarations and module-level named helpers use function declarations.
+- Split grouped useState declarations into individual const statements. Added
+  braces to control-flow branches and loops and enforced them with ESLint's
+  curly rule, including single-statement bodies.
+- Extracted attachment upload validation/request handling, auditor access validation,
+  shared save-warning parsing, and expense submission into focused modules.
+  Components retain state updates, pending confirmations, error presentation and
+  navigation. Existing authorization and public-demo boundaries remain intact.
+- Added regression coverage for duplicate-upload confirmation retaining the file
+  and display rotation, and invalid scope dates preserving the auditor-access draft.
+- Validation: 448 tests across 57 files, all thirteen functional browser scenarios,
+  TypeScript, ESLint, application and Storybook builds, formatting and whitespace
+  checks passed. E2E used only isolated test-profile state. No commit was made.

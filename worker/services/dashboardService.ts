@@ -83,8 +83,9 @@ export function platformMetrics(
     metric.sessionCount += 1;
     metric.durationHours += session.durationMinutes / 60;
     metric.distanceKm += session.distanceKm;
-    if (session.grossRevenueMinor === null) metric.revenueComplete = false;
-    else {
+    if (session.grossRevenueMinor === null) {
+      metric.revenueComplete = false;
+    } else {
       metric.revenueSessionCount += 1;
       metric.sessionRevenueMinor =
         (metric.sessionRevenueMinor ?? 0) + session.grossRevenueMinor;
@@ -95,7 +96,9 @@ export function platformMetrics(
     if (cost.expenseType === 'FUEL') {
       metric.fuelSpendingMinor += cost.totalAmountMinor;
       metric.fuelLitres += cost.fuelLitres ?? 0;
-    } else metric.parkingSpendingMinor += cost.totalAmountMinor;
+    } else {
+      metric.parkingSpendingMinor += cost.totalAmountMinor;
+    }
   }
   return [...groups.values()]
     .map((metric) => {
@@ -104,27 +107,33 @@ export function platformMetrics(
       metric.fuelLitres = Math.round(metric.fuelLitres * 1000) / 1000;
       metric.directOperatingCostMinor =
         metric.fuelSpendingMinor + metric.parkingSpendingMinor;
-      if (!metric.revenueComplete || metric.sessionCount === 0)
+      if (!metric.revenueComplete || metric.sessionCount === 0) {
         metric.sessionRevenueMinor = null;
-      if (metric.sessionRevenueMinor !== null && metric.sessionCount > 0)
+      }
+      if (metric.sessionRevenueMinor !== null && metric.sessionCount > 0) {
         metric.revenuePerSessionMinor = Math.round(
           metric.sessionRevenueMinor / metric.sessionCount,
         );
-      if (metric.sessionRevenueMinor !== null && metric.durationHours > 0)
+      }
+      if (metric.sessionRevenueMinor !== null && metric.durationHours > 0) {
         metric.revenuePerHourMinor = Math.round(
           metric.sessionRevenueMinor / metric.durationHours,
         );
-      if (metric.sessionRevenueMinor !== null && metric.distanceKm > 0)
+      }
+      if (metric.sessionRevenueMinor !== null && metric.distanceKm > 0) {
         metric.revenuePerKmMinor = Math.round(
           metric.sessionRevenueMinor / metric.distanceKm,
         );
-      if (metric.distanceKm > 0)
+      }
+      if (metric.distanceKm > 0) {
         metric.fuelCostPerKmMinor = Math.round(
           metric.fuelSpendingMinor / metric.distanceKm,
         );
-      if (metric.sessionRevenueMinor !== null)
+      }
+      if (metric.sessionRevenueMinor !== null) {
         metric.directOperatingContributionMinor =
           metric.sessionRevenueMinor - metric.directOperatingCostMinor;
+      }
       return metric;
     })
     .sort((a, b) =>

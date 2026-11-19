@@ -29,11 +29,12 @@ function tenantDatabase(
   } as unknown as D1Database;
 }
 
-const request = (url: string, init?: RequestInit) =>
-  new Request(url, {
+function request(url: string, init?: RequestInit) {
+  return new Request(url, {
     ...init,
     headers: { cookie: 'br_session=tenant-test', ...init?.headers },
   });
+}
 
 const actor = {
   id: 'owner-a',
@@ -46,7 +47,9 @@ const actor = {
 describe('business-account route isolation', () => {
   it('binds list reads to the account selected by the active membership', async () => {
     const database = tenantDatabase((query, values) => {
-      if (query.includes('FROM sessions')) return actor;
+      if (query.includes('FROM sessions')) {
+        return actor;
+      }
       expect(query).toContain('WHERE business_account_id = ?');
       expect(values).toEqual(['account-a']);
       return [];
@@ -61,7 +64,9 @@ describe('business-account route isolation', () => {
 
   it('cannot update a record found only in another account', async () => {
     const database = tenantDatabase((query, values) => {
-      if (query.includes('FROM sessions')) return actor;
+      if (query.includes('FROM sessions')) {
+        return actor;
+      }
       expect(query).toContain('id = ? AND business_account_id = ?');
       expect(values).toEqual(['account-b-activity', 'account-a']);
       return null;
@@ -86,7 +91,9 @@ describe('business-account route isolation', () => {
 
   it('cannot download attachment metadata found only in another account', async () => {
     const database = tenantDatabase((query, values) => {
-      if (query.includes('FROM sessions')) return actor;
+      if (query.includes('FROM sessions')) {
+        return actor;
+      }
       expect(query).toContain('attachments.business_account_id = ?');
       expect(values).toEqual(['attachment-from-account-b', 'account-a']);
       return null;
@@ -105,7 +112,9 @@ describe('business-account route isolation', () => {
   it('binds audit, retention, and export-history reads to the active account', async () => {
     const visited = new Set<string>();
     const database = tenantDatabase((query, values) => {
-      if (query.includes('FROM sessions')) return actor;
+      if (query.includes('FROM sessions')) {
+        return actor;
+      }
       expect(values[0]).toBe('account-a');
       if (query.includes('FROM audit_log')) {
         visited.add('audit');
@@ -147,7 +156,9 @@ describe('business-account route isolation', () => {
 
   it('rejects guessed cross-account record and membership mutations', async () => {
     const database = tenantDatabase((query, values) => {
-      if (query.includes('FROM sessions')) return actor;
+      if (query.includes('FROM sessions')) {
+        return actor;
+      }
       if (query.includes('FROM expenses')) {
         expect(values).toEqual(['expense-from-account-b', 'account-a']);
         return null;
@@ -187,7 +198,9 @@ describe('business-account route isolation', () => {
   it('caps account-scoped user and invitation collections', async () => {
     const visited = new Set<string>();
     const database = tenantDatabase((query, values) => {
-      if (query.includes('FROM sessions')) return actor;
+      if (query.includes('FROM sessions')) {
+        return actor;
+      }
       expect(query).toContain('LIMIT 200');
       if (query.includes('FROM business_account_members')) {
         expect(values).toEqual(['account-a']);

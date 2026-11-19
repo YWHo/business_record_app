@@ -89,7 +89,9 @@ export function effectiveBusinessDate(
   if (typeof value !== 'string') {
     throw new HttpError(400, `${label} must be a valid date.`);
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return calendarDate(value, label);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return calendarDate(value, label);
+  }
   if (
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(
       value,
@@ -129,13 +131,18 @@ export async function requireBusinessAccess(
 ): Promise<Business> {
   const id = requiredId(businessId, 'Business');
   const business = await findBusinessById(db, actor.businessAccountId, id);
-  if (!business) throw new HttpError(404, 'Business not found.');
+
+  if (!business) {
+    throw new HttpError(404, 'Business not found.');
+  }
+
   if (options.forWrite && business.status !== 'ACTIVE') {
     throw new HttpError(
       409,
       'This business is inactive and cannot be changed.',
     );
   }
+
   return business;
 }
 
@@ -155,7 +162,9 @@ export async function requireBusinessScopedRecord(
     )
     .bind(actor.businessAccountId, business, record)
     .first();
-  if (!row) throw new HttpError(404, 'Record not found.');
+  if (!row) {
+    throw new HttpError(404, 'Record not found.');
+  }
 }
 
 export async function requireBusinessScopedReference(
@@ -176,7 +185,9 @@ export async function requireBusinessScopedReference(
     )
     .bind(actor.businessAccountId, reference, business)
     .first();
-  if (!row) throw new HttpError(404, 'Reference not found.');
+  if (!row) {
+    throw new HttpError(404, 'Reference not found.');
+  }
 }
 
 export async function resolveLegalEntityForBusinessDate(

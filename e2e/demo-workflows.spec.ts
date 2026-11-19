@@ -28,8 +28,9 @@ const dashboard = {
 async function mockImmutableDemo(page: Page, unsafeRequests: string[]) {
   await page.route('**/api/**', async (route) => {
     const request = route.request();
-    if (!['GET', 'HEAD'].includes(request.method()))
+    if (!['GET', 'HEAD'].includes(request.method())) {
       unsafeRequests.push(`${request.method()} ${request.url()}`);
+    }
     const path = new URL(request.url()).pathname;
     const payload =
       path === '/api/auth/config'

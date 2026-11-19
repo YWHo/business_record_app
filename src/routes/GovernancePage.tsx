@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 
 interface TrashItem {
@@ -56,24 +56,26 @@ const emptyAuditFilters = {
 export function GovernancePage() {
   const { configuration, user } = useAuth();
   const isDemo = configuration?.environment === 'demo';
-  const [trash, setTrash] = useState<TrashItem[]>([]),
-    [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]),
-    [savedFilters, setSavedFilters] = useState<SavedAuditFilter[]>([]),
-    [filterName, setFilterName] = useState(''),
-    [settings, setSettings] = useState<RetentionSettings | null>(null),
-    [filters, setFilters] = useState(emptyAuditFilters),
-    [auditPage, setAuditPage] = useState<PageMetadata>({
-      number: 1,
-      size: 50,
-      hasNext: false,
-    }),
-    [error, setError] = useState(''),
-    [message, setMessage] = useState('');
+  const [trash, setTrash] = useState<TrashItem[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [savedFilters, setSavedFilters] = useState<SavedAuditFilter[]>([]);
+  const [filterName, setFilterName] = useState('');
+  const [settings, setSettings] = useState<RetentionSettings | null>(null);
+  const [filters, setFilters] = useState(emptyAuditFilters);
+  const [auditPage, setAuditPage] = useState<PageMetadata>({
+    number: 1,
+    size: 50,
+    hasNext: false,
+  });
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const loadAudit = useCallback(
     async (criteria: typeof emptyAuditFilters, pageNumber = 1) => {
       const query = new URLSearchParams({ page: String(pageNumber) });
       Object.entries(criteria).forEach(([key, value]) => {
-        if (value) query.set(key, value);
+        if (value) {
+          query.set(key, value);
+        }
       });
       const result = await apiRequest<{
         auditEvents: AuditEvent[];
@@ -120,7 +122,7 @@ export function GovernancePage() {
     );
   }, [load]);
 
-  async function restore(item: TrashItem) {
+  const restore = async (item: TrashItem) => {
     setError('');
     await apiRequest('/api/trash/restore', {
       method: 'POST',
@@ -132,14 +134,16 @@ export function GovernancePage() {
     });
     setMessage('Record restored.');
     await load(filters);
-  }
-  async function purge(item: TrashItem) {
+  };
+
+  const purge = async (item: TrashItem) => {
     if (
       !window.confirm(
         'Permanently delete this record and its documents? This cannot be undone.',
       )
-    )
+    ) {
       return;
+    }
     setError('');
     await apiRequest('/api/trash', {
       method: 'DELETE',
@@ -152,10 +156,13 @@ export function GovernancePage() {
     });
     setMessage('Eligible record permanently purged.');
     await load(filters);
-  }
-  async function saveSettings(event: FormEvent) {
+  };
+
+  const saveSettings = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!settings) return;
+    if (!settings) {
+      return;
+    }
     setError('');
     try {
       const result = await apiRequest<{ retentionSettings: RetentionSettings }>(
@@ -172,8 +179,9 @@ export function GovernancePage() {
           : 'Unable to save retention settings.',
       );
     }
-  }
-  async function saveAuditFilter(event: FormEvent) {
+  };
+
+  const saveAuditFilter = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     await apiRequest('/api/saved-filters', {
       method: 'POST',
@@ -186,19 +194,22 @@ export function GovernancePage() {
     setFilterName('');
     setMessage('Audit filter saved.');
     await load(filters);
-  }
-  async function applyAuditFilter(item: SavedAuditFilter) {
+  };
+
+  const applyAuditFilter = async (item: SavedAuditFilter) => {
     const criteria = { ...emptyAuditFilters, ...item.criteria };
     setFilters(criteria);
     await loadAudit(criteria);
-  }
-  async function removeAuditFilter(id: string) {
+  };
+
+  const removeAuditFilter = async (id: string) => {
     await apiRequest('/api/saved-filters', {
       method: 'DELETE',
       body: JSON.stringify({ id }),
     });
     await load(filters);
-  }
+  };
+
   const numberField =
     (key: keyof RetentionSettings) =>
     (event: React.ChangeEvent<HTMLInputElement>) =>

@@ -23,7 +23,9 @@ const tables = {
 } as const;
 
 function parsedObject(value: string | null): Record<string, unknown> | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   try {
     const parsed: unknown = JSON.parse(value);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
@@ -57,7 +59,9 @@ async function retainedRecord(
   )
     .bind(id, businessAccountId)
     .first<RetainedRow>();
-  if (!record) throw new HttpError(404, 'Record not found.');
+  if (!record) {
+    throw new HttpError(404, 'Record not found.');
+  }
   return record;
 }
 
@@ -90,8 +94,9 @@ export async function listAuditLog(request: Request, env: Env) {
         !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
         Number.isNaN(parsed.valueOf()) ||
         parsed.toISOString().slice(0, 10) !== value
-      )
+      ) {
         throw new HttpError(400, `${parameter} is invalid.`);
+      }
       where.push(`substr(audit_log.created_at,1,10) ${operator} ?`);
       bindings.push(value);
     }
@@ -213,9 +218,12 @@ export async function moveToTrash(request: Request, env: Env) {
     recordType = retainedRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
     record = await retainedRecord(env, actor.businessAccountId, recordType, id);
-  if (record.deleted_at || record.status === 'TRASHED')
+  if (record.deleted_at || record.status === 'TRASHED') {
     throw new HttpError(409, 'Record is already in trash.');
-  if (record.purged_at) throw new HttpError(409, 'Record purge is pending.');
+  }
+  if (record.purged_at) {
+    throw new HttpError(409, 'Record purge is pending.');
+  }
   const now = new Date().toISOString();
   await env.DB.prepare(
     `UPDATE ${tables[recordType]} SET status='TRASHED',deleted_at=?,updated_at=? WHERE id=? AND business_account_id=?`,
@@ -244,10 +252,12 @@ export async function restoreFromTrash(request: Request, env: Env) {
     recordType = retainedRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
     record = await retainedRecord(env, actor.businessAccountId, recordType, id);
-  if (!record.deleted_at || record.status !== 'TRASHED')
+  if (!record.deleted_at || record.status !== 'TRASHED') {
     throw new HttpError(409, 'Only trashed records can be restored.');
-  if (record.purged_at)
+  }
+  if (record.purged_at) {
     throw new HttpError(409, 'A pending purge cannot be restored.');
+  }
   const prior = await env.DB.prepare(
     `SELECT changed_fields_json FROM audit_log WHERE business_account_id=? AND entity_type=? AND entity_id=? AND action='RECORD_TRASHED' ORDER BY created_at DESC,id DESC LIMIT 1`,
   )
@@ -268,8 +278,9 @@ export async function restoreFromTrash(request: Request, env: Env) {
         'PROCESSED',
         'VOIDED',
       ].includes(value)
-    )
+    ) {
       status = value;
+    }
   } catch {
     status = 'NEW';
   }
@@ -292,37 +303,42 @@ export async function restoreFromTrash(request: Request, env: Env) {
 }
 
 export async function purgeFromTrash(request: Request, env: Env) {
-  if (env.APP_ENV === 'demo')
+  if (env.APP_ENV === 'demo') {
     throw new HttpError(
       403,
       'Permanent deletion is unavailable in the public demo.',
     );
+  }
   const actor = await requireUser(request, env);
   requireRole(actor, ['OWNER']);
   const body = await readJsonObject(request),
     recordType = retainedRecordType(body.recordType),
     id = getRequiredString(body, 'recordId'),
     record = await retainedRecord(env, actor.businessAccountId, recordType, id);
-  if (!record.deleted_at || record.status !== 'TRASHED')
+  if (!record.deleted_at || record.status !== 'TRASHED') {
     throw new HttpError(409, 'Only trashed records can be purged.');
-  if (!isPurgeEligible(record.purge_eligible_at))
+  }
+  if (!isPurgeEligible(record.purge_eligible_at)) {
     throw new HttpError(
       409,
       'Retention has not expired; permanent deletion is blocked.',
     );
-  if (body.confirmation !== 'PERMANENTLY DELETE')
+  }
+  if (body.confirmation !== 'PERMANENTLY DELETE') {
     throw new HttpError(
       400,
       'Explicit permanent deletion confirmation is required.',
     );
+  }
   if (recordType === 'EXPENSE') {
     const linked = await env.DB.prepare(
       'SELECT id FROM work_sessions WHERE business_account_id=? AND (starting_fuel_expense_id=? OR ending_fuel_expense_id=?) LIMIT 1',
     )
       .bind(actor.businessAccountId, id, id)
       .first();
-    if (linked)
+    if (linked) {
       throw new HttpError(409, 'A work session still references this expense.');
+    }
   }
   const attachments = await env.DB.prepare(
     'SELECT object_key FROM attachments WHERE business_account_id=? AND record_type=? AND record_id=?',
@@ -351,7 +367,7 @@ export async function purgeFromTrash(request: Request, env: Env) {
       'DELETE FROM attachments WHERE business_account_id=? AND record_type=? AND record_id=?',
     ).bind(actor.businessAccountId, recordType, id),
   ];
-  if (recordType === 'EXPENSE')
+  if (recordType === 'EXPENSE') {
     statements.push(
       env.DB.prepare('DELETE FROM expense_allocations WHERE expense_id=?').bind(
         id,
@@ -366,7 +382,8 @@ export async function purgeFromTrash(request: Request, env: Env) {
         'DELETE FROM insurance_expense_details WHERE expense_id=?',
       ).bind(id),
     );
-  if (recordType === 'INCOME')
+  }
+  if (recordType === 'INCOME') {
     statements.push(
       env.DB.prepare(
         'DELETE FROM income_reconciliations WHERE income_id=?',
@@ -381,6 +398,7 @@ export async function purgeFromTrash(request: Request, env: Env) {
         'DELETE FROM subscription_income_details WHERE income_id=?',
       ).bind(id),
     );
+  }
   statements.push(
     env.DB.prepare(
       `DELETE FROM ${tables[recordType]} WHERE id=? AND business_account_id=?`,
@@ -414,7 +432,9 @@ export async function getRetentionSettings(request: Request, env: Env) {
       backup_reminder_days: number;
       updated_at: string;
     }>();
-  if (!row) throw new HttpError(500, 'Retention settings are unavailable.');
+  if (!row) {
+    throw new HttpError(500, 'Retention settings are unavailable.');
+  }
   return json({
     retentionSettings: {
       retentionTaxYears: row.retention_tax_years,

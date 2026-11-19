@@ -5,18 +5,25 @@ const jitterMs = 500;
 
 function retryAfterMilliseconds(response: Response): number | null {
   const value = response.headers.get('retry-after');
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   const seconds = Number(value);
-  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1_000;
+  }
 
   const date = Date.parse(value);
-  if (!Number.isFinite(date)) return null;
+  if (!Number.isFinite(date)) {
+    return null;
+  }
   return Math.max(0, date - Date.now());
 }
 
-const wait = (milliseconds: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
 
 export async function fetchWithRateLimitRetry(
   input: RequestInfo | URL,
@@ -34,7 +41,9 @@ export async function fetchWithRateLimitRetry(
     const retryAfterMs = retryAfterMilliseconds(response);
     const baseDelay = retryAfterMs ?? defaultDelayMs;
     const delay = baseDelay * 2 ** attempt + Math.random() * jitterMs;
-    if (delay > maximumDelayMs) return response;
+    if (delay > maximumDelayMs) {
+      return response;
+    }
     await response.body?.cancel();
     await wait(delay);
   }

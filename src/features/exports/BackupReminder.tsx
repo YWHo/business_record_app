@@ -15,7 +15,9 @@ export function BackupReminder() {
       .then((result) => setBackup(result.backup))
       .catch(() => setBackup(null));
   }, []);
-  if (!backup) return null;
+  if (!backup) {
+    return null;
+  }
   return <BackupReminderView backup={backup} />;
 }
 

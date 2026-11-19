@@ -8,7 +8,9 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(scriptDirectory, '..');
 const migrationDirectory = path.join(projectDirectory, 'migrations');
 
-const readSql = (filePath) => readFileSync(filePath, 'utf8');
+function readSql(filePath) {
+  return readFileSync(filePath, 'utf8');
+}
 const migrationSql = readdirSync(migrationDirectory)
   .filter((name) => /^\d+.*\.sql$/.test(name))
   .sort()

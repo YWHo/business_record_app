@@ -72,12 +72,15 @@ export function ExpensesPage() {
     );
   });
 
-  function changeType(next: string) {
+  const changeType = (next: string) => {
     const parameters = new URLSearchParams(searchParams);
-    if (next) parameters.set('type', next);
-    else parameters.delete('type');
+    if (next) {
+      parameters.set('type', next);
+    } else {
+      parameters.delete('type');
+    }
     setSearchParams(parameters, { replace: true });
-  }
+  };
 
   return (
     <section aria-labelledby="expenses-heading">

@@ -13,30 +13,37 @@ import {
 } from './accessControlService';
 
 const now = new Date('2026-11-10T00:00:00.000Z');
-const grant = (overrides: Partial<AccessScope> = {}): AccessScope => ({
-  businessAccountId: 'account',
-  userId: 'user',
-  scopeType: 'ACCOUNT',
-  businessId: null,
-  legalEntityId: null,
-  dateFrom: null,
-  dateTo: null,
-  ...overrides,
-});
-const context = (
+
+function grant(overrides: Partial<AccessScope> = {}): AccessScope {
+  return {
+    businessAccountId: 'account',
+    userId: 'user',
+    scopeType: 'ACCOUNT',
+    businessId: null,
+    legalEntityId: null,
+    dateFrom: null,
+    dateTo: null,
+    ...overrides,
+  };
+}
+
+function context(
   overrides: Partial<AuthorizationContext> = {},
-): AuthorizationContext => ({
-  userId: 'user',
-  businessAccountId: 'account',
-  role: 'AUDITOR',
-  membershipStatus: 'ACTIVE',
-  userStatus: 'ACTIVE',
-  accountStatus: 'ACTIVE',
-  accessStartsAt: null,
-  accessExpiresAt: '2027-01-01T00:00:00.000Z',
-  scopes: [grant()],
-  ...overrides,
-});
+): AuthorizationContext {
+  return {
+    userId: 'user',
+    businessAccountId: 'account',
+    role: 'AUDITOR',
+    membershipStatus: 'ACTIVE',
+    userStatus: 'ACTIVE',
+    accountStatus: 'ACTIVE',
+    accessStartsAt: null,
+    accessExpiresAt: '2027-01-01T00:00:00.000Z',
+    scopes: [grant()],
+    ...overrides,
+  };
+}
+
 const record = {
   businessAccountId: 'account',
   businessId: 'business',
@@ -58,6 +65,7 @@ describe('membership access windows', () => {
       false,
     );
   });
+
   it.each([
     { accessStartsAt: 'invalid', accessExpiresAt: null },
     { accessStartsAt: null, accessExpiresAt: '2027-02-30T00:00:00.000Z' },
@@ -70,6 +78,7 @@ describe('membership access windows', () => {
   ])('rejects invalid or inverted windows %j', (window) => {
     expect(isAccessWindowActive(window, now)).toBe(false);
   });
+
   it('allows unbounded legacy access but requires auditor expiry', () => {
     expect(
       hasPermission(
@@ -122,6 +131,7 @@ describe('active role permissions', () => {
       'permission',
     );
   });
+
   it.each([
     { membershipStatus: 'INVITED' },
     { membershipStatus: 'DISABLED' },
@@ -139,6 +149,7 @@ describe('active role permissions', () => {
       recordAccessPredicate(context(overrides), 'EXPENSE', 'e', now),
     ).toEqual({ sql: '0=1', bindings: [] });
   });
+
   it.each([
     { businessAccountId: 'foreign' },
     { userId: 'another' },
@@ -160,6 +171,7 @@ describe('active role permissions', () => {
       ).toBe(false);
     },
   );
+
   it('rejects absent context and returns not-found for an unauthorized record', () => {
     expect(hasPermission(null, 'RECORD_VIEW', now)).toBe(false);
     expect(() =>
@@ -208,6 +220,7 @@ describe('persisted record scopes', () => {
       ),
     ).toBe(true);
   });
+
   it('checks historical entity attribution even for the same business', () => {
     const actor = context({
       scopes: [grant({ scopeType: 'LEGAL_ENTITY', legalEntityId: 'entity' })],
@@ -227,6 +240,7 @@ describe('persisted record scopes', () => {
       canAccessRecord(actor, { ...record, effectiveDate: 'invalid' }, now),
     ).toBe(false);
   });
+
   it('uses Auckland calendar days for timezone-qualified source instants', () => {
     const actor = context({
       scopes: [grant({ dateFrom: '2026-09-27', dateTo: '2026-09-27' })],
@@ -253,6 +267,7 @@ describe('persisted record scopes', () => {
       ),
     ).toBe(false);
   });
+
   it('binds malicious-looking scope IDs as values and rejects SQL alias injection', () => {
     const malicious = "x' OR 1=1 --";
     const actor = context({

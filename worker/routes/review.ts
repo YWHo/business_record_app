@@ -88,23 +88,30 @@ interface TransactionRow {
 }
 
 function validDate(value: string | null, label: string) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const parsed = new Date(`${value}T00:00:00Z`);
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
     Number.isNaN(parsed.valueOf()) ||
     parsed.toISOString().slice(0, 10) !== value
-  )
+  ) {
     throw new HttpError(400, `${label} must be a valid date.`);
+  }
   return value;
 }
 function integerMoney(value: string | null, label: string) {
-  if (!value) return null;
-  if (!/^\d+(?:\.\d{1,2})?$/.test(value))
+  if (!value) {
+    return null;
+  }
+  if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
     throw new HttpError(400, `${label} must have at most two decimals.`);
+  }
   const minor = Math.round(Number(value) * 100);
-  if (!Number.isSafeInteger(minor))
+  if (!Number.isSafeInteger(minor)) {
     throw new HttpError(400, `${label} is outside the supported range.`);
+  }
   return minor;
 }
 
@@ -125,7 +132,9 @@ export async function listTransactions(
     where.push(sql);
     bindings.push(value);
   };
-  if (routeBusinessId) add('business_id = ?', routeBusinessId);
+  if (routeBusinessId) {
+    add('business_id = ?', routeBusinessId);
+  }
   const q = url.searchParams.get('q')?.trim();
   if (q) {
     add(
@@ -138,17 +147,25 @@ export async function listTransactions(
   let to = validDate(url.searchParams.get('dateTo'), 'End date');
   const taxYear = url.searchParams.get('taxYear');
   if (taxYear) {
-    if (!/^\d{4}$/.test(taxYear))
+    if (!/^\d{4}$/.test(taxYear)) {
       throw new HttpError(400, 'Tax year is invalid.');
+    }
     const endYear = Number(taxYear);
-    if (endYear < 1901) throw new HttpError(400, 'Tax year is invalid.');
+    if (endYear < 1901) {
+      throw new HttpError(400, 'Tax year is invalid.');
+    }
     from = `${endYear - 1}-04-01`;
     to = `${endYear}-03-31`;
   }
-  if (from && to && from > to)
+  if (from && to && from > to) {
     throw new HttpError(400, 'End date cannot be before start date.');
-  if (from) add('transaction_date >= ?', from);
-  if (to) add('transaction_date <= ?', to);
+  }
+  if (from) {
+    add('transaction_date >= ?', from);
+  }
+  if (to) {
+    add('transaction_date <= ?', to);
+  }
   const exact = [
     ['legalEntityId', 'legal_entity_id'],
     ['activityId', 'business_activity_id'],
@@ -181,30 +198,46 @@ export async function listTransactions(
   for (const [parameter, column] of exact) {
     const value = url.searchParams.get(parameter)?.trim();
     if (value) {
-      if (allowedExact[parameter] && !allowedExact[parameter]?.includes(value))
+      if (
+        allowedExact[parameter] &&
+        !allowedExact[parameter]?.includes(value)
+      ) {
         throw new HttpError(400, `${parameter} filter is invalid.`);
+      }
       add(`${column} = ?`, value);
     }
   }
   const counterparty = url.searchParams.get('counterparty')?.trim();
-  if (counterparty)
+  if (counterparty) {
     add('lower(counterparty) LIKE ?', `%${counterparty.toLowerCase()}%`);
+  }
   const min = integerMoney(url.searchParams.get('amountMin'), 'Minimum amount');
   const max = integerMoney(url.searchParams.get('amountMax'), 'Maximum amount');
-  if (min !== null && max !== null && min > max)
+  if (min !== null && max !== null && min > max) {
     throw new HttpError(400, 'Maximum amount cannot be below minimum amount.');
-  if (min !== null) add('total_amount_minor >= ?', min);
-  if (max !== null) add('total_amount_minor <= ?', max);
+  }
+  if (min !== null) {
+    add('total_amount_minor >= ?', min);
+  }
+  if (max !== null) {
+    add('total_amount_minor <= ?', max);
+  }
   const attachment = url.searchParams.get('attachment');
-  if (attachment === 'PRESENT') where.push('attachment_count > 0');
-  else if (attachment === 'MISSING') where.push('attachment_count = 0');
-  else if (attachment)
+  if (attachment === 'PRESENT') {
+    where.push('attachment_count > 0');
+  } else if (attachment === 'MISSING') {
+    where.push('attachment_count = 0');
+  } else if (attachment) {
     throw new HttpError(400, 'Attachment filter is invalid.');
+  }
   const review = url.searchParams.get('review');
-  if (review === 'REVIEWED') where.push('reviewed_by IS NOT NULL');
-  else if (review === 'UNREVIEWED')
+  if (review === 'REVIEWED') {
+    where.push('reviewed_by IS NOT NULL');
+  } else if (review === 'UNREVIEWED') {
     where.push("reviewed_by IS NULL AND status != 'VOIDED'");
-  else if (review) throw new HttpError(400, 'Review filter is invalid.');
+  } else if (review) {
+    throw new HttpError(400, 'Review filter is invalid.');
+  }
   const pagination = requestPagination(url);
   const rows = await env.DB.prepare(
     `SELECT * FROM (${transactionProjection})${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY transaction_date DESC, id DESC LIMIT ? OFFSET ?`,
@@ -269,7 +302,9 @@ async function reviewParent(
   )
     .bind(id, businessAccountId)
     .first<ReviewParent>();
-  if (!row) throw new HttpError(404, 'Record not found.');
+  if (!row) {
+    throw new HttpError(404, 'Record not found.');
+  }
   return row;
 }
 
@@ -286,8 +321,9 @@ export async function updateRecordStatus(request: Request, env: Env) {
     id,
   );
   ensureStatusPermission(actor.role, current.status, status);
-  if (current.status === status)
+  if (current.status === status) {
     return json({ record: { id, recordType, status } });
+  }
   const table = {
     EXPENSE: 'expenses',
     INCOME: 'income_records',
@@ -363,22 +399,26 @@ const commentSelect = `SELECT comments.id,comments.record_type,comments.record_i
   JOIN business_account_members
     ON business_account_members.user_id=comments.author_id
    AND business_account_members.business_account_id=comments.business_account_id`;
-const commentJson = (row: CommentRow) => ({
-  id: row.id,
-  recordType: row.record_type,
-  recordId: row.record_id,
-  message: row.message,
-  createdAt: row.created_at,
-  authorId: row.author_id,
-  authorEmail: row.author_email,
-  authorRole: row.author_role,
-});
+function commentJson(row: CommentRow) {
+  return {
+    id: row.id,
+    recordType: row.record_type,
+    recordId: row.record_id,
+    message: row.message,
+    createdAt: row.created_at,
+    authorId: row.author_id,
+    authorEmail: row.author_email,
+    authorRole: row.author_role,
+  };
+}
 export async function listComments(request: Request, env: Env) {
   const actor = await requireUser(request, env);
   const url = new URL(request.url);
   const recordType = reviewRecordType(url.searchParams.get('recordType'));
   const recordId = url.searchParams.get('recordId')?.trim();
-  if (!recordId) throw new HttpError(400, 'recordId is required.');
+  if (!recordId) {
+    throw new HttpError(400, 'recordId is required.');
+  }
   await reviewParent(env, actor.businessAccountId, recordType, recordId);
   const rows = await env.DB.prepare(
     `${commentSelect} WHERE comments.business_account_id=? AND comments.record_type=? AND comments.record_id=? ORDER BY comments.created_at,comments.id LIMIT 200`,
@@ -442,17 +482,20 @@ interface FilterRow {
   created_at: string;
   updated_at: string;
 }
-const filterJson = (row: FilterRow) => ({
-  id: row.id,
-  name: row.name,
-  filterType: row.filter_type,
-  criteria: JSON.parse(row.criteria_json) as unknown,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+function filterJson(row: FilterRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    filterType: row.filter_type,
+    criteria: JSON.parse(row.criteria_json) as unknown,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 function criteria(value: unknown) {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new HttpError(400, 'Filter criteria must be an object.');
+  }
   const allowed = new Set([
     'q',
     'dateFrom',
@@ -472,12 +515,15 @@ function criteria(value: unknown) {
     'action',
     'entityType',
   ]);
-  for (const [key, item] of Object.entries(value))
-    if (!allowed.has(key) || typeof item !== 'string' || item.length > 500)
+  for (const [key, item] of Object.entries(value)) {
+    if (!allowed.has(key) || typeof item !== 'string' || item.length > 500) {
       throw new HttpError(400, 'Filter criteria contains an invalid field.');
+    }
+  }
   const serialized = JSON.stringify(value);
-  if (serialized.length > 8000)
+  if (serialized.length > 8000) {
     throw new HttpError(400, 'Filter criteria is too large.');
+  }
   return serialized;
 }
 export async function listSavedFilters(request: Request, env: Env) {
@@ -540,7 +586,9 @@ export async function updateSavedFilter(request: Request, env: Env) {
   )
     .bind(id, actor.businessAccountId, actor.id)
     .first<FilterRow>();
-  if (!row) throw new HttpError(404, 'Saved filter not found.');
+  if (!row) {
+    throw new HttpError(404, 'Saved filter not found.');
+  }
   const name = Object.hasOwn(body, 'name')
     ? expenseText(body.name, 'Filter name', 100, true)!
     : row.name;
@@ -587,6 +635,8 @@ export async function deleteSavedFilter(request: Request, env: Env) {
   )
     .bind(id, actor.businessAccountId, actor.id)
     .run();
-  if (!result.meta.changes) throw new HttpError(404, 'Saved filter not found.');
+  if (!result.meta.changes) {
+    throw new HttpError(404, 'Saved filter not found.');
+  }
   return json({ deleted: true });
 }

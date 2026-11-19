@@ -88,7 +88,9 @@ function kilometres(value: unknown, label: string): number {
 }
 
 export function parseMoneyToMinor(value: unknown): number | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string' && typeof value !== 'number') {
     throw new HttpError(
       400,
@@ -112,7 +114,9 @@ export function parseMoneyToMinor(value: unknown): number | null {
 }
 
 function optionalNotes(value: unknown): string | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string') {
     throw new HttpError(400, 'Notes must be text.');
   }

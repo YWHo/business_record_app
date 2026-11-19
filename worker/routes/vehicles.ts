@@ -162,7 +162,9 @@ export async function updateVehicle(
   )
     .bind(id, owner.businessAccountId)
     .first<VehicleRow>();
-  if (!row) throw new HttpError(404, 'Vehicle not found.');
+  if (!row) {
+    throw new HttpError(404, 'Vehicle not found.');
+  }
 
   const values = vehicleValues(body, currentValues(row));
   await assertUniqueRegistration(

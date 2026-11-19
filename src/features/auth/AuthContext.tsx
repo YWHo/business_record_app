@@ -68,8 +68,9 @@ export async function apiRequest<T>(
   init?: RequestInit,
 ): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase();
-  if (publicDemo && method !== 'GET' && method !== 'HEAD')
+  if (publicDemo && method !== 'GET' && method !== 'HEAD') {
     return (await recordDemoMutation(path, init ?? {})) as T;
+  }
   const response = await fetchWithRateLimitRetry(path, {
     ...init,
     headers: {
@@ -107,15 +108,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(result.user);
       setAccessEnded(false);
     } catch (caught) {
-      if (!(caught instanceof ApiError) || ![401, 403].includes(caught.status))
+      if (
+        !(caught instanceof ApiError) ||
+        ![401, 403].includes(caught.status)
+      ) {
         throw caught;
+      }
       setUser(null);
       setAccessEnded(true);
     }
   }, []);
 
   useEffect(() => {
-    if (user?.role !== 'AUDITOR') return;
+    if (user?.role !== 'AUDITOR') {
+      return;
+    }
     const expiry = user.access?.accessExpiresAt;
     const check = () => {
       if (expiry && Date.now() >= Date.parse(expiry)) {
@@ -156,7 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : await apiRequest<{ user: AuthUser }>('/api/auth/me').catch(
               () => null,
             );
-        if (!active) return;
+        if (!active) {
+          return;
+        }
         setConfiguration(config);
         setUser(current?.user ?? null);
       })
@@ -168,7 +177,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
     return () => {
       active = false;
@@ -198,8 +209,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return Promise.resolve();
       },
       logout: async () => {
-        if (publicDemo) sessionStorage.removeItem(demoRoleKey);
-        else await apiRequest('/api/auth/logout', { method: 'POST' });
+        if (publicDemo) {
+          sessionStorage.removeItem(demoRoleKey);
+        } else {
+          await apiRequest('/api/auth/logout', { method: 'POST' });
+        }
         setUser(null);
         setAccessEnded(false);
       },

@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
@@ -15,12 +15,14 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
   const [edit, setEdit] = useState<Category | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
   const load = useCallback(async () => {
     const result = await apiRequest<{ categories: Category[] }>(
       '/api/expense-categories',
     );
     setCategories(result.categories);
   }, []);
+
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -30,7 +32,8 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
       ),
     );
   }, [load]);
-  async function create(event: FormEvent) {
+
+  const create = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     try {
@@ -46,11 +49,12 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to add category.',
       );
     }
-  }
-  async function update(
+  };
+
+  const update = async (
     category: Category,
     changes: { name?: string; active?: boolean },
-  ) {
+  ) => {
     setError('');
     try {
       await apiRequest('/api/expense-categories', {
@@ -65,7 +69,8 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to update category.',
       );
     }
-  }
+  };
+
   return (
     <section
       className="panel reference-panel"

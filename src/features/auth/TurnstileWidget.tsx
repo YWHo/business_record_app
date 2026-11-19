@@ -22,8 +22,12 @@ declare global {
 let scriptPromise: Promise<void> | null = null;
 
 function loadTurnstile(): Promise<void> {
-  if (window.turnstile) return Promise.resolve();
-  if (scriptPromise) return scriptPromise;
+  if (window.turnstile) {
+    return Promise.resolve();
+  }
+  if (scriptPromise) {
+    return scriptPromise;
+  }
 
   scriptPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -51,7 +55,9 @@ export function TurnstileWidget({
     let active = true;
 
     void loadTurnstile().then(() => {
-      if (!active || !window.turnstile) return;
+      if (!active || !window.turnstile) {
+        return;
+      }
       widgetId = window.turnstile.render(`#${elementId}`, {
         sitekey: siteKey,
         action: 'login',
@@ -62,7 +68,9 @@ export function TurnstileWidget({
 
     return () => {
       active = false;
-      if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
+      if (widgetId && window.turnstile) {
+        window.turnstile.remove(widgetId);
+      }
     };
   }, [elementId, onToken, siteKey]);
 

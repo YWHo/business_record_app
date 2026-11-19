@@ -39,11 +39,11 @@ function ExportWorkspace() {
   const initialTaxYear = String(
     now.getMonth() < 3 ? now.getFullYear() : now.getFullYear() + 1,
   );
-  const [scope, setScope] = useState<'MONTH' | 'TAX_YEAR' | 'FULL'>('MONTH'),
-    [month, setMonth] = useState(initialMonth),
-    [taxYear, setTaxYear] = useState(initialTaxYear),
-    [history, setHistory] = useState<ExportHistory[]>([]),
-    [error, setError] = useState('');
+  const [scope, setScope] = useState<'MONTH' | 'TAX_YEAR' | 'FULL'>('MONTH');
+  const [month, setMonth] = useState(initialMonth);
+  const [taxYear, setTaxYear] = useState(initialTaxYear);
+  const [history, setHistory] = useState<ExportHistory[]>([]);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!viewHistory) {
@@ -65,21 +65,24 @@ function ExportWorkspace() {
 
   const href = useMemo(() => {
     const query = new URLSearchParams({ scope });
-    if (scope === 'MONTH') query.set('month', month);
-
-    if (scope === 'TAX_YEAR') query.set('taxYear', taxYear);
-
-    if (!archive && businessId) query.set('businessId', businessId);
-
+    if (scope === 'MONTH') {
+      query.set('month', month);
+    }
+    if (scope === 'TAX_YEAR') {
+      query.set('taxYear', taxYear);
+    }
+    if (!archive && businessId) {
+      query.set('businessId', businessId);
+    }
     return `${archive ? '/api/exports/archive' : '/api/reports/export'}?${query}`;
   }, [archive, businessId, month, scope, taxYear]);
 
-  function started() {
+  const started = () => {
     setError('');
     if (archive) {
       window.setTimeout(() => void load().catch(() => undefined), 1500);
     }
-  }
+  };
 
   return (
     <section aria-labelledby="exports-heading">

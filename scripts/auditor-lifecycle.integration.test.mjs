@@ -8,7 +8,9 @@ import { createSession } from '../worker/services/authService';
 
 let db, env, business, otherBusiness, batchQueue;
 const account = 'business-account-primary';
-const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+function read(path) {
+  return readFileSync(new URL(path, import.meta.url), 'utf8');
+}
 function statement(sql, values = []) {
   return {
     bind(...bindings) {
@@ -32,7 +34,9 @@ function batch(statements) {
     db.exec('BEGIN');
     try {
       const results = [];
-      for (const item of statements) results.push(await item.run());
+      for (const item of statements) {
+        results.push(await item.run());
+      }
       db.exec('COMMIT');
       return results;
     } catch (error) {
@@ -572,14 +576,16 @@ describe('auditor invitation and membership lifecycle', () => {
   it('rejects self-administration and owner/foreign target tampering', async () => {
     const { id } = await activate();
     const token = await createSession(env, id);
-    for (const actor of ['accountant-token', token])
+    for (const actor of ['accountant-token', token]) {
       for (const [path, method, body] of [
         ['/api/auditor-access', 'GET', {}],
         ['/api/auditor-invitations', 'POST', grant()],
         [`/api/auditor-access/${id}`, 'PATCH', { ...grant(), revision: 1 }],
         [`/api/auditor-access/${id}/revoke`, 'POST', { revision: 1 }],
-      ])
+      ]) {
         expect((await request(path, method, body, actor)).status).toBe(403);
+      }
+    }
     expect(
       (
         await request('/api/auditor-access/dev-owner/revoke', 'POST', {

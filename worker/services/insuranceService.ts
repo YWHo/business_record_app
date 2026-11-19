@@ -16,8 +16,10 @@ export interface InsuranceValues extends CommonExpenseValues {
   policyPeriodEnd: string;
   vehicleId: string | null;
 }
-const has = (input: Record<string, unknown>, field: string) =>
-  Object.prototype.hasOwnProperty.call(input, field);
+
+function has(input: Record<string, unknown>, field: string) {
+  return Object.prototype.hasOwnProperty.call(input, field);
+}
 
 export function insuranceValues(
   input: Record<string, unknown>,
@@ -46,15 +48,18 @@ export function insuranceValues(
   const policyPeriodEnd = has(input, 'policyPeriodEnd')
     ? allocationDate(input.policyPeriodEnd, 'Policy period end')
     : (current?.policyPeriodEnd ?? null);
-  if (!policyPeriodStart || !policyPeriodEnd)
+  if (!policyPeriodStart || !policyPeriodEnd) {
     throw new HttpError(400, 'Policy period start and end are required.');
-  if (policyPeriodEnd < policyPeriodStart)
+  }
+  if (policyPeriodEnd < policyPeriodStart) {
     throw new HttpError(400, 'Policy period end cannot be before its start.');
+  }
   const vehicleId = has(input, 'vehicleId')
     ? expenseId(input.vehicleId, 'Vehicle')
     : (current?.vehicleId ?? null);
-  if (insuranceType === 'VEHICLE' && !vehicleId)
+  if (insuranceType === 'VEHICLE' && !vehicleId) {
     throw new HttpError(400, 'Vehicle insurance requires a vehicle.');
+  }
   if (
     insuranceType === 'PROFESSIONAL_LIABILITY' &&
     !common.businessActivityId

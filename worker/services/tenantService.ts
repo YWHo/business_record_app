@@ -15,5 +15,7 @@ export async function requireTenantRecord(
   )
     .bind(id, actor.businessAccountId)
     .first();
-  if (!row) throw new HttpError(404, 'Record not found.');
+  if (!row) {
+    throw new HttpError(404, 'Record not found.');
+  }
 }

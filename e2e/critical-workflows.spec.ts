@@ -468,8 +468,9 @@ test.describe.serial('critical business workflows', () => {
       (message) => message.recipient_email === inviteeEmail,
     );
     expect(invitation).toBeTruthy();
-    if (!invitation)
+    if (!invitation) {
       throw new Error('Invitation was not written to the outbox.');
+    }
     const invitationUrl = new URL(invitation.invitation_url);
 
     await page.getByLabel('Open account menu').click();

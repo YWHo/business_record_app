@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuditorAccessPanel } from '../features/members/AuditorAccessPanel';
 import {
@@ -46,10 +46,11 @@ export function UserManagementPage() {
     }
   }, [configuration?.demoHelper, load, user?.role]);
 
-  if (user?.role !== 'OWNER' || configuration?.demoHelper)
+  if (user?.role !== 'OWNER' || configuration?.demoHelper) {
     return <Navigate to="/app/businesses" replace />;
+  }
 
-  async function invite(event: FormEvent) {
+  const invite = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     try {
@@ -65,9 +66,9 @@ export function UserManagementPage() {
         caught instanceof Error ? caught.message : 'Unable to invite user.',
       );
     }
-  }
+  };
 
-  async function disable(userId: string) {
+  const disable = async (userId: string) => {
     setError('');
     try {
       await apiRequest('/api/users/disable', {
@@ -80,7 +81,7 @@ export function UserManagementPage() {
         caught instanceof Error ? caught.message : 'Unable to disable user.',
       );
     }
-  }
+  };
 
   return (
     <section aria-labelledby="users-heading">

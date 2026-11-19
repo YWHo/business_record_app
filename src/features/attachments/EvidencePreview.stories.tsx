@@ -24,11 +24,11 @@ const meta = {
 } satisfies Meta<typeof EvidencePreview>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-const openPreview: NonNullable<Story['play']> = async ({
+async function openPreview({
   canvas,
   userEvent,
   args,
-}) => {
+}: Parameters<NonNullable<Story['play']>>[0]) {
   await userEvent.click(
     canvas.getByRole('button', {
       name: `Preview ${args.file.originalFilename}`,
@@ -39,7 +39,7 @@ const openPreview: NonNullable<Story['play']> = async ({
       name: `Preview of ${args.file.originalFilename}`,
     }),
   ).toBeVisible();
-};
+}
 export const Auditor: Story = { play: openPreview };
 export const Accountant: Story = {
   play: openPreview,

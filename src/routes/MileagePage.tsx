@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { WorkSessionForm } from '../features/mileage/WorkSessionForm';
@@ -76,7 +76,9 @@ export const emptyWorkSessionSummary: WorkSessionSummary = {
 };
 
 export function sessionMoney(minor: number | null, currency = 'NZD'): string {
-  if (minor === null) return '—';
+  if (minor === null) {
+    return '—';
+  }
   return new Intl.NumberFormat('en-NZ', {
     style: 'currency',
     currency,
@@ -172,7 +174,7 @@ export function MileagePage() {
     );
   }, [load]);
 
-  async function create(draft: WorkSessionDraft) {
+  const create = async (draft: WorkSessionDraft) => {
     setError('');
     setMessage('');
     try {
@@ -192,10 +194,12 @@ export function MileagePage() {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
-  async function update(draft: WorkSessionDraft) {
-    if (!editing) return;
+  const update = async (draft: WorkSessionDraft) => {
+    if (!editing) {
+      return;
+    }
     setError('');
     setMessage('');
     try {
@@ -217,9 +221,9 @@ export function MileagePage() {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
-  async function saveFuelWorkflow(
+  const saveFuelWorkflow = async (
     session: WorkSession,
     values: {
       tankFullAtStart: boolean;
@@ -228,7 +232,7 @@ export function MileagePage() {
       startingFuelExpenseId: string;
       endingFuelExpenseId: string;
     },
-  ) {
+  ) => {
     setError('');
     setMessage('');
     try {
@@ -247,15 +251,16 @@ export function MileagePage() {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
-  async function moveToTrash(session: WorkSession) {
+  const moveToTrash = async (session: WorkSession) => {
     if (
       !window.confirm(
         'Move this work session to trash? It can be restored during retention.',
       )
-    )
+    ) {
       return;
+    }
     setError('');
     try {
       await apiRequest('/api/trash', {
@@ -275,7 +280,7 @@ export function MileagePage() {
           : 'Unable to move work session to trash.',
       );
     }
-  }
+  };
 
   const summaryCurrency = summary.currency ?? 'NZD';
 
@@ -560,7 +565,8 @@ export function FuelWorkflowForm({
     endingFuelExpenseId: session.endingFuelExpenseId ?? '',
   });
   const [saving, setSaving] = useState(false);
-  async function submit(event: FormEvent) {
+
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
@@ -570,7 +576,8 @@ export function FuelWorkflowForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
+
   const label = (fuel: FuelOption) =>
     `${new Date(fuel.purchaseDatetime).toLocaleDateString('en-NZ')} · ${fuel.merchantName}${fuel.fillType === 'FULL' ? ' · full' : ''}${fuel.fuelLitres === null ? '' : ` · ${fuel.fuelLitres} L`}`;
   return (

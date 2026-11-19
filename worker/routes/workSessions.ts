@@ -149,7 +149,9 @@ function currentValues(row: WorkSessionRow): WorkSessionValues {
 
 function routeSessionId(params: RouteParameters): string {
   const id = params.sessionId?.trim();
-  if (!id) throw new HttpError(400, 'Work session is required.');
+  if (!id) {
+    throw new HttpError(400, 'Work session is required.');
+  }
   return id;
 }
 
@@ -380,7 +382,9 @@ export async function createWorkSession(
   )
     .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
-  if (!row) throw new HttpError(500, 'Work session could not be loaded.');
+  if (!row) {
+    throw new HttpError(500, 'Work session could not be loaded.');
+  }
   return json({ session: serialize(row) }, { status: 201 });
 }
 
@@ -391,7 +395,9 @@ export async function getWorkSession(
 ): Promise<Response> {
   const actor = await requireUser(request, env);
   const routeBusinessId = params.businessId;
-  if (!routeBusinessId) throw new HttpError(400, 'Business is required.');
+  if (!routeBusinessId) {
+    throw new HttpError(400, 'Business is required.');
+  }
   const business = await requireBusinessAccess(env.DB, actor, routeBusinessId);
   const id = routeSessionId(params);
   await requireBusinessScopedRecord(
@@ -407,7 +413,9 @@ export async function getWorkSession(
   )
     .bind(actor.businessAccountId, business.id, id)
     .first<WorkSessionRow>();
-  if (!row) throw new HttpError(404, 'Work session not found.');
+  if (!row) {
+    throw new HttpError(404, 'Work session not found.');
+  }
   return json({ session: serialize(row) });
 }
 
@@ -448,7 +456,9 @@ export async function updateWorkSession(
   )
     .bind(id, owner.businessAccountId, ...(business ? [business.id] : []))
     .first<WorkSessionRow>();
-  if (!row) throw new HttpError(404, 'Work session not found.');
+  if (!row) {
+    throw new HttpError(404, 'Work session not found.');
+  }
   const values = workSessionValues(
     business
       ? { ...body, businessActivityId: business.legacyBusinessActivityId }
@@ -555,7 +565,9 @@ export async function updateWorkSession(
   )
     .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
-  if (!updated) throw new HttpError(500, 'Work session could not be loaded.');
+  if (!updated) {
+    throw new HttpError(500, 'Work session could not be loaded.');
+  }
   return json({ session: serialize(updated) });
 }
 
@@ -575,7 +587,9 @@ function optionalId(
   field: string,
 ): string | null {
   const value = input[field];
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string' || value.trim().length > 100) {
     throw new HttpError(400, `${field} is invalid.`);
   }
@@ -593,7 +607,9 @@ async function linkedFuel(
   id: string | null,
   businessId: string | null = null,
 ): Promise<LinkedFuelRow | null> {
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
   const fuel = await env.DB.prepare(
     `SELECT expenses.id, fuel_expense_details.vehicle_id FROM expenses
      JOIN fuel_expense_details ON fuel_expense_details.expense_id = expenses.id
@@ -603,7 +619,9 @@ async function linkedFuel(
   )
     .bind(id, businessAccountId, ...(businessId ? [businessId] : []))
     .first<LinkedFuelRow>();
-  if (!fuel) throw new HttpError(400, 'Select a valid fuel expense.');
+  if (!fuel) {
+    throw new HttpError(400, 'Select a valid fuel expense.');
+  }
   return fuel;
 }
 
@@ -638,7 +656,9 @@ export async function updateFuelWorkflow(
   )
     .bind(id, owner.businessAccountId, ...(business ? [business.id] : []))
     .first<WorkSessionRow>();
-  if (!row) throw new HttpError(404, 'Work session not found.');
+  if (!row) {
+    throw new HttpError(404, 'Work session not found.');
+  }
 
   const tankFullAtStart = requiredBoolean(input, 'tankFullAtStart');
   const noPersonalDriving = requiredBoolean(input, 'noPersonalDriving');
@@ -710,6 +730,8 @@ export async function updateFuelWorkflow(
   )
     .bind(id, owner.businessAccountId)
     .first<WorkSessionRow>();
-  if (!updated) throw new HttpError(500, 'Work session could not be loaded.');
+  if (!updated) {
+    throw new HttpError(500, 'Work session could not be loaded.');
+  }
   return json({ session: serialize(updated) });
 }

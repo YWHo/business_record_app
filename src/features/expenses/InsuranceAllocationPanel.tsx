@@ -24,8 +24,8 @@ export function InsuranceAllocationPanel({
     periodEnd: string,
   ) => Promise<void>;
 }) {
-  const [open, setOpen] = useState(false),
-    [saved, setSaved] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const allocation = expense.allocation;
   if (!allocation) {

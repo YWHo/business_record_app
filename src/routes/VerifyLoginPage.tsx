@@ -21,11 +21,15 @@ export function VerifyLoginPage() {
   );
 
   useEffect(() => {
-    if (token) void navigate(location.pathname, { replace: true });
+    if (token) {
+      void navigate(location.pathname, { replace: true });
+    }
   }, [location.pathname, navigate, token]);
 
   useEffect(() => {
-    if (!token || attemptedToken.current === token) return;
+    if (!token || attemptedToken.current === token) {
+      return;
+    }
     attemptedToken.current = token;
 
     void apiRequest('/api/auth/verify', {

@@ -1,5 +1,5 @@
 import {
-  type FormEvent,
+  type SubmitEvent,
   useCallback,
   useEffect,
   useRef,
@@ -24,12 +24,12 @@ export function ReadOnlyReportsPage() {
 }
 function ReportView() {
   const { businessId } = useParams();
-  const [scope, setScope] = useState('FULL'),
-    [month, setMonth] = useState(''),
-    [taxYear, setTaxYear] = useState('');
-  const [result, setResult] = useState<Summary>(),
-    [error, setError] = useState(''),
-    [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState('FULL');
+  const [month, setMonth] = useState('');
+  const [taxYear, setTaxYear] = useState('');
+  const [result, setResult] = useState<Summary>();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const latestRequest = useRef(0);
   const load = useCallback(
     async (query: URLSearchParams) => {
@@ -37,19 +37,26 @@ function ReportView() {
       setLoading(true);
       setError('');
       setResult(undefined);
-      if (businessId) query.set('businessId', businessId);
+      if (businessId) {
+        query.set('businessId', businessId);
+      }
       try {
         const result = await apiRequest<Summary>(
           `/api/reports/summary?${query}`,
         );
-        if (request === latestRequest.current) setResult(result);
+        if (request === latestRequest.current) {
+          setResult(result);
+        }
       } catch (caught) {
-        if (request === latestRequest.current)
+        if (request === latestRequest.current) {
           setError(
             caught instanceof Error ? caught.message : 'Unable to load report.',
           );
+        }
       } finally {
-        if (request === latestRequest.current) setLoading(false);
+        if (request === latestRequest.current) {
+          setLoading(false);
+        }
       }
     },
     [businessId],
@@ -59,7 +66,7 @@ function ReportView() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(new URLSearchParams({ scope: 'FULL' }));
   }, [load]);
-  function submit(event: FormEvent) {
+  const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     void load(
       new URLSearchParams({
@@ -71,7 +78,7 @@ function ReportView() {
             : {}),
       }),
     );
-  }
+  };
   return (
     <section>
       <div className="page-heading">

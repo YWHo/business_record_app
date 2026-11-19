@@ -13,8 +13,9 @@ export type AttachmentRotation = 0 | 90 | 180 | 270;
 
 export function attachmentRotation(value: FormDataEntryValue | null) {
   const rotation = typeof value === 'string' ? Number(value) : 0;
-  if (![0, 90, 180, 270].includes(rotation))
+  if (![0, 90, 180, 270].includes(rotation)) {
     throw new HttpError(400, 'Attachment rotation is invalid.');
+  }
   return rotation as AttachmentRotation;
 }
 
@@ -22,8 +23,9 @@ export function attachmentRecordType(value: FormDataEntryValue | null) {
   if (
     typeof value !== 'string' ||
     !['EXPENSE', 'INCOME', 'WORK_SESSION'].includes(value)
-  )
+  ) {
     throw new HttpError(400, 'Record type is invalid.');
+  }
   return value as AttachmentRecordType;
 }
 
@@ -36,8 +38,9 @@ export function attachmentFilename(value: string) {
       const code = character.charCodeAt(0);
       return code < 32 || code === 127;
     })
-  )
+  ) {
     throw new HttpError(400, 'Filename is invalid.');
+  }
   return filename;
 }
 
@@ -47,8 +50,9 @@ export function detectedMimeType(bytes: Uint8Array): SupportedMimeType | null {
     bytes[0] === 0xff &&
     bytes[1] === 0xd8 &&
     bytes[2] === 0xff
-  )
+  ) {
     return 'image/jpeg';
+  }
   if (
     bytes.length >= 8 &&
     bytes[0] === 0x89 &&
@@ -59,19 +63,22 @@ export function detectedMimeType(bytes: Uint8Array): SupportedMimeType | null {
     bytes[5] === 0x0a &&
     bytes[6] === 0x1a &&
     bytes[7] === 0x0a
-  )
+  ) {
     return 'image/png';
+  }
   if (
     bytes.length >= 12 &&
     String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' &&
     String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP'
-  )
+  ) {
     return 'image/webp';
+  }
   if (
     bytes.length >= 5 &&
     String.fromCharCode(...bytes.slice(0, 5)) === '%PDF-'
-  )
+  ) {
     return 'application/pdf';
+  }
   return null;
 }
 
@@ -81,18 +88,22 @@ export function validateAttachmentFile(
   bytes: Uint8Array,
 ) {
   const originalFilename = attachmentFilename(filename);
-  if (bytes.length === 0)
+  if (bytes.length === 0) {
     throw new HttpError(400, 'Attachment must not be empty.');
-  if (bytes.length > MAX_ATTACHMENT_BYTES)
+  }
+  if (bytes.length > MAX_ATTACHMENT_BYTES) {
     throw new HttpError(413, 'Attachment exceeds the 25 MB limit.');
-  if (!supportedMimeTypes.includes(claimedMimeType as SupportedMimeType))
+  }
+  if (!supportedMimeTypes.includes(claimedMimeType as SupportedMimeType)) {
     throw new HttpError(415, 'Attachment type is not supported.');
+  }
   const mimeType = detectedMimeType(bytes);
-  if (!mimeType || mimeType !== claimedMimeType)
+  if (!mimeType || mimeType !== claimedMimeType) {
     throw new HttpError(
       415,
       'Attachment contents do not match the selected file type.',
     );
+  }
   return { originalFilename, mimeType, fileSize: bytes.length };
 }
 

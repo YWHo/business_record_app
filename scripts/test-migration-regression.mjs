@@ -28,7 +28,9 @@ const upgradeNames = [
   '0010_auditor_access_lifecycle.sql',
 ];
 
-const readSql = (filePath) => readFileSync(filePath, 'utf8');
+function readSql(filePath) {
+  return readFileSync(filePath, 'utf8');
+}
 const migrationSql = migrationNames
   .map((name) => readSql(path.join(migrationDirectory, name)))
   .join('\n');

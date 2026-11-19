@@ -1,7 +1,8 @@
+import { confirmationWarnings } from '../lib/confirmationWarnings';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FormError } from '../components/FormError';
-import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
+import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   IncomeForm,
@@ -39,7 +40,9 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
           : Promise.resolve(null),
       ]);
       setClients(clientResult.clients);
-      if (incomeResult) setRecord(incomeResult.incomeRecord);
+      if (incomeResult) {
+        setRecord(incomeResult.incomeRecord);
+      }
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : 'Unable to load income.',
@@ -55,7 +58,10 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
     void load();
   }, [load]);
 
-  async function submit(draft: IncomeDraft, confirmedWarnings: string[] = []) {
+  const submit = async (
+    draft: IncomeDraft,
+    confirmedWarnings: string[] = [],
+  ) => {
     setError('');
     try {
       const result = await apiRequest<{ incomeRecord: IncomeRecord }>(
@@ -76,12 +82,7 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         );
       }
     } catch (caught) {
-      const warnings =
-        caught instanceof ApiError &&
-        caught.status === 409 &&
-        Array.isArray(caught.body?.warnings)
-          ? (caught.body.warnings as Array<{ code: string; message: string }>)
-          : null;
+      const warnings = confirmationWarnings(caught);
       if (warnings?.length) {
         setPending({ draft, warnings });
         return;
@@ -91,9 +92,9 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
-  if (user?.role !== 'OWNER')
+  if (user?.role !== 'OWNER') {
     return (
       <section className="empty-state" role="alert">
         <div>
@@ -108,6 +109,7 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         </div>
       </section>
     );
+  }
 
   const entity = business?.currentLegalEntity;
   const context = entity?.legalName || entity?.tradingName;

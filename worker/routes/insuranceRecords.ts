@@ -186,9 +186,9 @@ async function categoryId(
   )
     .bind(businessAccountId, key)
     .first<{ id: string }>();
-  if (!row)
+  if (!row) {
     throw new HttpError(503, 'Insurance expense category is unavailable.');
-
+  }
   return row.id;
 }
 async function retention(
@@ -201,8 +201,9 @@ async function retention(
   )
     .bind(businessAccountId)
     .first<Settings>();
-  if (!row) throw new HttpError(503, 'Retention settings are unavailable.');
-
+  if (!row) {
+    throw new HttpError(503, 'Retention settings are unavailable.');
+  }
   return calculateRetentionDate(
     occurredAt,
     row.retention_tax_years,
@@ -237,14 +238,15 @@ async function assertReferences(
     (!activity ||
       (!activity.active &&
         prior?.business_activity_id !== values.businessActivityId))
-  )
+  ) {
     throw new HttpError(400, 'Select an active business activity.');
-
+  }
   if (
     values.vehicleId &&
     (!vehicle || (!vehicle.active && prior?.vehicle_id !== values.vehicleId))
-  )
+  ) {
     throw new HttpError(400, 'Select an active vehicle.');
+  }
 }
 function expenseInsert(
   env: Env,
@@ -357,9 +359,9 @@ export async function createInsuranceRecord(
   if (
     typeof rawType !== 'string' ||
     !['PROFESSIONAL_LIABILITY', 'VEHICLE', 'OTHER'].includes(rawType)
-  )
+  ) {
     throw new HttpError(400, 'Insurance type is invalid.');
-
+  }
   if (body.allocationMethod === 'ACCOUNTANT_ADJUSTMENT') {
     throw new HttpError(
       400,
@@ -471,8 +473,9 @@ export async function createInsuranceRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
-  if (!row) throw new HttpError(500, 'Insurance expense could not be loaded.');
-
+  if (!row) {
+    throw new HttpError(500, 'Insurance expense could not be loaded.');
+  }
   return json({ insuranceRecord: serialize(row) }, { status: 201 });
 }
 export async function updateInsuranceRecord(request: Request, env: Env) {
@@ -485,8 +488,9 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
-  if (!row) throw new HttpError(404, 'Insurance expense not found.');
-
+  if (!row) {
+    throw new HttpError(404, 'Insurance expense not found.');
+  }
   const nextType =
     typeof body.insuranceType === 'string'
       ? (body.insuranceType as InsuranceType)
@@ -591,9 +595,9 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
-  if (!updated)
+  if (!updated) {
     throw new HttpError(500, 'Insurance expense could not be loaded.');
-
+  }
   return json({ insuranceRecord: serialize(updated) });
 }
 
@@ -718,8 +722,8 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
   )
     .bind(expenseId, actor.businessAccountId)
     .first<InsuranceRow>();
-  if (!updated)
+  if (!updated) {
     throw new HttpError(500, 'Insurance expense could not be loaded.');
-
+  }
   return json({ insuranceRecord: serialize(updated) });
 }

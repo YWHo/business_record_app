@@ -35,7 +35,7 @@ describe('App', () => {
             : input instanceof URL
               ? input.href
               : input.url;
-        if (url.endsWith('/api/businesses'))
+        if (url.endsWith('/api/businesses')) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -90,7 +90,8 @@ describe('App', () => {
               },
             ),
           );
-        if (/\/api\/businesses\/business-activity-contracting$/.test(url))
+        }
+        if (/\/api\/businesses\/business-activity-contracting$/.test(url)) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -128,7 +129,8 @@ describe('App', () => {
               },
             ),
           );
-        if (url.endsWith('/api/legal-entities'))
+        }
+        if (url.endsWith('/api/legal-entities')) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -155,6 +157,7 @@ describe('App', () => {
               },
             ),
           );
+        }
         const body = url.endsWith('/api/auth/config')
           ? {
               environment: 'local',

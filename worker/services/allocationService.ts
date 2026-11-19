@@ -18,7 +18,9 @@ export interface AllocationValues {
 }
 
 export function allocationDate(value: unknown, label: string): string | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new HttpError(400, `${label} must be a valid date.`);
   }
@@ -35,7 +37,9 @@ export function allocationDate(value: unknown, label: string): string | null {
 }
 
 function percentage(value: unknown): number | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string' && typeof value !== 'number') {
     throw new HttpError(
       400,
@@ -94,25 +98,28 @@ export function allocationValues(
     allocationMethod === 'MANUAL_PERCENTAGE' ||
     allocationMethod === 'BUSINESS_KM_OVER_TOTAL_KM'
   ) {
-    if (percentageBasisPoints === null)
+    if (percentageBasisPoints === null) {
       throw new HttpError(
         400,
         'Allocation percentage is required for this method.',
       );
+    }
     allocatedAmountMinor = Math.round(
       (premiumMinor * percentageBasisPoints) / 10_000,
     );
   } else if (allocationMethod === 'ACCOUNTANT_ADJUSTMENT') {
-    if (allocatedAmountMinor === null)
+    if (allocatedAmountMinor === null) {
       throw new HttpError(
         400,
         'Allocated amount is required for an accountant adjustment.',
       );
-    if (allocatedAmountMinor > premiumMinor)
+    }
+    if (allocatedAmountMinor > premiumMinor) {
       throw new HttpError(
         400,
         'Allocated amount cannot exceed the full premium.',
       );
+    }
     percentageBasisPoints =
       premiumMinor === 0
         ? 0

@@ -9,14 +9,15 @@ import {
   verifyTurnstile,
 } from './securityService';
 
-const securityEnvironment = (overrides: Partial<Env> = {}) =>
-  ({
+function securityEnvironment(overrides: Partial<Env> = {}) {
+  return {
     APP_ENV: 'production',
     APP_ORIGIN: 'https://records.example.invalid',
     TURNSTILE_REQUIRED: 'true',
     TURNSTILE_SECRET_KEY: 'server-secret',
     ...overrides,
-  }) as Env;
+  } as Env;
+}
 
 afterEach(() => vi.unstubAllGlobals());
 

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type SubmitEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth, apiRequest } from '../features/auth/AuthContext';
 import { TurnstileWidget } from '../features/auth/TurnstileWidget';
@@ -18,9 +18,11 @@ export function LoginPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  if (user) return <Navigate to="/app/businesses" replace />;
+  if (user) {
+    return <Navigate to="/app/businesses" replace />;
+  }
 
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     try {
@@ -32,9 +34,9 @@ export function LoginPage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to sign in.');
     }
-  }
+  };
 
-  async function loginWithLocalIdentity(identity: string) {
+  const loginWithLocalIdentity = async (identity: string) => {
     setError('');
     try {
       await localLogin(identity);
@@ -42,9 +44,9 @@ export function LoginPage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to sign in.');
     }
-  }
+  };
 
-  async function loginWithDemoRole(role: 'OWNER' | 'ACCOUNTANT') {
+  const loginWithDemoRole = async (role: 'OWNER' | 'ACCOUNTANT') => {
     setError('');
     try {
       await demoLogin(role);
@@ -54,7 +56,7 @@ export function LoginPage() {
         caught instanceof Error ? caught.message : 'Unable to open the demo.',
       );
     }
-  }
+  };
 
   return (
     <main className="auth-page">

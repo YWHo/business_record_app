@@ -38,8 +38,9 @@ export async function createSession(
       ...(businessAccountId ? [businessAccountId] : []),
     )
     .first<{ business_account_id: string; role: string }>();
-  if (!membership)
+  if (!membership) {
     throw new HttpError(401, 'Unable to sign in with those details.');
+  }
   if (membership.role === 'AUDITOR') {
     try {
       await loadAuthorizationContext(env.DB, {
@@ -47,8 +48,9 @@ export async function createSession(
         businessAccountId: membership.business_account_id,
       });
     } catch (error) {
-      if (error instanceof HttpError && error.status === 403)
+      if (error instanceof HttpError && error.status === 403) {
         throw new HttpError(401, 'Unable to sign in with those details.');
+      }
       throw error;
     }
   }
@@ -106,7 +108,9 @@ export async function requestLoginLink(
     try {
       await loadAuthorizationContext(env.DB, user);
     } catch (error) {
-      if (error instanceof HttpError && error.status === 403) return;
+      if (error instanceof HttpError && error.status === 403) {
+        return;
+      }
       throw error;
     }
   }

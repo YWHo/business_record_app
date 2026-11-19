@@ -58,28 +58,30 @@ export function WorkSessionDetailPage() {
     void load();
   }, [load]);
 
-  async function saveFuel(values: {
+  const saveFuel = async (values: {
     tankFullAtStart: boolean;
     noPersonalDriving: boolean;
     tankFullAtEnd: boolean;
     startingFuelExpenseId: string;
     endingFuelExpenseId: string;
-  }) {
+  }) => {
     await apiRequest(
       `/api/businesses/${businessId}/work-sessions/${sessionId}/fuel-workflow`,
       { method: 'PATCH', body: JSON.stringify(values) },
     );
     setFuelOpen(false);
     await load();
-  }
-  async function moveToTrash() {
+  };
+
+  const moveToTrash = async () => {
     if (
       !session ||
       !window.confirm(
         'Move this work session to trash? It can be restored during retention.',
       )
-    )
+    ) {
       return;
+    }
     await apiRequest('/api/trash', {
       method: 'POST',
       body: JSON.stringify({
@@ -89,8 +91,9 @@ export function WorkSessionDetailPage() {
       }),
     });
     void navigate(`/app/businesses/${businessId}/mileage`);
-  }
-  if (error)
+  };
+
+  if (error) {
     return (
       <section className="empty-state" role="alert">
         <div>
@@ -102,7 +105,12 @@ export function WorkSessionDetailPage() {
         </div>
       </section>
     );
-  if (!session) return <p role="status">Loading work session…</p>;
+  }
+
+  if (!session) {
+    return <p role="status">Loading work session…</p>;
+  }
+
   return (
     <section aria-labelledby="session-detail-heading">
       <div className="page-heading">

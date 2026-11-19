@@ -12,12 +12,19 @@ export interface Pagination {
 }
 
 function positiveInteger(value: string | null, fallback: number, name: string) {
-  if (value === null) return fallback;
-  if (!/^\d+$/.test(value))
+  if (value === null) {
+    return fallback;
+  }
+
+  if (!/^\d+$/.test(value)) {
     throw new HttpError(400, `${name} must be a positive integer.`);
+  }
+
   const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 1)
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
     throw new HttpError(400, `${name} must be a positive integer.`);
+  }
+
   return parsed;
 }
 
@@ -28,10 +35,14 @@ export function requestPagination(url: URL): Pagination {
     DEFAULT_PAGE_SIZE,
     'pageSize',
   );
-  if (page > MAX_PAGE)
+  if (page > MAX_PAGE) {
     throw new HttpError(400, `page cannot exceed ${MAX_PAGE}.`);
-  if (pageSize > MAX_PAGE_SIZE)
+  }
+
+  if (pageSize > MAX_PAGE_SIZE) {
     throw new HttpError(400, `pageSize cannot exceed ${MAX_PAGE_SIZE}.`);
+  }
+
   return {
     page,
     pageSize,

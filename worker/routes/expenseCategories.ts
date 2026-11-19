@@ -20,14 +20,17 @@ interface CategoryRow {
 
 const select =
   'SELECT id, name, active, system_key, created_at, updated_at FROM expense_categories';
-const serialize = (row: CategoryRow) => ({
-  id: row.id,
-  name: row.name,
-  active: row.active === 1,
-  systemKey: row.system_key,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+
+function serialize(row: CategoryRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    active: row.active === 1,
+    systemKey: row.system_key,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 async function assertUnique(
   env: Env,
@@ -40,11 +43,12 @@ async function assertUnique(
   )
     .bind(businessAccountId, name, excludedId)
     .first();
-  if (duplicate)
+  if (duplicate) {
     throw new HttpError(
       409,
       'An expense category with this name already exists.',
     );
+  }
 }
 
 export async function listExpenseCategories(request: Request, env: Env) {
@@ -103,13 +107,18 @@ export async function updateExpenseCategory(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<CategoryRow>();
-  if (!row) throw new HttpError(404, 'Expense category not found.');
+  if (!row) {
+    throw new HttpError(404, 'Expense category not found.');
+  }
+
   const name = Object.hasOwn(body, 'name')
     ? expenseText(body.name, 'Category name', 100, true)!
     : row.name;
   const active = Object.hasOwn(body, 'active') ? body.active : row.active === 1;
-  if (typeof active !== 'boolean')
+  if (typeof active !== 'boolean') {
     throw new HttpError(400, 'Active must be true or false.');
+  }
+
   if (
     !active &&
     [

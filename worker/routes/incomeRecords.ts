@@ -134,7 +134,9 @@ const select = `SELECT income_records.id, income_records.business_id,
 
 function routeIncomeId(params: RouteParameters): string {
   const value = params.incomeId;
-  if (!value) throw new HttpError(400, 'Income record is required.');
+  if (!value) {
+    throw new HttpError(400, 'Income record is required.');
+  }
   return value;
 }
 
@@ -166,7 +168,7 @@ function serialize(row: IncomeRow) {
         }
       : null,
   };
-  if (row.income_type === 'PLATFORM')
+  if (row.income_type === 'PLATFORM') {
     return {
       ...common,
       details: {
@@ -183,7 +185,8 @@ function serialize(row: IncomeRow) {
         netPaymentReceivedMinor: row.platform_net_minor,
       },
     };
-  if (row.income_type === 'CONTRACT')
+  }
+  if (row.income_type === 'CONTRACT') {
     return {
       ...common,
       details: {
@@ -204,7 +207,8 @@ function serialize(row: IncomeRow) {
           (row.contract_total_minor ?? 0) - (row.amount_received_minor ?? 0),
       },
     };
-  if (row.income_type === 'SUBSCRIPTION')
+  }
+  if (row.income_type === 'SUBSCRIPTION') {
     return {
       ...common,
       details: {
@@ -220,6 +224,7 @@ function serialize(row: IncomeRow) {
         cancelledSubscribers: row.cancelled_subscribers,
       },
     };
+  }
   return { ...common, details: null };
 }
 
@@ -233,7 +238,7 @@ function current(row: IncomeRow): IncomeValues {
     currency: row.currency,
     notes: row.notes,
   };
-  if (row.income_type === 'PLATFORM')
+  if (row.income_type === 'PLATFORM') {
     return {
       ...common,
       providerName: row.provider_name!,
@@ -248,7 +253,8 @@ function current(row: IncomeRow): IncomeValues {
       otherAdjustmentsMinor: row.other_adjustments_minor!,
       netPaymentReceivedMinor: row.platform_net_minor!,
     };
-  if (row.income_type === 'CONTRACT')
+  }
+  if (row.income_type === 'CONTRACT') {
     return {
       ...common,
       clientId: row.client_id!,
@@ -264,7 +270,8 @@ function current(row: IncomeRow): IncomeValues {
       amountReceivedMinor: row.amount_received_minor,
       paymentStatus: row.payment_status!,
     };
-  if (row.income_type === 'SUBSCRIPTION')
+  }
+  if (row.income_type === 'SUBSCRIPTION') {
     return {
       ...common,
       periodStart: row.subscription_period_start!,
@@ -278,6 +285,7 @@ function current(row: IncomeRow): IncomeValues {
       newSubscribers: row.new_subscribers,
       cancelledSubscribers: row.cancelled_subscribers,
     };
+  }
   return common;
 }
 async function retention(env: Env, businessAccountId: string, date: string) {
@@ -286,7 +294,9 @@ async function retention(env: Env, businessAccountId: string, date: string) {
   )
     .bind(businessAccountId)
     .first<Settings>();
-  if (!row) throw new HttpError(503, 'Retention settings are unavailable.');
+  if (!row) {
+    throw new HttpError(503, 'Retention settings are unavailable.');
+  }
   return calculateRetentionDate(
     `${date}T12:00:00.000+12:00`,
     row.retention_tax_years,
@@ -309,8 +319,9 @@ async function references(
     !activity ||
     (!activity.active &&
       prior?.business_activity_id !== values.businessActivityId)
-  )
+  ) {
     throw new HttpError(400, 'Select an active business activity.');
+  }
   if (values.incomeType === 'CONTRACT') {
     const client = await env.DB.prepare(
       'SELECT active FROM clients WHERE id = ? AND business_account_id = ?',
@@ -321,8 +332,9 @@ async function references(
       !client ||
       (!client.active &&
         prior?.client_id !== (values as ContractValues).clientId)
-    )
+    ) {
       throw new HttpError(400, 'Select an active client.');
+    }
   }
 }
 function baseInsert(
@@ -518,11 +530,12 @@ export async function listIncomeRecords(
     )
     .all<IncomeRow>();
   const totals = new Map<string, number>();
-  for (const row of rows.results)
+  for (const row of rows.results) {
     totals.set(
       row.currency,
       (totals.get(row.currency) ?? 0) + row.total_amount_minor,
     );
+  }
   return json({
     incomeRecords: rows.results.map(serialize),
     summary: {
@@ -542,7 +555,9 @@ export async function getIncomeRecord(
 ) {
   const actor = await requireUser(request, env);
   const routeBusinessId = params.businessId;
-  if (!routeBusinessId) throw new HttpError(400, 'Business is required.');
+  if (!routeBusinessId) {
+    throw new HttpError(400, 'Business is required.');
+  }
   const business = await requireBusinessAccess(env.DB, actor, routeBusinessId);
   const id = routeIncomeId(params);
   await requireBusinessScopedRecord(
@@ -559,7 +574,9 @@ export async function getIncomeRecord(
   )
     .bind(actor.businessAccountId, business.id, id)
     .first<IncomeRow>();
-  if (!row) throw new HttpError(404, 'Income record not found.');
+  if (!row) {
+    throw new HttpError(404, 'Income record not found.');
+  }
   return json({ incomeRecord: serialize(row) });
 }
 
@@ -622,11 +639,12 @@ export async function createIncomeRecord(
         (values as ContractValues).invoiceNumber,
       )
       .first();
-    if (duplicate)
+    if (duplicate) {
       throw new HttpError(
         409,
         'This client already has an invoice with that number.',
       );
+    }
   }
   const id = crypto.randomUUID(),
     now = new Date().toISOString(),
@@ -677,7 +695,9 @@ export async function createIncomeRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<IncomeRow>();
-  if (!row) throw new HttpError(500, 'Income record could not be loaded.');
+  if (!row) {
+    throw new HttpError(500, 'Income record could not be loaded.');
+  }
   return json({ incomeRecord: serialize(row) }, { status: 201 });
 }
 export async function updateIncomeRecord(
@@ -717,7 +737,9 @@ export async function updateIncomeRecord(
   )
     .bind(id, owner.businessAccountId, ...(business ? [business.id] : []))
     .first<IncomeRow>();
-  if (!row) throw new HttpError(404, 'Income record not found.');
+  if (!row) {
+    throw new HttpError(404, 'Income record not found.');
+  }
   const values = incomeValues(
     business
       ? { ...body, businessActivityId: business.legacyBusinessActivityId }
@@ -779,11 +801,12 @@ export async function updateIncomeRecord(
     )
       .bind(owner.businessAccountId, v.clientId, v.invoiceNumber, id)
       .first();
-    if (duplicate)
+    if (duplicate) {
       throw new HttpError(
         409,
         'This client already has an invoice with that number.',
       );
+    }
   }
   const now = new Date().toISOString(),
     until = await retention(
@@ -865,9 +888,13 @@ export async function updateIncomeRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<IncomeRow>();
-  if (!updated) throw new HttpError(500, 'Income record could not be loaded.');
+  if (!updated) {
+    throw new HttpError(500, 'Income record could not be loaded.');
+  }
   const serialized = serialize(updated);
-  if (attribution) serialized.legalEntityId = attribution.legalEntity.id;
+  if (attribution) {
+    serialized.legalEntityId = attribution.legalEntity.id;
+  }
   return json({ incomeRecord: serialized });
 }
 export async function reconcileIncome(request: Request, env: Env) {
@@ -880,7 +907,9 @@ export async function reconcileIncome(request: Request, env: Env) {
   )
     .bind(incomeId, actor.businessAccountId)
     .first<{ id: string; business_activity_id: string }>();
-  if (!row) throw new HttpError(404, 'Income record not found.');
+  if (!row) {
+    throw new HttpError(404, 'Income record not found.');
+  }
   const values = reconciliationValues(body);
   const id = crypto.randomUUID(),
     now = new Date().toISOString();
@@ -914,6 +943,8 @@ export async function reconcileIncome(request: Request, env: Env) {
   )
     .bind(incomeId, actor.businessAccountId)
     .first<IncomeRow>();
-  if (!updated) throw new HttpError(500, 'Income record could not be loaded.');
+  if (!updated) {
+    throw new HttpError(500, 'Income record could not be loaded.');
+  }
   return json({ incomeRecord: serialize(updated) });
 }

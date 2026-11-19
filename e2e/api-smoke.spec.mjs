@@ -43,9 +43,12 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
     let offset = 0;
     while (offset + 4 <= bytes.length) {
       const signature = view.getUint32(offset, true);
-      if (signature === 0x02014b50 || signature === 0x06054b50) break;
-      if (signature !== 0x04034b50)
+      if (signature === 0x02014b50 || signature === 0x06054b50) {
+        break;
+      }
+      if (signature !== 0x04034b50) {
         throw new Error(`export ZIP has invalid signature at ${offset}`);
+      }
       const compressedSize = view.getUint32(offset + 18, true);
       const nameLength = view.getUint16(offset + 26, true);
       const extraLength = view.getUint16(offset + 28, true);
@@ -112,8 +115,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
   const loginToken = loginActionUrl
     ? new URL(loginActionUrl).searchParams.get('token')
     : null;
-  if (!loginToken)
+  if (!loginToken) {
     throw new Error('authentication outbox did not contain a login token');
+  }
   const verifiedLogin = await request('/api/auth/verify', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -724,8 +728,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
   const parkingCategory = accountantCategories.body.categories.find(
     (category) => category.systemKey === 'PARKING',
   );
-  if (!parkingCategory)
+  if (!parkingCategory) {
     throw new Error('built-in parking category was not listed');
+  }
   const protectedCategory = await request(
     '/api/expense-categories',
     {
@@ -854,8 +859,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
     ownerCookie,
   );
   expectStatus(updatedGeneral, 200, 'general expense edit');
-  if (updatedGeneral.body.generalExpense.totalAmountMinor !== 5750)
+  if (updatedGeneral.body.generalExpense.totalAmountMinor !== 5750) {
     throw new Error('general expense edit was not persisted');
+  }
 
   const accountantParking = await request(
     '/api/parking-records',
@@ -915,8 +921,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
     ownerCookie,
   );
   expectStatus(createdParking, 201, 'parking expense create');
-  if (createdParking.body.parkingRecord.parkingDurationMinutes !== 90)
+  if (createdParking.body.parkingRecord.parkingDurationMinutes !== 90) {
     throw new Error('parking duration was not derived correctly');
+  }
   const updatedParking = await request(
     '/api/parking-records',
     {
@@ -931,8 +938,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
     ownerCookie,
   );
   expectStatus(updatedParking, 200, 'parking expense edit');
-  if (updatedParking.body.parkingRecord.parkingDurationMinutes !== 120)
+  if (updatedParking.body.parkingRecord.parkingDurationMinutes !== 120) {
     throw new Error('parking duration was not recalculated');
+  }
 
   const accountantInsurance = await request(
     '/api/insurance-records',
@@ -2011,8 +2019,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
     'summary/summary.html',
     'manifest.json',
   ]) {
-    if (!exportFiles.has(required))
+    if (!exportFiles.has(required)) {
       throw new Error(`portable export was missing ${required}`);
+    }
   }
   const exportManifest = JSON.parse(
     new TextDecoder().decode(exportFiles.get('manifest.json')),
@@ -2307,8 +2316,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
   const invitedUser = users.body.users.find(
     (candidate) => candidate.email === 'phase4-invitee@local.test',
   );
-  if (!invitedUser)
+  if (!invitedUser) {
     throw new Error('invited accountant did not appear in user list');
+  }
   const disabled = await request(
     '/api/users/disable',
     {
@@ -2794,8 +2804,9 @@ test('@api-smoke @non-ui local API workflows retain their integration boundaries
   );
   const historicalTransaction =
     transactionsBeforePeriodChange.body.transactions[0];
-  if (!historicalTransaction)
+  if (!historicalTransaction) {
     throw new Error('period-change test needs a historical transaction');
+  }
   const changedPeriod = await request(
     `/api/businesses/${scopedBusinessId}/legal-entity-periods`,
     {

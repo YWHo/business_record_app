@@ -49,7 +49,10 @@ function forgetInstallation() {
 async function browserReportsInstallation() {
   const getInstalledRelatedApps = (navigator as NavigatorWithPwaInstallation)
     .getInstalledRelatedApps;
-  if (!getInstalledRelatedApps) return null;
+
+  if (!getInstalledRelatedApps) {
+    return null;
+  }
 
   try {
     const apps = await getInstalledRelatedApps.call(navigator);
@@ -86,7 +89,9 @@ export function PwaStatus() {
       }
 
       void browserReportsInstallation().then((browserInstalled) => {
-        if (!active) return;
+        if (!active) {
+          return;
+        }
         if (browserInstalled) {
           recordInstallation();
           return;
@@ -104,17 +109,21 @@ export function PwaStatus() {
     const onInstalled = () => recordInstallation();
     const displayMode = window.matchMedia?.('(display-mode: standalone)');
     const onDisplayModeChange = () => {
-      if (isStandalone()) recordInstallation();
+      if (isStandalone()) {
+        recordInstallation();
+      }
     };
     const onPwaMessage = (event: Event) => {
       setMessage((event as CustomEvent<ServiceWorkerMessage>).detail);
     };
 
-    if (isStandalone()) recordInstallation();
-    else {
+    if (isStandalone()) {
+      recordInstallation();
+    } else {
       void browserReportsInstallation().then((browserInstalled) => {
-        if (active && browserInstalled) recordInstallation();
-        else if (active && browserInstalled === false) {
+        if (active && browserInstalled) {
+          recordInstallation();
+        } else if (active && browserInstalled === false) {
           forgetInstallation();
           setInstalled(false);
         }

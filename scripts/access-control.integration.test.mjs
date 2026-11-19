@@ -14,7 +14,9 @@ import {
 const now = new Date('2026-11-10T00:00:00.000Z');
 const account = 'business-account-primary';
 const actor = { id: 'scope-auditor', businessAccountId: account };
-const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+function read(path) {
+  return readFileSync(new URL(path, import.meta.url), 'utf8');
+}
 let db;
 let d1;
 let business;
@@ -109,7 +111,9 @@ describe('SQL-backed central authorization', () => {
         now,
       ),
     ).rejects.toMatchObject({ status: 403 });
-    for (let i = 0; i < maximumAccessScopes + 1; i++) addScope();
+    for (let i = 0; i < maximumAccessScopes + 1; i++) {
+      addScope();
+    }
     await expect(
       loadAuthorizationContext(d1, actor, now),
     ).rejects.toMatchObject({ status: 403 });
@@ -293,7 +297,7 @@ describe('SQL-backed central authorization', () => {
           '2026-12-02',
         ],
       ];
-      for (const [id, accountId, businessId, entityId, instant, date] of rows)
+      for (const [id, accountId, businessId, entityId, instant, date] of rows) {
         db.prepare('INSERT INTO access_rows VALUES (?,?,?,?,?,?,?)').run(
           id,
           accountId,
@@ -303,6 +307,7 @@ describe('SQL-backed central authorization', () => {
           instant,
           date,
         );
+      }
       const filter = recordAccessPredicate(ctx, family, 'r', now);
       expect(
         db

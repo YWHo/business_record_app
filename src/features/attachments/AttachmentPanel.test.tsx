@@ -76,6 +76,58 @@ describe('AttachmentPanel mobile capture', () => {
     expect(screen.queryByLabelText('Take a photo')).not.toBeInTheDocument();
   });
 
+  it('preserves the selected image and rotation until a duplicate upload is confirmed', async () => {
+    const uploads: FormData[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'POST') {
+          uploads.push(init.body as FormData);
+          return uploads.length === 1
+            ? jsonResponse(
+                {
+                  requiresConfirmation: true,
+                  warnings: ['FILE_HASH_DUPLICATE', 42],
+                },
+                409,
+              )
+            : jsonResponse({ attachment: { id: 'attachment-1' } }, 201);
+        }
+        return jsonResponse({ attachments: [] });
+      }),
+    );
+    render(
+      <AttachmentPanel recordType="EXPENSE" recordId="expense-1" canManage />,
+    );
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const file = new File(['image data'], 'receipt.jpg', {
+      type: 'image/jpeg',
+    });
+    fireEvent.change(screen.getByLabelText('Choose existing photo or PDF'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate right' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Upload document' }));
+
+    expect(await screen.findByText('Possible duplicate')).toBeInTheDocument();
+    expect(screen.getByAltText('Preview of receipt.jpg')).toHaveStyle({
+      transform: 'rotate(90deg)',
+    });
+    expect(uploads[0].get('confirmDuplicate')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload anyway' }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByAltText('Preview of receipt.jpg'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(uploads).toHaveLength(2);
+    expect(uploads[1].get('confirmDuplicate')).toBe('true');
+    expect(uploads[1].get('displayRotationDegrees')).toBe('90');
+    expect(uploads[1].get('file')).toBe(file);
+    expect(uploads[1].get('recordId')).toBe('expense-1');
+  });
+
   it('keeps a selected file available for an explicit failed-upload retry', async () => {
     let uploadAttempts = 0;
     vi.stubGlobal(

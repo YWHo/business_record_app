@@ -23,13 +23,16 @@ export function exportPeriod(
   taxYearEndDay: number,
 ): ExportPeriod {
   const scope = (scopeValue ?? '').toUpperCase();
-  if (!['MONTH', 'TAX_YEAR', 'FULL'].includes(scope))
+  if (!['MONTH', 'TAX_YEAR', 'FULL'].includes(scope)) {
     throw new HttpError(400, 'Export scope is invalid.');
-  if (scope === 'FULL')
+  }
+  if (scope === 'FULL') {
     return { scope: 'FULL', periodKey: null, from: null, to: null };
+  }
   if (scope === 'MONTH') {
-    if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+    if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
       throw new HttpError(400, 'Month must use YYYY-MM.');
+    }
     const [year, monthNumber] = month.split('-').map(Number);
     const end = new Date(Date.UTC(year, monthNumber, 0))
       .toISOString()
@@ -41,8 +44,9 @@ export function exportPeriod(
       to: end,
     };
   }
-  if (!taxYear || !/^\d{4}$/.test(taxYear) || Number(taxYear) < 1901)
+  if (!taxYear || !/^\d{4}$/.test(taxYear) || Number(taxYear) < 1901) {
     throw new HttpError(400, 'Tax year must be a four-digit ending year.');
+  }
   const endYear = Number(taxYear);
   const end = `${taxYear}-${String(taxYearEndMonth).padStart(2, '0')}-${String(taxYearEndDay).padStart(2, '0')}`;
   const priorEnd = new Date(
@@ -58,15 +62,22 @@ export function exportPeriod(
 }
 
 export function csvValue(value: unknown): string {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) {
+    return '';
+  }
   let text: string;
   if (typeof value === 'string') {
     text = value;
-    if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
-  } else if (typeof value === 'boolean') text = value ? 'true' : 'false';
-  else if (typeof value === 'number' || typeof value === 'bigint')
+    if (/^[\t\r ]*[=+\-@]/.test(text)) {
+      text = `'${text}`;
+    }
+  } else if (typeof value === 'boolean') {
+    text = value ? 'true' : 'false';
+  } else if (typeof value === 'number' || typeof value === 'bigint') {
     text = String(value);
-  else text = JSON.stringify(value) ?? '';
+  } else {
+    text = JSON.stringify(value) ?? '';
+  }
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
@@ -97,8 +108,9 @@ const crcTable = (() => {
   const table = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {
     let value = n;
-    for (let bit = 0; bit < 8; bit += 1)
+    for (let bit = 0; bit < 8; bit += 1) {
       value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    }
     table[n] = value >>> 0;
   }
   return table;
@@ -106,7 +118,9 @@ const crcTable = (() => {
 
 export function crc32(bytes: Uint8Array): number {
   let crc = 0xffffffff;
-  for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  for (const byte of bytes) {
+    crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
   return (crc ^ 0xffffffff) >>> 0;
 }
 
@@ -186,8 +200,9 @@ export function storedZip(
   generatedAt: Date,
   onComplete?: () => Promise<void>,
 ): ReadableStream<Uint8Array> {
-  if (entries.length > 65_535)
+  if (entries.length > 65_535) {
     throw new HttpError(413, 'Export contains too many files.');
+  }
   const encoder = new TextEncoder();
   let archiveSize = 22;
   for (const entry of entries) {
@@ -195,18 +210,20 @@ export function storedZip(
       !Number.isSafeInteger(entry.size) ||
       entry.size < 0 ||
       entry.size > 0xffffffff
-    )
+    ) {
       throw new HttpError(
         413,
         'An export file is too large for the portable ZIP format.',
       );
+    }
     const nameSize = encoder.encode(entry.path).byteLength;
     archiveSize += 30 + nameSize + entry.size + 46 + nameSize;
-    if (archiveSize > 0xffffffff)
+    if (archiveSize > 0xffffffff) {
       throw new HttpError(
         413,
         'Export is too large for the portable ZIP format.',
       );
+    }
   }
   let index = 0,
     offset = 0,
@@ -214,13 +231,16 @@ export function storedZip(
   const central: Uint8Array[] = [];
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
-      if (finished) return;
+      if (finished) {
+        return;
+      }
       if (index < entries.length) {
         const entry = entries[index++];
         const name = encoder.encode(entry.path);
         const contents = await entry.load();
-        if (contents.byteLength !== entry.size)
+        if (contents.byteLength !== entry.size) {
           throw new HttpError(500, `Export file size changed: ${entry.path}`);
+        }
         const checksum = crc32(contents);
         const header = localHeader(name, entry.size, checksum, generatedAt);
         central.push(
@@ -251,7 +271,9 @@ export function backupDue(
   reminderDays: number,
   now = new Date(),
 ) {
-  if (!lastSuccessfulExportAt) return true;
+  if (!lastSuccessfulExportAt) {
+    return true;
+  }
   const last = Date.parse(lastSuccessfulExportAt);
   return (
     !Number.isFinite(last) || now.valueOf() - last >= reminderDays * 86_400_000

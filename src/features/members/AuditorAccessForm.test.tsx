@@ -3,10 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AuditorAccessForm } from './AuditorAccessForm';
 import type { AuditorMember } from '../../lib/auditorAccess';
+
 const options = {
   businesses: [{ id: 'one', name: 'First business' }],
   entities: [{ id: 'entity', name: 'Example Limited' }],
 };
+
 const member: AuditorMember = {
   id: 'auditor',
   email: 'reviewer@example.invalid',
@@ -27,6 +29,7 @@ const member: AuditorMember = {
     },
   ],
 };
+
 describe('AuditorAccessForm', () => {
   it('defaults to a narrow scope and submits normalized dates with multiple grants', async () => {
     const submit = vi.fn().mockResolvedValue(undefined);
@@ -64,6 +67,7 @@ describe('AuditorAccessForm', () => {
       ],
     });
   });
+
   it('requires explicit restoration and preserves a revoked status on ordinary edits', async () => {
     const submit = vi.fn().mockResolvedValue(undefined);
 
@@ -91,6 +95,7 @@ describe('AuditorAccessForm', () => {
       expect.objectContaining({ restoreAccess: true }),
     );
   });
+
   it('rejects an inverted access window before calling the API', async () => {
     const submit = vi.fn();
     render(
@@ -108,6 +113,37 @@ describe('AuditorAccessForm', () => {
     );
     expect(submit).not.toHaveBeenCalled();
   });
+
+  it('rejects an inverted scope date range without submitting or losing the selected expiry', async () => {
+    const submit = vi.fn();
+    render(
+      <AuditorAccessForm
+        {...options}
+        member={{
+          ...member,
+          scopes: [
+            {
+              ...member.scopes[0],
+              dateFrom: '2026-11-20',
+              dateTo: '2026-11-01',
+            },
+          ],
+        }}
+        onSubmit={submit}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save auditor access' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Select each scope',
+    );
+    expect(submit).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText('Access expires (local time)'),
+    ).not.toHaveValue('');
+  });
+
   it('keeps the draft and focuses an actionable server conflict', async () => {
     render(
       <AuditorAccessForm
@@ -127,6 +163,7 @@ describe('AuditorAccessForm', () => {
     expect(screen.getByRole('alert')).toHaveFocus();
     expect(screen.getByLabelText('Auditor email')).toHaveValue(member.email);
   });
+
   it('does not offer to restore a disabled global identity', () => {
     render(
       <AuditorAccessForm

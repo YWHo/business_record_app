@@ -1,9 +1,12 @@
 import type { AuditorAccessDetails } from '../../lib/accessPresentation';
-const date = (value: string) =>
-  new Intl.DateTimeFormat('en-NZ', {
+
+function date(value: string) {
+  return new Intl.DateTimeFormat('en-NZ', {
     timeZone: 'UTC',
     dateStyle: 'medium',
   }).format(new Date(value + 'T00:00:00Z'));
+}
+
 export function AuditorAccessNotice({
   access,
 }: {

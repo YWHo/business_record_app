@@ -110,8 +110,9 @@ test('auditor inspects scoped records, previews, reports and history across scre
     const page = await context.newPage();
     const rejected = [];
     page.on('response', (response) => {
-      if (response.url().includes('/api/') && response.status() >= 400)
+      if (response.url().includes('/api/') && response.status() >= 400) {
         rejected.push(`${response.status()} ${response.url()}`);
+      }
     });
     await page.goto('/app/businesses');
     const notice = page.getByLabel('Auditor access', { exact: true });

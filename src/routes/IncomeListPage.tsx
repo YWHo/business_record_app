@@ -52,10 +52,18 @@ export function IncomeListPage() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return records.filter((record) => {
-      if (type && record.incomeType !== type) return false;
-      if (from && record.transactionDate.slice(0, 10) < from) return false;
-      if (status && record.status !== status) return false;
-      if (!query) return true;
+      if (type && record.incomeType !== type) {
+        return false;
+      }
+      if (from && record.transactionDate.slice(0, 10) < from) {
+        return false;
+      }
+      if (status && record.status !== status) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
       return [
         incomeTitle(record),
         record.activityName,
@@ -65,12 +73,15 @@ export function IncomeListPage() {
     });
   }, [from, records, search, status, type]);
 
-  function filter(key: string, value: string) {
+  const filter = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
+    if (value) {
+      next.set(key, value);
+    } else {
+      next.delete(key);
+    }
     setSearchParams(next, { replace: true });
-  }
+  };
 
   return (
     <section aria-labelledby="income-heading">

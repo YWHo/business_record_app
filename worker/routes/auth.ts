@@ -92,7 +92,9 @@ export async function requestLogin(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (env.APP_ENV === 'demo') throw new HttpError(404, 'Not found.');
+  if (env.APP_ENV === 'demo') {
+    throw new HttpError(404, 'Not found.');
+  }
   const body = await readJsonObject(request);
   const email = normalizeEmail(getRequiredString(body, 'email'));
   await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'login', email);
@@ -112,7 +114,9 @@ export async function verifyLogin(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (env.APP_ENV === 'demo') throw new HttpError(404, 'Not found.');
+  if (env.APP_ENV === 'demo') {
+    throw new HttpError(404, 'Not found.');
+  }
   const body = await readJsonObject(request);
   const token = getRequiredString(body, 'token');
   await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'verify');
@@ -130,7 +134,9 @@ export async function currentUser(
 ): Promise<Response> {
   const user = await requireUser(request, env);
   const context = user.authorization;
-  if (user.role !== 'AUDITOR' || !context) return json({ user });
+  if (user.role !== 'AUDITOR' || !context) {
+    return json({ user });
+  }
   const scopes = await Promise.all(
     context.scopes.map(async (scope) => {
       const target =

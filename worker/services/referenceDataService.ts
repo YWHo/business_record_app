@@ -48,7 +48,9 @@ function optionalText(
   label: string,
   maximumLength: number,
 ): string | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string') {
     throw new HttpError(400, `${label} must be text.`);
   }
@@ -63,7 +65,9 @@ function optionalText(
 }
 
 function dateOnly(value: unknown, label: string): string | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new HttpError(400, `${label} must be a valid date.`);
   }

@@ -84,7 +84,9 @@ export async function dashboard(
   )
     .bind(actor.businessAccountId)
     .first<SettingsRow>();
-  if (!settings) throw new HttpError(500, 'Tax-year settings are unavailable.');
+  if (!settings) {
+    throw new HttpError(500, 'Tax-year settings are unavailable.');
+  }
   const url = new URL(request.url);
   const requestedTaxYear =
     url.searchParams.get('taxYear') ??
@@ -99,8 +101,9 @@ export async function dashboard(
   const activityValue = routeBusinessId
     ? ''
     : (url.searchParams.get('activityId')?.trim() ?? '');
-  if (activityValue.length > 100)
+  if (activityValue.length > 100) {
     throw new HttpError(400, 'Business activity filter is invalid.');
+  }
   const activityId = activityValue || null;
   if (activityId) {
     const activity = await env.DB.prepare(
@@ -108,8 +111,9 @@ export async function dashboard(
     )
       .bind(activityId, actor.businessAccountId)
       .first();
-    if (!activity)
+    if (!activity) {
       throw new HttpError(400, 'Business activity filter is invalid.');
+    }
   }
   const incomeScope = scopeClause(
     'income_records',
@@ -329,14 +333,16 @@ export async function dashboard(
       item.fuel += row.total_amount_minor;
       item.fuelLitres += row.fuel_litres ?? 0;
     }
-    if (row.expense_type === 'PARKING') item.parking += row.total_amount_minor;
+    if (row.expense_type === 'PARKING') {
+      item.parking += row.total_amount_minor;
+    }
     spending.set(row.currency, item);
     if (
       row.business_activity_id &&
       row.activity_name &&
       row.activity_type === 'PLATFORM_SERVICES' &&
       (row.expense_type === 'FUEL' || row.expense_type === 'PARKING')
-    )
+    ) {
       platformCosts.push({
         activityId: row.business_activity_id,
         activityName: row.activity_name,
@@ -345,6 +351,7 @@ export async function dashboard(
         currency: row.currency,
         fuelLitres: row.fuel_litres,
       });
+    }
   }
   const sessionInputs: DashboardSessionInput[] = sessionRows.results.map(
     (row) => ({

@@ -52,10 +52,11 @@ const entityTypeLabels: Record<
   OTHER: 'Other entity',
 };
 
-const money = (minor: number, currency: string) =>
-  new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
+function money(minor: number, currency: string) {
+  return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
+}
 
 function dateLabel(value: string): string {
   const date = new Date(`${value}T00:00:00Z`);
@@ -94,20 +95,27 @@ export function DashboardPage() {
       setDashboard(null);
       try {
         const query = new URLSearchParams();
-        if (taxYear) query.set('taxYear', taxYear);
+        if (taxYear) {
+          query.set('taxYear', taxYear);
+        }
         const result = await apiRequest<DashboardData>(
           `/api/businesses/${businessId}/dashboard?${query}`,
         );
-        if (requestId === requestSequence.current) setDashboard(result);
+        if (requestId === requestSequence.current) {
+          setDashboard(result);
+        }
       } catch (caught) {
-        if (requestId === requestSequence.current)
+        if (requestId === requestSequence.current) {
           setError(
             caught instanceof Error
               ? caught.message
               : 'Unable to load this business dashboard.',
           );
+        }
       } finally {
-        if (requestId === requestSequence.current) setLoading(false);
+        if (requestId === requestSequence.current) {
+          setLoading(false);
+        }
       }
     },
     [businessId],

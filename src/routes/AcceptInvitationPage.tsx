@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type SubmitEvent, useEffect, useState } from 'react';
 import {
   Link,
   useLocation,
@@ -17,10 +17,12 @@ export function AcceptInvitationPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (token) void navigate(location.pathname, { replace: true });
+    if (token) {
+      void navigate(location.pathname, { replace: true });
+    }
   }, [location.pathname, navigate, token]);
 
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     if (!token) {
@@ -42,7 +44,7 @@ export function AcceptInvitationPage() {
           : 'Unable to accept invitation.',
       );
     }
-  }
+  };
 
   return (
     <main className="auth-page">

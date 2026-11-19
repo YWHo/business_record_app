@@ -151,8 +151,9 @@ async function retentionDate(
   )
     .bind(businessAccountId)
     .first<RetentionSettings>();
-  if (!settings)
+  if (!settings) {
     throw new HttpError(503, 'Retention settings are unavailable.');
+  }
   return calculateRetentionDate(
     occurredAt,
     settings.retention_tax_years,
@@ -166,8 +167,9 @@ async function parkingCategory(env: Env, businessAccountId: string) {
   )
     .bind(businessAccountId)
     .first<{ id: string }>();
-  if (!row)
+  if (!row) {
     throw new HttpError(503, 'Parking expense category is unavailable.');
+  }
   return row.id;
 }
 async function assertReferences(
@@ -207,19 +209,22 @@ async function assertReferences(
     (!activity ||
       (!activity.active &&
         prior?.business_activity_id !== values.businessActivityId))
-  )
+  ) {
     throw new HttpError(400, 'Select an active business activity.');
+  }
   if (
     !category ||
     (!category.active &&
       prior?.expense_category_id !== values.expenseCategoryId)
-  )
+  ) {
     throw new HttpError(400, 'Select an active expense category.');
+  }
   if (
     vehicleId &&
     (!vehicle || (!vehicle.active && prior?.vehicle_id !== vehicleId))
-  )
+  ) {
     throw new HttpError(400, 'Select an active vehicle.');
+  }
 }
 function insertExpense(
   env: Env,
@@ -397,7 +402,9 @@ export async function createGeneralExpense(
   )
     .bind(id, owner.businessAccountId)
     .first<ExpenseRow>();
-  if (!row) throw new HttpError(500, 'General expense could not be loaded.');
+  if (!row) {
+    throw new HttpError(500, 'General expense could not be loaded.');
+  }
   return json({ generalExpense: serializeExpense(row) }, { status: 201 });
 }
 export async function updateGeneralExpense(request: Request, env: Env) {
@@ -410,7 +417,9 @@ export async function updateGeneralExpense(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<ExpenseRow>();
-  if (!row) throw new HttpError(404, 'General expense not found.');
+  if (!row) {
+    throw new HttpError(404, 'General expense not found.');
+  }
   const values = commonExpenseValues(body, current(row));
   await assertReferences(env, owner.businessAccountId, values, null, row);
   const now = new Date().toISOString();
@@ -441,8 +450,9 @@ export async function updateGeneralExpense(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<ExpenseRow>();
-  if (!updated)
+  if (!updated) {
     throw new HttpError(500, 'General expense could not be loaded.');
+  }
   return json({ generalExpense: serializeExpense(updated) });
 }
 
@@ -579,7 +589,9 @@ export async function createParkingRecord(
   )
     .bind(id, owner.businessAccountId)
     .first<ParkingRow>();
-  if (!row) throw new HttpError(500, 'Parking expense could not be loaded.');
+  if (!row) {
+    throw new HttpError(500, 'Parking expense could not be loaded.');
+  }
   return json({ parkingRecord: serializeParking(row) }, { status: 201 });
 }
 export async function updateParkingRecord(request: Request, env: Env) {
@@ -592,7 +604,9 @@ export async function updateParkingRecord(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<ParkingRow>();
-  if (!row) throw new HttpError(404, 'Parking expense not found.');
+  if (!row) {
+    throw new HttpError(404, 'Parking expense not found.');
+  }
   const values = parkingValues(
     body,
     row.expense_category_id,
@@ -640,7 +654,8 @@ export async function updateParkingRecord(request: Request, env: Env) {
   )
     .bind(id, owner.businessAccountId)
     .first<ParkingRow>();
-  if (!updated)
+  if (!updated) {
     throw new HttpError(500, 'Parking expense could not be loaded.');
+  }
   return json({ parkingRecord: serializeParking(updated) });
 }

@@ -13,7 +13,10 @@ import { ReconcileForm, type IncomeRecord } from './IncomePage';
 import { hasPermission } from '../lib/permissions';
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
-  if (value === null || value === undefined || value === '') return null;
+
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
 
   return (
     <div>
@@ -46,7 +49,7 @@ export function IncomeDetailPage() {
     void load();
   }, [load]);
 
-  if (error)
+  if (error) {
     return (
       <section className="empty-state" role="alert">
         <div>
@@ -58,8 +61,11 @@ export function IncomeDetailPage() {
         </div>
       </section>
     );
+  }
 
-  if (!record) return <p role="status">Loading income…</p>;
+  if (!record) {
+    return <p role="status">Loading income…</p>;
+  }
 
   const details = record.details ?? {};
   return (

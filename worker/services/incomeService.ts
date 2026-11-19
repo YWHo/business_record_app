@@ -54,14 +54,19 @@ export interface SubscriptionValues extends CommonIncomeValues {
 }
 export type IncomeValues =
   CommonIncomeValues | PlatformValues | ContractValues | SubscriptionValues;
-const has = (input: Record<string, unknown>, field: string) =>
-  Object.prototype.hasOwnProperty.call(input, field);
+
+function has(input: Record<string, unknown>, field: string) {
+  return Object.prototype.hasOwnProperty.call(input, field);
+}
 
 function requiredDate(value: unknown, label: string): string {
   const date = allocationDate(value, label);
-  if (!date) throw new HttpError(400, `${label} is required.`);
+  if (!date) {
+    throw new HttpError(400, `${label} is required.`);
+  }
   return date;
 }
+
 function money(
   input: Record<string, unknown>,
   field: string,
@@ -73,24 +78,34 @@ function money(
     ? moneyToMinor(input[field], label, nullable)
     : (current ?? (nullable ? null : moneyToMinor(undefined, label)));
 }
+
 function signedMoney(value: unknown, label: string): number {
-  if (value === undefined || value === null || value === '') return 0;
-  if (typeof value !== 'string' && typeof value !== 'number')
+  if (value === undefined || value === null || value === '') {
+    return 0;
+  }
+  if (typeof value !== 'string' && typeof value !== 'number') {
     throw new HttpError(400, `${label} must have at most two decimals.`);
+  }
   const normalized = String(value).trim();
-  if (!/^-?\d+(?:\.\d{1,2})?$/.test(normalized))
+  if (!/^-?\d+(?:\.\d{1,2})?$/.test(normalized)) {
     throw new HttpError(400, `${label} must have at most two decimals.`);
+  }
   const sign = normalized.startsWith('-') ? -1 : 1;
   const absolute = normalized.replace('-', '');
   return sign * moneyToMinor(absolute, label)!;
 }
+
 function count(value: unknown, label: string): number | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   const result = typeof value === 'number' ? value : Number(value);
-  if (!Number.isSafeInteger(result) || result < 0 || result > 100_000_000)
+  if (!Number.isSafeInteger(result) || result < 0 || result > 100_000_000) {
     throw new HttpError(400, `${label} must be a non-negative whole number.`);
+  }
   return result;
 }
+
 function common(
   input: Record<string, unknown>,
   incomeType: IncomeType,
@@ -105,13 +120,15 @@ function common(
   if (
     typeof currencyValue !== 'string' ||
     !/^[A-Za-z]{3}$/.test(currencyValue.trim())
-  )
+  ) {
     throw new HttpError(400, 'Currency must be a three-letter code.');
+  }
   const businessActivityId = has(input, 'businessActivityId')
     ? expenseId(input.businessActivityId, 'Business activity', true)
     : current?.businessActivityId;
-  if (!businessActivityId)
+  if (!businessActivityId) {
     throw new HttpError(400, 'Business activity is required.');
+  }
   return {
     businessActivityId,
     incomeType,
@@ -135,11 +152,13 @@ export function incomeValues(
   if (
     typeof rawType !== 'string' ||
     !['PLATFORM', 'CONTRACT', 'SUBSCRIPTION', 'GENERAL'].includes(rawType)
-  )
+  ) {
     throw new HttpError(400, 'Income type is invalid.');
+  }
   const type = rawType as IncomeType;
-  if (current && type !== current.incomeType)
+  if (current && type !== current.incomeType) {
     throw new HttpError(400, 'Income type cannot be changed after creation.');
+  }
   if (type === 'PLATFORM') {
     const prior =
       current?.incomeType === 'PLATFORM'
@@ -154,8 +173,9 @@ export function incomeValues(
     const periodEnd = has(input, 'periodEnd')
       ? requiredDate(input.periodEnd, 'Period end')
       : (prior?.periodEnd ?? requiredDate(undefined, 'Period end'));
-    if (periodEnd < periodStart)
+    if (periodEnd < periodStart) {
       throw new HttpError(400, 'Period end cannot be before its start.');
+    }
     const paymentDate = has(input, 'paymentDate')
       ? requiredDate(input.paymentDate, 'Payment date')
       : (prior?.paymentDate ?? requiredDate(undefined, 'Payment date'));
@@ -224,11 +244,12 @@ export function incomeValues(
     const end = has(input, 'servicePeriodEnd')
       ? allocationDate(input.servicePeriodEnd, 'Service period end')
       : (prior?.servicePeriodEnd ?? null);
-    if (start && end && end < start)
+    if (start && end && end < start) {
       throw new HttpError(
         400,
         'Service period end cannot be before its start.',
       );
+    }
     const paymentStatus = has(input, 'paymentStatus')
       ? input.paymentStatus
       : (prior?.paymentStatus ?? 'DRAFT');
@@ -242,8 +263,9 @@ export function incomeValues(
         'OVERDUE',
         'VOID',
       ].includes(paymentStatus)
-    )
+    ) {
       throw new HttpError(400, 'Payment status is invalid.');
+    }
     const amountReceived = money(
       input,
       'amountReceived',
@@ -254,11 +276,12 @@ export function incomeValues(
     if (
       paymentStatus === 'PAID' &&
       (amountReceived === null || amountReceived < total)
-    )
+    ) {
       throw new HttpError(
         400,
         'Paid invoices require an amount received at least equal to the invoice total.',
       );
+    }
     return {
       ...common(
         input,
@@ -310,8 +333,9 @@ export function incomeValues(
     const periodEnd = has(input, 'periodEnd')
       ? requiredDate(input.periodEnd, 'Period end')
       : (prior?.periodEnd ?? requiredDate(undefined, 'Period end'));
-    if (periodEnd < periodStart)
+    if (periodEnd < periodStart) {
       throw new HttpError(400, 'Period end cannot be before its start.');
+    }
     const net = money(
       input,
       'netPaymentReceived',

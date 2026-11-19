@@ -31,10 +31,11 @@ interface MissingDocumentRecord {
   status: string;
 }
 
-const money = (minor: number, currency: string) =>
-  new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
+function money(minor: number, currency: string) {
+  return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
+}
 
 function recordPath(
   businessId: string,

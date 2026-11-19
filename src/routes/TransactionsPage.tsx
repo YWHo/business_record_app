@@ -1,5 +1,5 @@
 import {
-  type FormEvent,
+  type SubmitEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -111,15 +111,15 @@ function filtersFromQuery(search: string): Filters {
   };
 }
 
-const money = (minor: number, currency: string) => {
+function money(minor: number, currency: string) {
   return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
-};
+}
 
-const statusLabel = (status: string) => {
+function statusLabel(status: string) {
   return status.replaceAll('_', ' ').toLowerCase();
-};
+}
 
 function ReviewPanel({
   record,
@@ -130,11 +130,11 @@ function ReviewPanel({
   role: 'OWNER' | 'ACCOUNTANT' | 'AUDITOR';
   onChanged: () => Promise<void>;
 }) {
-  const [open, setOpen] = useState(false),
-    [comments, setComments] = useState<Comment[]>([]),
-    [message, setMessage] = useState(''),
-    [status, setStatus] = useState(record.status),
-    [error, setError] = useState('');
+  const [open, setOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState(record.status);
+  const [error, setError] = useState('');
 
   const loadComments = useCallback(async () => {
     const result = await apiRequest<{ comments: Comment[] }>(
@@ -143,7 +143,7 @@ function ReviewPanel({
     setComments(result.comments);
   }, [record.id, record.recordType]);
 
-  async function toggle() {
+  const toggle = async () => {
     const next = !open;
     setOpen(next);
     if (next) {
@@ -155,9 +155,9 @@ function ReviewPanel({
         );
       }
     }
-  }
+  };
 
-  async function addComment(event: FormEvent) {
+  const addComment = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     try {
@@ -177,9 +177,9 @@ function ReviewPanel({
         caught instanceof Error ? caught.message : 'Unable to add comment.',
       );
     }
-  }
+  };
 
-  async function updateStatus() {
+  const updateStatus = async () => {
     setError('');
     try {
       await apiRequest('/api/record-status', {
@@ -197,7 +197,7 @@ function ReviewPanel({
         caught instanceof Error ? caught.message : 'Unable to update status.',
       );
     }
-  }
+  };
 
   const statuses =
     role === 'OWNER'
@@ -305,27 +305,29 @@ export function TransactionsPage() {
   );
   const [mode, setMode] = useState<'TRANSACTIONS' | 'RECEIPTS'>('TRANSACTIONS');
   const [filters, setFilters] = useState<Filters>(() =>
-      filtersFromQuery(location.search),
-    ),
-    [records, setRecords] = useState<Transaction[]>([]),
-    [activities, setActivities] = useState<Reference[]>([]),
-    [categories, setCategories] = useState<Reference[]>([]),
-    [vehicles, setVehicles] = useState<Reference[]>([]),
-    [legalEntities, setLegalEntities] = useState<LegalEntityReference[]>([]),
-    [saved, setSaved] = useState<SavedFilter[]>([]),
-    [page, setPage] = useState<PageMetadata>({
-      number: 1,
-      size: 50,
-      hasNext: false,
-    }),
-    [filterName, setFilterName] = useState(''),
-    [summary, setSummary] = useState({
-      resultCount: 0,
-      missingAttachmentCount: 0,
-      unreviewedCount: 0,
-    }),
-    [error, setError] = useState(''),
-    [message, setMessage] = useState('');
+    filtersFromQuery(location.search),
+  );
+  const [records, setRecords] = useState<Transaction[]>([]);
+  const [activities, setActivities] = useState<Reference[]>([]);
+  const [categories, setCategories] = useState<Reference[]>([]);
+  const [vehicles, setVehicles] = useState<Reference[]>([]);
+  const [legalEntities, setLegalEntities] = useState<LegalEntityReference[]>(
+    [],
+  );
+  const [saved, setSaved] = useState<SavedFilter[]>([]);
+  const [page, setPage] = useState<PageMetadata>({
+    number: 1,
+    size: 50,
+    hasNext: false,
+  });
+  const [filterName, setFilterName] = useState('');
+  const [summary, setSummary] = useState({
+    resultCount: 0,
+    missingAttachmentCount: 0,
+    unreviewedCount: 0,
+  });
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const entityNames = useMemo(() => {
     const names = new Map(
@@ -336,11 +338,12 @@ export function TransactionsPage() {
     );
     for (const business of businesses) {
       const entity = business.currentLegalEntity;
-      if (entity && !names.has(entity.id))
+      if (entity && !names.has(entity.id)) {
         names.set(
           entity.id,
           entity.legalName || entity.tradingName || 'Legal entity',
         );
+      }
     }
     return names;
   }, [businesses, legalEntities]);
@@ -352,8 +355,9 @@ export function TransactionsPage() {
 
   const loadSaved = useCallback(
     async (filterMode: typeof mode) => {
-      if (!canSaveFilters) return;
-
+      if (!canSaveFilters) {
+        return;
+      }
       const result = await apiRequest<{ savedFilters: SavedFilter[] }>(
         `/api/saved-filters?filterType=${filterMode}`,
       );
@@ -368,7 +372,9 @@ export function TransactionsPage() {
       const query = new URLSearchParams();
       for (const key of Object.keys(activeFilters) as Array<keyof Filters>) {
         const value = activeFilters[key];
-        if (value) query.set(key, value);
+        if (value) {
+          query.set(key, value);
+        }
       }
       query.set('page', String(pageNumber));
       const collection =
@@ -455,7 +461,7 @@ export function TransactionsPage() {
     );
   }, [businessId, loadSaved, location.search, search]);
 
-  async function changeMode(next: typeof mode) {
+  const changeMode = async (next: typeof mode) => {
     const scopedEmpty = {
       ...emptyFilters,
       legalEntityId: filters.legalEntityId,
@@ -464,9 +470,9 @@ export function TransactionsPage() {
     setFilters(scopedEmpty);
     setError('');
     await Promise.all([search(scopedEmpty, next), loadSaved(next)]);
-  }
+  };
 
-  async function saveFilter(event: FormEvent) {
+  const saveFilter = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     try {
@@ -486,17 +492,17 @@ export function TransactionsPage() {
         caught instanceof Error ? caught.message : 'Unable to save filter.',
       );
     }
-  }
+  };
 
-  async function removeFilter(id: string) {
+  const removeFilter = async (id: string) => {
     await apiRequest('/api/saved-filters', {
       method: 'DELETE',
       body: JSON.stringify({ id }),
     });
     await loadSaved(mode);
-  }
+  };
 
-  async function applyFilter(item: SavedFilter) {
+  const applyFilter = async (item: SavedFilter) => {
     const nextFilters = {
       ...emptyFilters,
       ...item.criteria,
@@ -504,16 +510,16 @@ export function TransactionsPage() {
     };
     setFilters(nextFilters);
     await search(nextFilters, mode);
-  }
+  };
 
-  async function moveToTrash(record: Transaction) {
+  const moveToTrash = async (record: Transaction) => {
     if (
       !window.confirm(
         'Move this record to trash? It can be restored during retention.',
       )
-    )
+    ) {
       return;
-
+    }
     setError('');
     try {
       await apiRequest('/api/trash', {
@@ -533,7 +539,7 @@ export function TransactionsPage() {
           : 'Unable to move record to trash.',
       );
     }
-  }
+  };
 
   return (
     <section aria-labelledby="transactions-heading">

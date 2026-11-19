@@ -5,8 +5,10 @@ const demoStart = configuration.indexOf('"demo": {');
 const productionStart = configuration.indexOf('"production": {');
 const demo = configuration.slice(demoStart, productionStart);
 const production = configuration.slice(productionStart);
-const captures = (source: string, pattern: RegExp) =>
-  new Set([...source.matchAll(pattern)].map((match) => match[1]));
+
+function captures(source: string, pattern: RegExp) {
+  return new Set([...source.matchAll(pattern)].map((match) => match[1]));
+}
 
 describe('deployed environment resource separation', () => {
   it('keeps demo resources disjoint and omits document storage', () => {

@@ -11,11 +11,12 @@ export type StatusTone =
   | 'VOIDED'
   | 'TRASHED';
 
-const statusLabel = (status: StatusTone) =>
-  status
+function statusLabel(status: StatusTone) {
+  return status
     .toLocaleLowerCase('en-NZ')
     .replaceAll('_', ' ')
     .replace(/^./, (character) => character.toLocaleUpperCase('en-NZ'));
+}
 
 export function StatusBadge({
   status,

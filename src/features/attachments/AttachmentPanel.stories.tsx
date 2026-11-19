@@ -2,14 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { AttachmentPanel } from './AttachmentPanel';
 
-const successResponse = () => {
+function successResponse() {
   return Promise.resolve(
     new Response(JSON.stringify({ attachments: [] }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     }),
   );
-};
+}
 
 const meta = {
   title: 'Workflows/Supporting documents',

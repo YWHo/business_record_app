@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
@@ -62,7 +62,7 @@ export function ActivityManager({ canManage }: { canManage: boolean }) {
     );
   }, [load]);
 
-  async function create(event: FormEvent) {
+  const create = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setMessage('');
@@ -79,11 +79,13 @@ export function ActivityManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to add activity.',
       );
     }
-  }
+  };
 
-  async function save(event: FormEvent) {
+  const save = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editId) return;
+    if (!editId) {
+      return;
+    }
     setError('');
     setMessage('');
     try {
@@ -99,9 +101,9 @@ export function ActivityManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to update activity.',
       );
     }
-  }
+  };
 
-  async function toggle(activity: BusinessActivity) {
+  const toggle = async (activity: BusinessActivity) => {
     setError('');
     setMessage('');
     try {
@@ -118,7 +120,7 @@ export function ActivityManager({ canManage }: { canManage: boolean }) {
         caught instanceof Error ? caught.message : 'Unable to update activity.',
       );
     }
-  }
+  };
 
   return (
     <section

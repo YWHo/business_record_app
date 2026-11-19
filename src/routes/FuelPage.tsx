@@ -1,7 +1,8 @@
+import { confirmationWarnings } from '../lib/confirmationWarnings';
 /* eslint-disable react-refresh/only-export-components */
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
-import { ApiError, apiRequest, useAuth } from '../features/auth/AuthContext';
+import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
 export interface FuelOption {
@@ -153,18 +154,21 @@ export function FuelForm({
       >,
     ) =>
       setDraft({ ...draft, [key]: event.target.value });
-  async function submit(event: FormEvent) {
+
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
       await onSubmit(draft);
-      if (!onCancel) setDraft(emptyFuelDraft());
+      if (!onCancel) {
+        setDraft(emptyFuelDraft());
+      }
     } catch {
       /* parent displays */
     } finally {
       setSaving(false);
     }
-  }
+  };
   return (
     <form
       className="work-session-form"
@@ -393,11 +397,11 @@ export function FuelPage() {
     );
   }, [load]);
 
-  async function save(
+  const save = async (
     draft: FuelDraft,
     editingId: string | null,
     confirmed: string[] = [],
-  ) {
+  ) => {
     setError('');
     setMessage('');
     try {
@@ -413,12 +417,7 @@ export function FuelPage() {
       setMessage(editingId ? 'Fuel expense updated.' : 'Fuel expense added.');
       await load();
     } catch (caught) {
-      const warnings =
-        caught instanceof ApiError &&
-        caught.status === 409 &&
-        Array.isArray(caught.body?.warnings)
-          ? (caught.body.warnings as Warning[])
-          : null;
+      const warnings = confirmationWarnings(caught);
       if (warnings) {
         setPending({ draft, editingId, warnings });
         return;
@@ -430,7 +429,7 @@ export function FuelPage() {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
   return (
     <section aria-labelledby="fuel-heading">

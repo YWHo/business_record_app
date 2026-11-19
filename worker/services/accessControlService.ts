@@ -66,10 +66,18 @@ export function isAccessWindowActive(
   const time = now.getTime();
   const start = window.accessStartsAt;
   const end = window.accessExpiresAt;
-  if (!Number.isFinite(time)) return false;
-  if (start !== null && !validInstant(start)) return false;
-  if (end !== null && !validInstant(end)) return false;
-  if (start !== null && end !== null && start >= end) return false;
+  if (!Number.isFinite(time)) {
+    return false;
+  }
+  if (start !== null && !validInstant(start)) {
+    return false;
+  }
+  if (end !== null && !validInstant(end)) {
+    return false;
+  }
+  if (start !== null && end !== null && start >= end) {
+    return false;
+  }
   return (
     (start === null || time >= Date.parse(start)) &&
     (end === null || time < Date.parse(end))
@@ -83,8 +91,9 @@ function validScope(
   if (
     scope.businessAccountId !== context.businessAccountId ||
     scope.userId !== context.userId
-  )
+  ) {
     return false;
+  }
   const shape =
     (scope.scopeType === 'ACCOUNT' &&
       scope.businessId === null &&
@@ -192,8 +201,9 @@ export function canAccessRecord(
   if (
     !hasPermission(context, 'RECORD_VIEW', now) ||
     record.businessAccountId !== context.businessAccountId
-  )
+  ) {
     return false;
+  }
   let date: string;
   try {
     date = effectiveBusinessDate(record.effectiveDate);
@@ -217,8 +227,9 @@ export function assertRecordAccess(
   record: ScopedRecord,
   now: Date = new Date(),
 ): void {
-  if (!canAccessRecord(context, record, now))
+  if (!canAccessRecord(context, record, now)) {
     throw new HttpError(404, 'Record not found.');
+  }
 }
 
 // A directory match exposes only minimal identity. It does not authorize every
@@ -230,11 +241,15 @@ async function canAccessDirectoryEntry(
   id: string,
   now: Date,
 ): Promise<boolean> {
-  if (!id || !hasPermission(context, 'RECORD_VIEW', now)) return false;
+  if (!id || !hasPermission(context, 'RECORD_VIEW', now)) {
+    return false;
+  }
   const table = kind === 'BUSINESS' ? 'businesses' : 'business_entities';
   const bindings: (string | null)[] = [id, context.businessAccountId];
   const grants = context.scopes.map((scope) => {
-    if (scope.scopeType === 'ACCOUNT') return '1=1';
+    if (scope.scopeType === 'ACCOUNT') {
+      return '1=1';
+    }
     if (scope.scopeType === kind) {
       bindings.push(
         kind === 'BUSINESS' ? scope.businessId : scope.legalEntityId,
@@ -312,7 +327,9 @@ function businessMidnight(date: string): string {
     const local = Date.parse(
       `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}:${part('second')}Z`,
     );
-    if (local === desired) return new Date(candidate).toISOString();
+    if (local === desired) {
+      return new Date(candidate).toISOString();
+    }
     candidate += desired - local;
   }
   throw new HttpError(403, 'Access date is unavailable.');
@@ -324,8 +341,9 @@ export function businessDateBounds(
   from: string | null,
   to: string | null,
 ): { fromInstant: string | null; toInstant: string | null } {
-  if ((from !== null && !validDate(from)) || (to !== null && !validDate(to)))
+  if ((from !== null && !validDate(from)) || (to !== null && !validDate(to))) {
     throw new HttpError(400, 'Report dates are invalid.');
+  }
   let toInstant: string | null = null;
   if (to !== null) {
     const next = new Date(`${to}T00:00:00.000Z`);
@@ -363,17 +381,20 @@ export function recordAccessPredicate(
   alias: string,
   now: Date = new Date(),
 ): { sql: string; bindings: (string | number | null)[] } {
-  if (!/^[a-z_][a-z0-9_]*$/i.test(alias))
+  if (!/^[a-z_][a-z0-9_]*$/i.test(alias)) {
     throw new Error('Invalid record alias.');
-  if (!hasPermission(context, 'RECORD_VIEW', now))
+  }
+  if (!hasPermission(context, 'RECORD_VIEW', now)) {
     return { sql: '0=1', bindings: [] };
+  }
   const columns: Record<RecordFamily, string> = {
     EXPENSE: 'purchase_datetime',
     INCOME: 'transaction_date',
     WORK_SESSION: 'started_at',
   };
-  if (!Object.hasOwn(columns, family))
+  if (!Object.hasOwn(columns, family)) {
     throw new Error('Invalid record family.');
+  }
   const bindings: (string | number | null)[] = [context.businessAccountId];
   const date = `${alias}.${columns[family]}`;
   const grants = context.scopes.map((scope) => {

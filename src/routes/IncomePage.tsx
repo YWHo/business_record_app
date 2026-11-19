@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
@@ -80,13 +80,13 @@ export interface IncomeDraft {
   cancelledSubscribers: string;
 }
 
-const today = () => {
+function today() {
   return new Date().toISOString().slice(0, 10);
-};
+}
 
-const amount = (minor: unknown) => {
+function amount(minor: unknown) {
   return typeof minor === 'number' ? (minor / 100).toFixed(2) : '';
-};
+}
 
 export function emptyIncomeDraft(): IncomeDraft {
   const date = today();
@@ -174,11 +174,11 @@ export function incomeDraftFrom(record: IncomeRecord): IncomeDraft {
   };
 }
 
-const money = (minor: number, currency: string) => {
+function money(minor: number, currency: string) {
   return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
-};
+}
 
 export function IncomeForm({
   initial,
@@ -199,8 +199,8 @@ export function IncomeForm({
   showActivity?: boolean;
   lockType?: boolean;
 }) {
-  const [draft, setDraft] = useState(initial),
-    [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState(initial);
+  const [saving, setSaving] = useState(false);
   const field =
     (key: keyof IncomeDraft) =>
     (
@@ -209,7 +209,7 @@ export function IncomeForm({
       >,
     ) =>
       setDraft({ ...draft, [key]: event.target.value });
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
@@ -217,7 +217,7 @@ export function IncomeForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
   const dates = (prefix = '') => (
     <div className="form-pair">
       <label>
@@ -718,15 +718,15 @@ export function ReconcileForm({
 export function IncomePage() {
   const { configuration, user } = useAuth(),
     canManage = user?.role === 'OWNER';
-  const [records, setRecords] = useState<IncomeRecord[]>([]),
-    [activities, setActivities] = useState<IncomeReference[]>([]),
-    [clients, setClients] = useState<IncomeReference[]>([]),
-    [summary, setSummary] = useState<
-      { currency: string; totalAmountMinor: number }[]
-    >([]),
-    [edit, setEdit] = useState<IncomeRecord | null>(null),
-    [error, setError] = useState(''),
-    [message, setMessage] = useState('');
+  const [records, setRecords] = useState<IncomeRecord[]>([]);
+  const [activities, setActivities] = useState<IncomeReference[]>([]);
+  const [clients, setClients] = useState<IncomeReference[]>([]);
+  const [summary, setSummary] = useState<
+    { currency: string; totalAmountMinor: number }[]
+  >([]);
+  const [edit, setEdit] = useState<IncomeRecord | null>(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const load = useCallback(async () => {
     const [income, activityResult, clientResult] = await Promise.all([
@@ -755,7 +755,7 @@ export function IncomePage() {
     );
   }, [load]);
 
-  async function save(draft: IncomeDraft, id?: string) {
+  const save = async (draft: IncomeDraft, id?: string) => {
     setError('');
     try {
       await apiRequest('/api/income-records', {
@@ -771,7 +771,7 @@ export function IncomePage() {
       );
       throw caught;
     }
-  }
+  };
 
   return (
     <section aria-labelledby="income-heading">

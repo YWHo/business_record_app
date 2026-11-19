@@ -24,7 +24,9 @@ export function matchRoutePattern(
 ): RouteMatch | null {
   const patternParts = pattern.split('/');
   const pathParts = pathname.split('/');
-  if (patternParts.length !== pathParts.length) return null;
+  if (patternParts.length !== pathParts.length) {
+    return null;
+  }
 
   const params: Record<string, string> = {};
   for (let index = 0; index < patternParts.length; index += 1) {

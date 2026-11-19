@@ -36,7 +36,9 @@ function has(input: Record<string, unknown>, field: string): boolean {
 }
 
 function optionalId(value: unknown, label: string): string | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (typeof value !== 'string' || value.trim().length > 100) {
     throw new HttpError(400, `${label} is invalid.`);
   }
@@ -45,7 +47,9 @@ function optionalId(value: unknown, label: string): string | null {
 
 function requiredId(value: unknown, label: string): string {
   const id = optionalId(value, label);
-  if (!id) throw new HttpError(400, `${label} is required.`);
+  if (!id) {
+    throw new HttpError(400, `${label} is required.`);
+  }
   return id;
 }
 
@@ -56,15 +60,18 @@ function text(
   required = false,
 ): string | null {
   if (value === undefined || value === null || value === '') {
-    if (required) throw new HttpError(400, `${label} is required.`);
+    if (required) {
+      throw new HttpError(400, `${label} is required.`);
+    }
     return null;
   }
   if (typeof value !== 'string') {
     throw new HttpError(400, `${label} must be text.`);
   }
   const normalized = value.trim();
-  if (!normalized && required)
+  if (!normalized && required) {
     throw new HttpError(400, `${label} is required.`);
+  }
   if (normalized.length > maximum) {
     throw new HttpError(
       400,
@@ -115,7 +122,9 @@ function decimalToInteger(
   nullable: boolean,
 ): number | null {
   if (value === undefined || value === null || value === '') {
-    if (nullable) return null;
+    if (nullable) {
+      return null;
+    }
     throw new HttpError(400, `${label} is required.`);
   }
   if (typeof value !== 'string' && typeof value !== 'number') {
@@ -139,7 +148,9 @@ function decimalToInteger(
 }
 
 function positiveNumber(value: unknown, label: string): number | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   const result = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(result) || result <= 0 || result > 10_000_000) {
     throw new HttpError(400, `${label} must be a positive number.`);
@@ -148,7 +159,9 @@ function positiveNumber(value: unknown, label: string): number | null {
 }
 
 function nonNegativeNumber(value: unknown, label: string): number | null {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   const result = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(result) || result < 0 || result > 10_000_000) {
     throw new HttpError(400, `${label} must be a non-negative number.`);
@@ -295,7 +308,9 @@ export function fuelWarnings(values: FuelValues): FuelWarning[] {
 }
 
 export function confirmedWarningCodes(input: unknown): Set<string> {
-  if (input === undefined) return new Set();
+  if (input === undefined) {
+    return new Set();
+  }
   if (!Array.isArray(input) || input.some((code) => typeof code !== 'string')) {
     throw new HttpError(
       400,

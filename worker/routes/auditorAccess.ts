@@ -20,19 +20,22 @@ import {
 import { enforceRateLimit } from '../services/securityService';
 
 async function ownerFor(request: Request, env: Env) {
-  if (env.APP_ENV === 'demo')
+  if (env.APP_ENV === 'demo') {
     throw new HttpError(
       403,
       'Member administration is unavailable in the public demo.',
     );
+  }
+
   const owner = await requireUser(request, env);
   requireRole(owner, ['OWNER']);
   return owner;
 }
 function id(params: RouteParameters, key: string): string {
   const value = params[key];
-  if (!value || value.length > 100)
+  if (!value || value.length > 100) {
     throw new HttpError(400, 'Access identity is invalid.');
+  }
   return value;
 }
 export async function listAuditorAccess(request: Request, env: Env) {
@@ -89,8 +92,9 @@ export async function editAuditorAccess(
   if (
     body.restoreAccess !== undefined &&
     typeof body.restoreAccess !== 'boolean'
-  )
+  ) {
     throw new HttpError(400, 'Restore access must be explicitly selected.');
+  }
   const revision = accessRevision(body.revision),
     grant = await auditorGrantValues(env.DB, owner.businessAccountId, body);
   return json({

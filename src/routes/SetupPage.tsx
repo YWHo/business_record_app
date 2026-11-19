@@ -1,5 +1,5 @@
 import {
-  type FormEvent,
+  type SubmitEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -157,7 +157,7 @@ export function BusinessDetailsSettingsPage() {
     void load();
   }, [load]);
 
-  async function save(event: FormEvent) {
+  const save = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     setError('');
@@ -178,9 +178,11 @@ export function BusinessDetailsSettingsPage() {
     } finally {
       setSaving(false);
     }
-  }
+  };
 
-  if (loading) return <p role="status">Loading business details…</p>;
+  if (loading) {
+    return <p role="status">Loading business details…</p>;
+  }
 
   return (
     <section className="panel settings-panel" aria-labelledby="details-heading">
@@ -269,18 +271,23 @@ export function LegalEntitySettingsPage() {
     let active = true;
     void apiRequest<BusinessDetailsResponse>(`/api/businesses/${businessId}`)
       .then((result) => {
-        if (active) setPeriods(result.operatingPeriods);
+        if (active) {
+          setPeriods(result.operatingPeriods);
+        }
       })
       .catch((caught: unknown) => {
-        if (active)
+        if (active) {
           setError(
             caught instanceof Error
               ? caught.message
               : 'Unable to load operating periods.',
           );
+        }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
     return () => {
       active = false;

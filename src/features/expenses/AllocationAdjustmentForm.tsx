@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type SubmitEvent, useState } from 'react';
 import { FormError } from '../../components/FormError';
 import { UnsavedChangesGuard } from '../../components/UnsavedChangesGuard';
 import type { BusinessExpense } from './businessExpense';
@@ -31,11 +31,11 @@ export function AllocationAdjustmentForm({
   const [periodEnd, setPeriodEnd] = useState(
     allocation.calculationPeriodEnd ?? '',
   );
-  const [saving, setSaving] = useState(false),
-    [error, setError] = useState(''),
-    [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false);
 
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     setError('');
@@ -51,7 +51,7 @@ export function AllocationAdjustmentForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   return (
     <form

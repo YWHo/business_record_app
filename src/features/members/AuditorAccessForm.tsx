@@ -1,24 +1,31 @@
-import { type FormEvent, useState } from 'react';
+import { type SubmitEvent, useState } from 'react';
 import type {
   AuditorGrant,
   AuditorMember,
   AuditorScope,
 } from '../../lib/auditorAccess';
 import { FormError } from '../../components/FormError';
+import { auditorAccessValidationError } from './auditorAccessValidation';
 
 export interface AccessOption {
   id: string;
   name: string;
 }
-const emptyScope = (): AuditorScope => ({
-  scopeType: 'BUSINESS',
-  businessId: null,
-  legalEntityId: null,
-  dateFrom: null,
-  dateTo: null,
-});
+
+function emptyScope(): AuditorScope {
+  return {
+    scopeType: 'BUSINESS',
+    businessId: null,
+    legalEntityId: null,
+    dateFrom: null,
+    dateTo: null,
+  };
+}
+
 function localTime(value: string | null) {
-  if (!value) return '';
+  if (!value) {
+    return '';
+  }
   const date = new Date(value);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
     .toISOString()
@@ -55,34 +62,19 @@ export function AuditorAccessForm({
   const [restoreAccess, setRestoreAccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  function changeScope(index: number, change: Partial<AuditorScope>) {
+
+  const changeScope = (index: number, change: Partial<AuditorScope>) => {
     setScopes(
       scopes.map((scope, i) => (i === index ? { ...scope, ...change } : scope)),
     );
-  }
-  async function submit(event: FormEvent) {
+  };
+
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    if (
-      !expiry ||
-      !Number.isFinite(Date.parse(expiry)) ||
-      Date.parse(expiry) <= Date.now() ||
-      (start && Date.parse(start) >= Date.parse(expiry))
-    ) {
-      setError('Choose a future expiry after the access start.');
-      return;
-    }
-    if (
-      scopes.some(
-        (scope) =>
-          (scope.scopeType === 'BUSINESS' && !scope.businessId) ||
-          (scope.scopeType === 'LEGAL_ENTITY' && !scope.legalEntityId) ||
-          (scope.dateFrom && scope.dateTo && scope.dateFrom > scope.dateTo),
-      )
-    ) {
-      setError(
-        'Select each scope and use an end date on or after its start date.',
-      );
+    const validationError = auditorAccessValidationError(start, expiry, scopes);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setSaving(true);
@@ -105,7 +97,7 @@ export function AuditorAccessForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
   return (
     <form
       className="stack-form panel"

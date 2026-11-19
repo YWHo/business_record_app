@@ -6,12 +6,13 @@ import { App } from './App';
 import { AuthProvider } from './features/auth/AuthContext';
 import './styles.css';
 
-const publishPwaStatus = (
+function publishPwaStatus(
   detail: 'offline-ready' | 'update-available' | 'error',
-) =>
-  window.dispatchEvent(
+) {
+  return window.dispatchEvent(
     new CustomEvent('business-records:pwa-status', { detail }),
   );
+}
 
 const updateServiceWorker = registerSW({
   immediate: true,
@@ -19,7 +20,9 @@ const updateServiceWorker = registerSW({
   onNeedRefresh: () => publishPwaStatus('update-available'),
   onRegisterError: () => publishPwaStatus('error'),
   onRegisteredSW: (_serviceWorkerUrl, registration) => {
-    if (!registration) return;
+    if (!registration) {
+      return;
+    }
     window.addEventListener('focus', () => {
       void registration.update().catch(() => publishPwaStatus('error'));
     });

@@ -1,4 +1,4 @@
-import { type FormEvent, useId, useState } from 'react';
+import { type SubmitEvent, useId, useState } from 'react';
 import {
   emptyWorkSessionDraft,
   type ReferenceOption,
@@ -27,18 +27,20 @@ export function WorkSessionForm({
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
 
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
       await onSubmit(draft);
-      if (!onCancel) setDraft(emptyWorkSessionDraft);
+      if (!onCancel) {
+        setDraft(emptyWorkSessionDraft);
+      }
     } catch {
       // The parent owns and displays the API error.
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   return (
     <form

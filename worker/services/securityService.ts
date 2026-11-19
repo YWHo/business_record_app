@@ -9,7 +9,9 @@ export function isTurnstileRequired(env: Env): boolean {
 }
 
 export function requireSameOrigin(request: Request, env: Env): void {
-  if (env.APP_ENV === 'local' || safeMethods.has(request.method)) return;
+  if (env.APP_ENV === 'local' || safeMethods.has(request.method)) {
+    return;
+  }
 
   let expectedOrigin: string;
   try {
@@ -25,7 +27,9 @@ export function requireSameOrigin(request: Request, env: Env): void {
 }
 
 export function requireSameOriginFetch(request: Request, env: Env): void {
-  if (env.APP_ENV === 'local') return;
+  if (env.APP_ENV === 'local') {
+    return;
+  }
   if (request.headers.get('sec-fetch-site') !== 'same-origin') {
     throw new HttpError(403, 'Request origin could not be verified.');
   }
@@ -82,7 +86,9 @@ export async function enforceRateLimit(
 ): Promise<void> {
   const clientAddress = request.headers.get('cf-connecting-ip') ?? 'local';
   const dimensions = [`${scope}:client:${clientAddress}`];
-  if (discriminator) dimensions.push(`${scope}:subject:${discriminator}`);
+  if (discriminator) {
+    dimensions.push(`${scope}:subject:${discriminator}`);
+  }
   const results = await Promise.all(
     dimensions.map(async (dimension) =>
       limiter.limit({ key: await hashToken(dimension) }),

@@ -94,13 +94,14 @@ export function scopedReadDatabase(
   ];
   return new Proxy(db, {
     get(_target, property) {
-      if (property !== 'prepare')
+      if (property !== 'prepare') {
         return () => {
           throw new HttpError(
             403,
             'This database binding permits scoped reads only.',
           );
         };
+      }
       return (sql: string) => {
         // Reject statements that could override the CTEs, address physical
         // tables, inspect schema, or perform a second operation.
@@ -117,7 +118,9 @@ export function scopedReadDatabase(
         const wrap = (values: unknown[]): D1PreparedStatement =>
           new Proxy(statement.bind(...prefixBindings, ...values), {
             get(target, key) {
-              if (key === 'bind') return (...next: unknown[]) => wrap(next);
+              if (key === 'bind') {
+                return (...next: unknown[]) => wrap(next);
+              }
               const value: unknown = Reflect.get(target, key);
               return typeof value === 'function'
                 ? (value.bind(target) as unknown)

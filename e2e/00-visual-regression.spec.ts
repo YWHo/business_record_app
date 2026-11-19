@@ -32,7 +32,9 @@ async function createVisualExpense(page: Page) {
   await page.getByLabel('GST status').selectOption('NO_GST');
   await page.getByRole('button', { name: 'Save expense' }).click();
   const saveAnyway = page.getByRole('button', { name: 'Save anyway' });
-  if (await saveAnyway.isVisible()) await saveAnyway.click();
+  if (await saveAnyway.isVisible()) {
+    await saveAnyway.click();
+  }
   await expect(
     page.getByRole('heading', { name: 'Visual Officeworks' }),
   ).toBeVisible();

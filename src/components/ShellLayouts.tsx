@@ -63,13 +63,14 @@ export function BusinessShell() {
   const navigate = useNavigate();
   const business = businesses.find((candidate) => candidate.id === businessId);
 
-  if (loading)
+  if (loading) {
     return (
       <main className="auth-page">
         <p role="status">Loading business workspace…</p>
       </main>
     );
-  if (error)
+  }
+  if (error) {
     return (
       <main className="auth-page">
         <section className="empty-state" role="alert">
@@ -83,7 +84,10 @@ export function BusinessShell() {
         </section>
       </main>
     );
-  if (!business) return <Navigate to="/app/businesses" replace />;
+  }
+  if (!business) {
+    return <Navigate to="/app/businesses" replace />;
+  }
 
   const base = `/app/businesses/${business.id}`;
   const navigation: ShellNavigationItem[] = [
@@ -113,7 +117,9 @@ export function BusinessShell() {
     settings.length = 0;
   }
   const switchBusiness = (nextBusinessId: string) => {
-    if (!nextBusinessId || nextBusinessId === business.id) return;
+    if (!nextBusinessId || nextBusinessId === business.id) {
+      return;
+    }
     const currentSuffix = location.pathname.slice(base.length);
     const knownSuffix = [
       '/transactions',

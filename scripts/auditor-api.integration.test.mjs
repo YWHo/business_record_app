@@ -9,9 +9,9 @@ import { loadAuthorizationContext } from '../worker/services/accessControlServic
 
 let db, env, business, otherBusiness, expense, otherExpense;
 const account = 'business-account-primary';
-const read = (path) => {
+function read(path) {
   return readFileSync(new URL(path, import.meta.url), 'utf8');
-};
+}
 function statement(sql, values = []) {
   return {
     bind(...bindings) {
@@ -301,11 +301,11 @@ describe('HTTP auditor authorization and SQL visibility', () => {
     for (const [id, parent] of [
       ['ui-visible', expense],
       ['ui-other', otherExpense],
-    ])
+    ]) {
       db.prepare(
         `INSERT INTO audit_log (id,business_account_id,user_id,action,entity_type,entity_id,summary,created_at) VALUES (?,?,'dev-owner','UI_FIXTURE','EXPENSE',?,'UI synthetic event','2026-09-01T00:00:00.000Z')`,
       ).run(id, account, parent);
-
+    }
     scope('ACCOUNT', null);
     const response = await request(
       `/api/audit-log?businessId=${business}&action=UI_FIXTURE`,
@@ -636,9 +636,9 @@ describe('HTTP auditor authorization and SQL visibility', () => {
       'SELECT * FROM sqlite_master',
       'WITH expenses AS (SELECT 1) SELECT * FROM expenses',
       'SELECT 1; DELETE FROM users',
-    ])
+    ]) {
       expect(() => scoped.prepare(sql)).toThrow();
-
+    }
     expect(() => scoped.exec('DELETE FROM users')).toThrow();
   });
 });

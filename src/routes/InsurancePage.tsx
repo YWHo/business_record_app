@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
@@ -64,9 +64,9 @@ export interface InsuranceDraft {
   allocationNotes: string;
 }
 
-const today = () => {
+function today() {
   return new Date().toISOString().slice(0, 10);
-};
+}
 
 export function emptyInsuranceDraft(): InsuranceDraft {
   return {
@@ -184,7 +184,7 @@ export function InsuranceForm({
     ) =>
       setDraft({ ...draft, [key]: event.target.value });
 
-  async function submit(event: FormEvent) {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     try {
@@ -194,7 +194,7 @@ export function InsuranceForm({
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   const needsPercentage = [
     'MANUAL_PERCENTAGE',
@@ -519,7 +519,7 @@ export function InsurancePage() {
     );
   }, [load]);
 
-  async function save(draft: InsuranceDraft, id?: string) {
+  const save = async (draft: InsuranceDraft, id?: string) => {
     setError('');
     try {
       await apiRequest('/api/insurance-records', {
@@ -540,15 +540,15 @@ export function InsurancePage() {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
-  async function adjust(
+  const adjust = async (
     record: InsuranceRecord,
     amount: string,
     notes: string,
     calculationPeriodStart: string,
     calculationPeriodEnd: string,
-  ) {
+  ) => {
     setError('');
     try {
       await apiRequest('/api/insurance-allocations', {
@@ -573,7 +573,7 @@ export function InsurancePage() {
       setError(failure.message);
       throw failure;
     }
-  }
+  };
 
   return (
     <section aria-labelledby="insurance-heading">

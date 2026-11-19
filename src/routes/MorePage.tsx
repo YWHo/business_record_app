@@ -32,14 +32,15 @@ export function AccountMorePage() {
       description: 'Download reports and portable backups.',
     },
   ];
-  if (user?.role === 'OWNER' && !configuration?.demoHelper)
+  if (user?.role === 'OWNER' && !configuration?.demoHelper) {
     links.push({
       to: '/app/settings/account',
       label: 'Account settings',
       description: 'Manage users and accountant invitations.',
     });
+  }
 
-  if (user?.role === 'AUDITOR')
+  if (user?.role === 'AUDITOR') {
     links.splice(
       0,
       links.length,
@@ -59,6 +60,8 @@ export function AccountMorePage() {
         description: 'Inspect permitted financial history.',
       },
     );
+  }
+
   return (
     <section aria-labelledby="account-more-heading">
       <div className="page-heading">
@@ -118,12 +121,13 @@ export function BusinessMorePage() {
       description: 'Switch to another business workspace.',
     },
   ];
-  if (user?.role === 'OWNER' && !configuration?.demoHelper)
+  if (user?.role === 'OWNER' && !configuration?.demoHelper) {
     links.push({
       to: '/app/settings/account',
       label: 'Account settings',
       description: 'Manage users and accountant invitations.',
     });
+  }
 
   if (user?.role === 'AUDITOR') {
     const permitted = links
