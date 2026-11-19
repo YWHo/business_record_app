@@ -75,3 +75,13 @@ export function hasPermission(
 ): boolean {
   return permissionsForRole(context?.role).includes(permission);
 }
+
+/** Owners change allocations through source editing; this attributed workflow is accountant-only. */
+export function canAdjustInsuranceAllocation(
+  context: { readonly role: unknown } | null | undefined,
+): boolean {
+  return (
+    context?.role === 'ACCOUNTANT' &&
+    hasPermission(context, 'ACCOUNTING_ADJUST')
+  );
+}

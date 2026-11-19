@@ -2152,6 +2152,15 @@ th {
   color: #174c4a;
   overflow-wrap: anywhere;
 }
+.accountant-access-notice {
+  padding: 1rem;
+  border-bottom: 1px solid #bfd2da;
+  background: #eef4f8;
+  color: #1f4e78;
+}
+.accountant-access-notice p {
+  margin: 0.4rem 0;
+}
 .auditor-access-notice p {
   margin: 0.4rem 0;
 }

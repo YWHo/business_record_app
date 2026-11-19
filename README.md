@@ -483,6 +483,13 @@ previews. Search and filters remain available; unavailable mutation and download
 actions are hidden. Apply local migrations with `pnpm db:migrate:local` before using the new
 membership screens; existing showcase data is preserved. See [permission policy](docs/permissions.md).
 
+Accountants have **Review access**, including comments, review/processing states,
+income reconciliation, attributed insurance allocation adjustments, evidence
+downloads and CSV summaries. Insurance details separate the full premium from
+the allocated business amount and display the reviewer. Source edits, uploads,
+full ZIP archives and administration remain owner-only. This is a fixed review
+role, not a general tax-classification editor.
+
 Open **Exports** to download a monthly period, a configured tax year, or every
 retained record. An export is a repeatable read: it never moves or deletes cloud
 data. The ZIP uses ordinary uncompressed entries and includes structured CSV

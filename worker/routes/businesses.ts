@@ -74,6 +74,7 @@ interface BusinessExpenseRow {
   calculation_period_start?: string | null;
   calculation_period_end?: string | null;
   allocation_notes?: string | null;
+  allocation_reviewer_email?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -89,12 +90,14 @@ interface AccountRow {
 function businessId(params: RouteParameters): string {
   const value = params.businessId;
   if (!value) throw new HttpError(400, 'Business is required.');
+
   return value;
 }
 
 function expenseId(params: RouteParameters): string {
   const value = params.expenseId;
   if (!value) throw new HttpError(400, 'Expense is required.');
+
   return value;
 }
 
@@ -117,6 +120,7 @@ export async function accountDetails(request: Request, env: Env) {
     .bind(actor.businessAccountId)
     .first<AccountRow>();
   if (!account) throw new HttpError(404, 'Business account not found.');
+
   return json({
     account: {
       id: account.id,
@@ -177,11 +181,14 @@ export async function businessDetails(
 
 function optionalBusinessDescription(value: unknown): string | null {
   if (value === null || value === undefined || value === '') return null;
+
   if (typeof value !== 'string')
     throw new HttpError(400, 'Description must be text.');
+
   const description = value.trim();
   if (description.length > 500)
     throw new HttpError(400, 'Description must be 500 characters or fewer.');
+
   return description || null;
 }
 
@@ -200,14 +207,17 @@ export async function updateBusinessDetails(
   const body = await readJsonObject(request);
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   if (!name) throw new HttpError(400, 'Business name is required.');
+
   if (name.length > 100)
     throw new HttpError(400, 'Business name must be 100 characters or fewer.');
+
   const defaultCurrency =
     typeof body.defaultCurrency === 'string'
       ? body.defaultCurrency.trim().toUpperCase()
       : '';
   if (!/^[A-Z]{3}$/.test(defaultCurrency))
     throw new HttpError(400, 'Default currency must be a three-letter code.');
+
   const description = optionalBusinessDescription(body.description);
   const duplicate = await env.DB.prepare(
     `SELECT id FROM businesses
@@ -217,6 +227,7 @@ export async function updateBusinessDetails(
     .first();
   if (duplicate)
     throw new HttpError(409, 'A business with this name already exists.');
+
   const updated = await persistBusinessDetails(
     env.DB,
     owner.businessAccountId,
@@ -225,6 +236,7 @@ export async function updateBusinessDetails(
     new Date().toISOString(),
   );
   if (!updated) throw new HttpError(404, 'Business not found.');
+
   await writeAudit(
     env,
     owner,
@@ -347,7 +359,8 @@ export async function getBusinessExpense(
             expense_allocations.allocated_amount_minor,
             expense_allocations.calculation_period_start,
             expense_allocations.calculation_period_end,
-            expense_allocations.notes AS allocation_notes
+            expense_allocations.notes AS allocation_notes,
+            allocation_reviewers.email AS allocation_reviewer_email
        FROM expenses
        JOIN expense_categories
          ON expense_categories.id=expenses.expense_category_id
@@ -368,12 +381,14 @@ export async function getBusinessExpense(
          ON vehicles.id=COALESCE(parking_expense_details.vehicle_id,
            fuel_expense_details.vehicle_id,insurance_expense_details.vehicle_id)
         AND vehicles.business_account_id=expenses.business_account_id
+       LEFT JOIN users AS allocation_reviewers ON allocation_reviewers.id=expense_allocations.reviewed_by
       WHERE expenses.business_account_id=? AND expenses.business_id=?
         AND expenses.id=? AND expenses.deleted_at IS NULL`,
   )
     .bind(actor.businessAccountId, business.id, expenseId(params))
     .first<BusinessExpenseRow>();
   if (!row) throw new HttpError(404, 'Expense not found.');
+
   return json({ expense: serializeBusinessExpenseDetail(row) });
 }
 
@@ -408,6 +423,7 @@ function serializeBusinessExpenseDetail(row: BusinessExpenseRow) {
       parkingEndDatetime: row.parking_end_datetime ?? null,
       parkingReference: row.parking_reference ?? null,
     };
+
   if (row.expense_type === 'FUEL')
     return {
       ...common,
@@ -420,6 +436,7 @@ function serializeBusinessExpenseDetail(row: BusinessExpenseRow) {
       fillType: row.fill_type ?? 'UNKNOWN',
       notes: row.fuel_notes ?? null,
     };
+
   if (row.expense_type === 'INSURANCE')
     return {
       ...common,
@@ -438,9 +455,10 @@ function serializeBusinessExpenseDetail(row: BusinessExpenseRow) {
         calculationPeriodStart: row.calculation_period_start ?? null,
         calculationPeriodEnd: row.calculation_period_end ?? null,
         notes: row.allocation_notes ?? null,
-        reviewerEmail: null,
+        reviewerEmail: row.allocation_reviewer_email ?? null,
       },
     };
+
   return common;
 }
 
@@ -476,6 +494,7 @@ export async function updateBusinessExpense(
       purchase_datetime: string;
     }>();
   if (!row) throw new HttpError(404, 'Expense not found.');
+
   const body = await readJsonObject(request);
   if (
     row.expense_type === 'GENERAL' &&
@@ -660,11 +679,14 @@ export async function listBusinessPeriods(
 
 function optionalPeriodNotes(value: unknown): string | null {
   if (value === null || value === undefined || value === '') return null;
+
   if (typeof value !== 'string')
     throw new HttpError(400, 'Notes must be text.');
+
   const notes = value.trim();
   if (notes.length > 2000)
     throw new HttpError(400, 'Notes must be 2,000 characters or fewer.');
+
   return notes || null;
 }
 
@@ -700,8 +722,10 @@ export async function changeBusinessLegalEntity(
     plan.nextLegalEntityId,
   );
   if (!legalEntity) throw new HttpError(404, 'Legal entity not found.');
+
   if (legalEntity.status !== 'ACTIVE')
     throw new HttpError(409, 'The new legal entity must be active.');
+
   const notes = optionalPeriodNotes(body.notes);
   const now = new Date().toISOString();
   const periodId = crypto.randomUUID();

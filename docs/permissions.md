@@ -1,5 +1,24 @@
 # Permission policy
 
+Accountants are labelled **Accountant · Review access**. They retain review and
+processing transitions, comments, income reconciliation, evidence downloads and
+CSV reports. Source records and administration remain owner-only. Public-demo
+review changes stay in the browser and server downloads/exports remain disabled.
+
+`canAdjustInsuranceAllocation` preserves the existing accountant-only attributed
+adjustment workflow even though Owners also have ACCOUNTING_ADJUST for other
+operations. Owners edit allocations through the source workflow; Auditors see
+allocation/reconciliation history without editors. This does not introduce a
+general classification or tax-treatment editor.
+
+The business expense detail now shows the stored allocation and reviewer.
+An explicit accountant adjustment can initialize a missing historical allocation
+without rewriting its source premium. Its guarded D1 batch rechecks the current
+actor, unbounded account grant, live source snapshot and allocation snapshot,
+then writes the adjustment and before/after audit evidence together. Concurrent
+changes conflict; audit failure rolls back every write. Trashed/purged policies
+cannot be adjusted. See [ADR 019](adr/019-accountant-review-boundaries.md).
+
 Auditor screens use a dedicated read-only navigation and a persistent notice of
 the current grant labels, record-date limits and New Zealand access expiry.
 `/api/auth/me` returns only displayable grant information for this notice, without

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 import { AuditorAccessNotice } from '../features/auth/AuditorAccessNotice';
+import { AccountantAccessNotice } from '../features/auth/AccountantAccessNotice';
 import type { AuditorAccessDetails } from '../lib/accessPresentation';
 
 export interface ShellNavigationItem {
@@ -28,6 +29,7 @@ interface AppShellPresentationProps extends AppShellProps {
   userEmail: string;
   auditor?: boolean;
   auditorAccess?: AuditorAccessDetails;
+  role?: string;
 }
 
 function NavigationLinks({ items }: { items: ShellNavigationItem[] }) {
@@ -95,6 +97,7 @@ export function AppShellPresentation({
   userEmail,
   auditor = false,
   auditorAccess,
+  role,
 }: AppShellPresentationProps) {
   return (
     <div className="app-shell">
@@ -143,6 +146,9 @@ export function AppShellPresentation({
 
         <main className="shell-main">
           {auditor && <AuditorAccessNotice access={auditorAccess} />}
+          {!auditor && role === 'ACCOUNTANT' && (
+            <AccountantAccessNotice demo={isDemo} />
+          )}
           {isDemo ? (
             <p className="demo-banner">
               <strong>Demo</strong> · Changes are saved only in this browser
@@ -169,6 +175,7 @@ export function AppShell(props: AppShellProps) {
       userEmail={user?.email ?? ''}
       auditor={user?.role === 'AUDITOR'}
       auditorAccess={user?.access}
+      role={user?.role}
     />
   );
 }

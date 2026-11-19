@@ -1,4 +1,5 @@
 import { requireRole, requireUser } from '../auth/authorization';
+import { canAdjustInsuranceAllocation } from '../../src/lib/permissions';
 import {
   getRequiredString,
   HttpError,
@@ -12,7 +13,8 @@ import {
   type AllocationMethod,
   type AllocationValues,
 } from '../services/allocationService';
-import { writeAudit } from '../services/auditService';
+import { auditStatement, writeAudit } from '../services/auditService';
+import { accessBatch } from '../services/accessMutationService';
 import {
   requireBusinessAccess,
   requireBusinessScopedReference,
@@ -186,6 +188,7 @@ async function categoryId(
     .first<{ id: string }>();
   if (!row)
     throw new HttpError(503, 'Insurance expense category is unavailable.');
+
   return row.id;
 }
 async function retention(
@@ -199,6 +202,7 @@ async function retention(
     .bind(businessAccountId)
     .first<Settings>();
   if (!row) throw new HttpError(503, 'Retention settings are unavailable.');
+
   return calculateRetentionDate(
     occurredAt,
     row.retention_tax_years,
@@ -235,6 +239,7 @@ async function assertReferences(
         prior?.business_activity_id !== values.businessActivityId))
   )
     throw new HttpError(400, 'Select an active business activity.');
+
   if (
     values.vehicleId &&
     (!vehicle || (!vehicle.active && prior?.vehicle_id !== values.vehicleId))
@@ -354,6 +359,7 @@ export async function createInsuranceRecord(
     !['PROFESSIONAL_LIABILITY', 'VEHICLE', 'OTHER'].includes(rawType)
   )
     throw new HttpError(400, 'Insurance type is invalid.');
+
   if (body.allocationMethod === 'ACCOUNTANT_ADJUSTMENT') {
     throw new HttpError(
       400,
@@ -466,6 +472,7 @@ export async function createInsuranceRecord(
     .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
   if (!row) throw new HttpError(500, 'Insurance expense could not be loaded.');
+
   return json({ insuranceRecord: serialize(row) }, { status: 201 });
 }
 export async function updateInsuranceRecord(request: Request, env: Env) {
@@ -479,6 +486,7 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
     .bind(id, owner.businessAccountId)
     .first<InsuranceRow>();
   if (!row) throw new HttpError(404, 'Insurance expense not found.');
+
   const nextType =
     typeof body.insuranceType === 'string'
       ? (body.insuranceType as InsuranceType)
@@ -585,27 +593,34 @@ export async function updateInsuranceRecord(request: Request, env: Env) {
     .first<InsuranceRow>();
   if (!updated)
     throw new HttpError(500, 'Insurance expense could not be loaded.');
+
   return json({ insuranceRecord: serialize(updated) });
 }
 
 export async function adjustInsuranceAllocation(request: Request, env: Env) {
   const actor = await requireUser(request, env);
-  requireRole(actor, ['ACCOUNTANT']);
+  if (!canAdjustInsuranceAllocation(actor)) {
+    throw new HttpError(
+      403,
+      'Only accountants can record attributed allocation adjustments.',
+    );
+  }
   const body = await readJsonObject(request);
   const expenseId = getRequiredString(body, 'expenseId');
   const row = await env.DB.prepare(
-    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ? AND expenses.expense_type = 'INSURANCE'`,
+    `${select} WHERE expenses.id = ? AND expenses.business_account_id = ? AND expenses.expense_type = 'INSURANCE' AND expenses.deleted_at IS NULL AND expenses.purged_at IS NULL`,
   )
     .bind(expenseId, actor.businessAccountId)
     .first<InsuranceRow>();
-  if (!row || !row.allocation_id)
+  if (!row) {
     throw new HttpError(404, 'Insurance allocation not found.');
+  }
   const allocation = allocationValues(body, row.total_amount_minor, true);
   if (!allocation.notes) {
     throw new HttpError(400, 'Adjustment notes are required.');
   }
   const previous: AllocationValues = {
-    allocationMethod: row.allocation_method!,
+    allocationMethod: row.allocation_method ?? 'UNDETERMINED',
     percentageBasisPoints: row.percentage_basis_points,
     allocatedAmountMinor: row.allocated_amount_minor,
     calculationPeriodStart: row.calculation_period_start,
@@ -613,29 +628,90 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
     notes: row.allocation_notes,
   };
   const now = new Date().toISOString();
-  await env.DB.prepare(
-    `UPDATE expense_allocations SET allocation_method = 'ACCOUNTANT_ADJUSTMENT', percentage_basis_points = ?, allocated_amount_minor = ?, calculation_period_start = ?, calculation_period_end = ?, notes = ?, reviewed_by = ?, updated_at = ? WHERE id = ? AND business_account_id = ?`,
-  )
-    .bind(
-      allocation.percentageBasisPoints,
-      allocation.allocatedAmountMinor,
-      allocation.calculationPeriodStart,
-      allocation.calculationPeriodEnd,
-      allocation.notes,
+  const allocationId = row.allocation_id ?? crypto.randomUUID();
+  const statements: D1PreparedStatement[] = [];
+  if (!row.allocation_id) {
+    statements.push(
+      allocationStatement(
+        env,
+        allocationId,
+        actor.businessAccountId,
+        expenseId,
+        row.business_activity_id,
+        allocation,
+        actor.id,
+        now,
+        row.business_id,
+        row.legal_entity_id,
+      ),
+    );
+  } else {
+    statements.push(
+      env.DB.prepare(
+        "UPDATE expense_allocations SET allocation_method='ACCOUNTANT_ADJUSTMENT',percentage_basis_points=?,allocated_amount_minor=?,calculation_period_start=?,calculation_period_end=?,notes=?,reviewed_by=?,updated_at=? WHERE id=? AND business_account_id=?",
+      ).bind(
+        allocation.percentageBasisPoints,
+        allocation.allocatedAmountMinor,
+        allocation.calculationPeriodStart,
+        allocation.calculationPeriodEnd,
+        allocation.notes,
+        actor.id,
+        now,
+        allocationId,
+        actor.businessAccountId,
+      ),
+    );
+  }
+  statements.push(
+    auditStatement(
+      env,
+      actor,
+      'INSURANCE_ALLOCATION_ADJUSTED',
+      'EXPENSE',
+      expenseId,
+      `Allocation changed from ${allocationSummary(previous)} to ${allocationSummary(allocation)}.`,
+      row.business_activity_id,
+      { before: previous, after: allocation },
+      { businessId: row.business_id, legalEntityId: row.legal_entity_id },
+    ),
+  );
+  // D1 rolls back the full batch if the actor, source or allocation changed after this request read them.
+  await accessBatch(
+    env,
+    actor.businessAccountId,
+    `EXISTS (SELECT 1 FROM business_account_members m JOIN users u ON u.id=m.user_id JOIN business_accounts a ON a.id=m.business_account_id
+      WHERE m.user_id=? AND m.business_account_id=? AND m.role='ACCOUNTANT' AND m.status='ACTIVE' AND u.status='ACTIVE' AND a.status='ACTIVE'
+      AND (m.access_starts_at IS NULL OR m.access_starts_at<=?) AND (m.access_expires_at IS NULL OR m.access_expires_at>?))
+    AND EXISTS (SELECT 1 FROM membership_access_scopes WHERE user_id=? AND business_account_id=? AND scope_type='ACCOUNT' AND date_from IS NULL AND date_to IS NULL)
+    AND EXISTS (SELECT 1 FROM expenses WHERE id=? AND business_account_id=? AND total_amount_minor=? AND updated_at IS ? AND deleted_at IS NULL AND purged_at IS NULL)
+    AND (SELECT COUNT(*) FROM expense_allocations WHERE expense_id=? AND business_account_id=?)=?
+    AND (? IS NULL OR EXISTS (SELECT 1 FROM expense_allocations WHERE id=? AND business_account_id=? AND allocation_method IS ? AND percentage_basis_points IS ? AND allocated_amount_minor IS ? AND calculation_period_start IS ? AND calculation_period_end IS ? AND notes IS ? AND reviewed_by IS ?))`,
+    [
       actor.id,
+      actor.businessAccountId,
       now,
+      now,
+      actor.id,
+      actor.businessAccountId,
+      expenseId,
+      actor.businessAccountId,
+      row.total_amount_minor,
+      row.updated_at,
+      expenseId,
+      actor.businessAccountId,
+      row.allocation_id ? 1 : 0,
+      row.allocation_id,
       row.allocation_id,
       actor.businessAccountId,
-    )
-    .run();
-  await writeAudit(
-    env,
-    actor,
-    'INSURANCE_ALLOCATION_ADJUSTED',
-    'EXPENSE',
-    expenseId,
-    `Allocation changed from ${allocationSummary(previous)} to ${allocationSummary(allocation)}.`,
-    row.business_activity_id,
+      row.allocation_method,
+      row.percentage_basis_points,
+      row.allocated_amount_minor,
+      row.calculation_period_start,
+      row.calculation_period_end,
+      row.allocation_notes,
+      row.reviewed_by,
+    ],
+    statements,
   );
   const updated = await env.DB.prepare(
     `${select} WHERE expenses.id = ? AND expenses.business_account_id = ?`,
@@ -644,5 +720,6 @@ export async function adjustInsuranceAllocation(request: Request, env: Env) {
     .first<InsuranceRow>();
   if (!updated)
     throw new HttpError(500, 'Insurance expense could not be loaded.');
+
   return json({ insuranceRecord: serialize(updated) });
 }

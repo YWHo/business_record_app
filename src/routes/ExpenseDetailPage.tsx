@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { InsuranceAllocationPanel } from '../features/expenses/InsuranceAllocationPanel';
 import {
   type BusinessExpense,
   expenseTypeLabels,
@@ -48,6 +49,7 @@ export function ExpenseDetailPage() {
         </div>
       </section>
     );
+
   if (!expense) return <p role="status">Loading expense…</p>;
 
   return (
@@ -143,6 +145,32 @@ export function ExpenseDetailPage() {
         {expense.description ? <p>{expense.description}</p> : null}
       </section>
 
+      {expense.expenseType === 'INSURANCE' && (
+        <InsuranceAllocationPanel
+          key={expense.id}
+          expense={expense}
+          role={user?.role}
+          onAdjust={async (
+            amount,
+            notes,
+            calculationPeriodStart,
+            calculationPeriodEnd,
+          ) => {
+            await apiRequest('/api/insurance-allocations', {
+              method: 'PATCH',
+              body: JSON.stringify({
+                expenseId: expense.id,
+                businessId,
+                allocatedAmount: amount,
+                allocationNotes: notes,
+                calculationPeriodStart,
+                calculationPeriodEnd,
+              }),
+            });
+            await load();
+          }}
+        />
+      )}
       <AttachmentPanel
         recordType="EXPENSE"
         recordId={expense.id}

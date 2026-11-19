@@ -2,13 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { AttachmentPanel } from './AttachmentPanel';
 
-const successResponse = () =>
-  Promise.resolve(
+const successResponse = () => {
+  return Promise.resolve(
     new Response(JSON.stringify({ attachments: [] }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     }),
   );
+};
 
 const meta = {
   title: 'Workflows/Supporting documents',
@@ -39,8 +40,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {};
 
-export const ReadOnlyAccountant: Story = {
-  args: { canManage: false },
+export const AccountantEvidence: Story = {
+  args: { canManage: false, canDownload: true },
 };
 
 export const PublicDemo: Story = {

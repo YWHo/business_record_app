@@ -9,7 +9,9 @@ import { loadAuthorizationContext } from '../worker/services/accessControlServic
 
 let db, env, business, otherBusiness, expense, otherExpense;
 const account = 'business-account-primary';
-const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const read = (path) => {
+  return readFileSync(new URL(path, import.meta.url), 'utf8');
+};
 function statement(sql, values = []) {
   return {
     bind(...bindings) {
@@ -106,7 +108,18 @@ beforeEach(() => {
     DB: {
       prepare: statement,
       async batch(statements) {
-        return Promise.all(statements.map((s) => s.run()));
+        db.exec('BEGIN');
+        try {
+          const results = [];
+          for (const item of statements) {
+            results.push(await item.run());
+          }
+          db.exec('COMMIT');
+          return results;
+        } catch (error) {
+          db.exec('ROLLBACK');
+          throw error;
+        }
       },
     },
     DOCUMENTS: {
@@ -118,6 +131,151 @@ beforeEach(() => {
 afterEach(() => db.close());
 
 describe('HTTP auditor authorization and SQL visibility', () => {
+  it('rolls back a first accountant allocation if its audit evidence cannot be stored', async () => {
+    const source = db
+      .prepare(
+        "SELECT id FROM expenses WHERE expense_type='INSURANCE' AND deleted_at IS NULL LIMIT 1",
+      )
+      .get();
+    db.exec(
+      "CREATE TRIGGER synthetic_allocation_audit_failure BEFORE INSERT ON audit_log WHEN NEW.action='INSURANCE_ALLOCATION_ADJUSTED' BEGIN SELECT RAISE(ABORT,'synthetic allocation audit failure'); END;",
+    );
+    const response = await request(
+      '/api/insurance-allocations',
+      'PATCH',
+      'accountant-token',
+      {
+        expenseId: source.id,
+        allocatedAmount: '0.01',
+        allocationNotes: 'Must roll back.',
+      },
+    );
+    expect(response.status).toBe(500);
+    expect(
+      db
+        .prepare('SELECT id FROM expense_allocations WHERE expense_id=?')
+        .get(source.id),
+    ).toBeUndefined();
+    expect(db.prepare('SELECT * FROM access_control_guards').all()).toEqual([]);
+  });
+
+  it('rejects an adjustment if a concurrent change invalidates its allocation snapshot', async () => {
+    const source = db
+      .prepare(
+        "SELECT id FROM expenses WHERE expense_type='INSURANCE' AND deleted_at IS NULL LIMIT 1",
+      )
+      .get();
+    const body = {
+      expenseId: source.id,
+      allocatedAmount: '0.01',
+      allocationNotes: 'Initial review.',
+    };
+    expect(
+      (
+        await request(
+          '/api/insurance-allocations',
+          'PATCH',
+          'accountant-token',
+          body,
+        )
+      ).status,
+    ).toBe(200);
+    const executeBatch = env.DB.batch;
+    env.DB.batch = async (statements) => {
+      db.prepare(
+        'UPDATE expense_allocations SET notes=? WHERE expense_id=?',
+      ).run('Concurrent review.', source.id);
+      return executeBatch(statements);
+    };
+    const response = await request(
+      '/api/insurance-allocations',
+      'PATCH',
+      'accountant-token',
+      { ...body, allocationNotes: 'Stale review.' },
+    );
+    expect(response.status).toBe(409);
+    expect(
+      db
+        .prepare('SELECT notes FROM expense_allocations WHERE expense_id=?')
+        .get(source.id).notes,
+    ).toBe('Concurrent review.');
+    expect(
+      db
+        .prepare(
+          "SELECT COUNT(*) AS count FROM audit_log WHERE entity_id=? AND action='INSURANCE_ALLOCATION_ADJUSTED'",
+        )
+        .get(source.id).count,
+    ).toBe(1);
+  });
+  it('preserves accountant insurance adjustments, reviewer attribution and the immutable source premium', async () => {
+    const source = db
+      .prepare(
+        "SELECT * FROM expenses WHERE expense_type='INSURANCE' AND deleted_at IS NULL AND total_amount_minor>0 LIMIT 1",
+      )
+      .get();
+    scope('BUSINESS', source.business_id);
+    const amount = Math.floor(source.total_amount_minor / 2);
+    const body = {
+      expenseId: source.id,
+      businessId: source.business_id,
+      allocatedAmount: (amount / 100).toFixed(2),
+      allocationNotes: 'Independent accountant review.',
+      merchantName: 'Must not overwrite source',
+      totalAmount: '1.00',
+    };
+    for (const actor of ['owner-token', 'auditor-token']) {
+      expect(
+        (await request('/api/insurance-allocations', 'PATCH', actor, body))
+          .status,
+      ).toBe(403);
+    }
+    const response = await request(
+      '/api/insurance-allocations',
+      'PATCH',
+      'accountant-token',
+      body,
+    );
+    expect(response.status, await response.clone().text()).toBe(200);
+    expect(
+      db.prepare('SELECT * FROM expenses WHERE id=?').get(source.id),
+    ).toEqual(source);
+    const detail = await request(
+      `/api/businesses/${source.business_id}/expenses/${source.id}`,
+      'GET',
+      'accountant-token',
+    );
+    expect(detail.status, await detail.clone().text()).toBe(200);
+    expect((await detail.json()).expense.allocation).toMatchObject({
+      method: 'ACCOUNTANT_ADJUSTMENT',
+      allocatedAmountMinor: amount,
+      reviewerEmail: 'accountant@local.test',
+      notes: body.allocationNotes,
+    });
+    expect(
+      db
+        .prepare(
+          "SELECT user_id FROM audit_log WHERE action='INSURANCE_ALLOCATION_ADJUSTED' AND entity_id=? ORDER BY created_at DESC LIMIT 1",
+        )
+        .get(source.id).user_id,
+    ).toBe('dev-accountant');
+    const denied = await request(
+      '/api/insurance-allocations',
+      'PATCH',
+      'accountant-token',
+      {
+        ...body,
+        allocatedAmount: ((source.total_amount_minor + 100) / 100).toFixed(2),
+      },
+    );
+    expect(denied.status).toBe(400);
+    expect(
+      db
+        .prepare(
+          'SELECT allocated_amount_minor FROM expense_allocations WHERE expense_id=?',
+        )
+        .get(source.id).allocated_amount_minor,
+    ).toBe(amount);
+  });
   it('returns only displayable auditor grants on the normal session endpoint', async () => {
     scope('BUSINESS', business, '2026-04-01', '2027-03-31');
     const response = await request('/api/auth/me');
@@ -147,6 +305,7 @@ describe('HTTP auditor authorization and SQL visibility', () => {
       db.prepare(
         `INSERT INTO audit_log (id,business_account_id,user_id,action,entity_type,entity_id,summary,created_at) VALUES (?,?,'dev-owner','UI_FIXTURE','EXPENSE',?,'UI synthetic event','2026-09-01T00:00:00.000Z')`,
       ).run(id, account, parent);
+
     scope('ACCOUNT', null);
     const response = await request(
       `/api/audit-log?businessId=${business}&action=UI_FIXTURE`,
@@ -479,6 +638,7 @@ describe('HTTP auditor authorization and SQL visibility', () => {
       'SELECT 1; DELETE FROM users',
     ])
       expect(() => scoped.prepare(sql)).toThrow();
+
     expect(() => scoped.exec('DELETE FROM users')).toThrow();
   });
 });

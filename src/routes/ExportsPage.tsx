@@ -31,6 +31,7 @@ export function ExportsPage() {
 function ExportWorkspace() {
   const { configuration, user } = useAuth();
   const archive = hasPermission(user, 'ARCHIVE_EXPORT');
+  const viewHistory = hasPermission(user, 'ARCHIVE_HISTORY_VIEW');
   const { businessId } = useParams();
   const isDemo = configuration?.environment === 'demo';
   const now = new Date();
@@ -43,10 +44,15 @@ function ExportWorkspace() {
     [taxYear, setTaxYear] = useState(initialTaxYear),
     [history, setHistory] = useState<ExportHistory[]>([]),
     [error, setError] = useState('');
+
   const load = useCallback(async () => {
+    if (!viewHistory) {
+      return;
+    }
     const result = await apiRequest<ExportStatus>('/api/exports/status');
     setHistory(result.exports);
-  }, []);
+  }, [viewHistory]);
+
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -56,17 +62,25 @@ function ExportWorkspace() {
       ),
     );
   }, [load]);
+
   const href = useMemo(() => {
     const query = new URLSearchParams({ scope });
     if (scope === 'MONTH') query.set('month', month);
+
     if (scope === 'TAX_YEAR') query.set('taxYear', taxYear);
+
     if (!archive && businessId) query.set('businessId', businessId);
+
     return `${archive ? '/api/exports/archive' : '/api/reports/export'}?${query}`;
   }, [archive, businessId, month, scope, taxYear]);
+
   function started() {
     setError('');
-    window.setTimeout(() => void load().catch(() => undefined), 1500);
+    if (archive) {
+      window.setTimeout(() => void load().catch(() => undefined), 1500);
+    }
   }
+
   return (
     <section aria-labelledby="exports-heading">
       <div className="page-heading">
@@ -151,37 +165,45 @@ function ExportWorkspace() {
           </>
         )}
       </section>
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Successful exports</h2>
-            <p>Server-verified archive generations, newest first.</p>
+      {viewHistory && (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>
+                {archive ? 'Successful exports' : 'Owner archive history'}
+              </h2>
+              <p>
+                {archive
+                  ? 'Server-verified archive generations, newest first.'
+                  : 'Owner-generated archive metadata, newest first. CSV summary downloads do not create an archive entry.'}
+              </p>
+            </div>
+            <span className="count-badge">{history.length}</span>
           </div>
-          <span className="count-badge">{history.length}</span>
-        </div>
-        <div className="record-list">
-          {history.length ? (
-            history.map((item) => (
-              <article className="reference-card" key={item.id}>
-                <strong>
-                  {item.scope.replace('_', ' ').toLowerCase()}
-                  {item.periodKey ? ` · ${item.periodKey}` : ''}
-                </strong>
-                <p>
-                  {item.expectedRecordCount} records ·{' '}
-                  {item.expectedAttachmentCount} source documents
-                </p>
-                <small>
-                  {new Date(item.completedAt).toLocaleString('en-NZ')} ·{' '}
-                  {item.requestedByEmail}
-                </small>
-              </article>
-            ))
-          ) : (
-            <p>No exports have completed yet.</p>
-          )}
-        </div>
-      </section>
+          <div className="record-list">
+            {history.length ? (
+              history.map((item) => (
+                <article className="reference-card" key={item.id}>
+                  <strong>
+                    {item.scope.replace('_', ' ').toLowerCase()}
+                    {item.periodKey ? ` · ${item.periodKey}` : ''}
+                  </strong>
+                  <p>
+                    {item.expectedRecordCount} records ·{' '}
+                    {item.expectedAttachmentCount} source documents
+                  </p>
+                  <small>
+                    {new Date(item.completedAt).toLocaleString('en-NZ')} ·{' '}
+                    {item.requestedByEmail}
+                  </small>
+                </article>
+              ))
+            ) : (
+              <p>No exports have completed yet.</p>
+            )}
+          </div>
+        </section>
+      )}
     </section>
   );
 }

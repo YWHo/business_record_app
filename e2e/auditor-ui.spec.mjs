@@ -193,6 +193,8 @@ test('auditor inspects scoped records, previews, reports and history across scre
       page.getByRole('button', { name: 'Save filter', exact: true }),
     ).toHaveCount(0);
     await page
+      .locator('.record-card')
+      .filter({ hasText: 'Auditor UI permitted receipt' })
       .getByRole('button', { name: 'View comments', exact: true })
       .click();
     await expect(page.getByText('Existing owner evidence note.')).toBeVisible();

@@ -3,6 +3,8 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
+import { AllocationAdjustmentForm } from '../features/expenses/AllocationAdjustmentForm';
+import { canAdjustInsuranceAllocation } from '../lib/permissions';
 import {
   localDateTime,
   type ReferenceOption,
@@ -61,7 +63,11 @@ export interface InsuranceDraft {
   calculationPeriodEnd: string;
   allocationNotes: string;
 }
-const today = () => new Date().toISOString().slice(0, 10);
+
+const today = () => {
+  return new Date().toISOString().slice(0, 10);
+};
+
 export function emptyInsuranceDraft(): InsuranceDraft {
   return {
     insuranceType: 'PROFESSIONAL_LIABILITY',
@@ -86,6 +92,7 @@ export function emptyInsuranceDraft(): InsuranceDraft {
     allocationNotes: '',
   };
 }
+
 export function insuranceDraftFrom(record: InsuranceRecord): InsuranceDraft {
   return {
     insuranceType: record.insuranceType,
@@ -119,12 +126,14 @@ export function insuranceDraftFrom(record: InsuranceRecord): InsuranceDraft {
     allocationNotes: record.allocation.notes ?? '',
   };
 }
+
 export function insuranceRequestBody(draft: InsuranceDraft) {
   return {
     ...draft,
     purchaseDatetime: new Date(draft.purchaseDatetime).toISOString(),
   };
 }
+
 function money(minor: number | null, currency: string) {
   return minor === null
     ? '—'
@@ -132,6 +141,7 @@ function money(minor: number | null, currency: string) {
         minor / 100,
       );
 }
+
 function methodLabel(method: string) {
   return (
     (
@@ -173,6 +183,7 @@ export function InsuranceForm({
       >,
     ) =>
       setDraft({ ...draft, [key]: event.target.value });
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSaving(true);
@@ -184,6 +195,7 @@ export function InsuranceForm({
       setSaving(false);
     }
   }
+
   const needsPercentage = [
     'MANUAL_PERCENTAGE',
     'BUSINESS_KM_OVER_TOTAL_KM',
@@ -448,82 +460,13 @@ function AdjustmentForm({
   ) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [amount, setAmount] = useState(
-    record.allocation.allocatedAmountMinor === null
-      ? ''
-      : (record.allocation.allocatedAmountMinor / 100).toFixed(2),
-  );
-  const [notes, setNotes] = useState(record.allocation.notes ?? '');
-  const [periodStart, setPeriodStart] = useState(
-    record.allocation.calculationPeriodStart ?? '',
-  );
-  const [periodEnd, setPeriodEnd] = useState(
-    record.allocation.calculationPeriodEnd ?? '',
-  );
-  const [saving, setSaving] = useState(false);
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      await onSubmit(amount, notes, periodStart, periodEnd);
-    } catch {
-      /* parent */
-    } finally {
-      setSaving(false);
-    }
-  }
   return (
-    <form className="reference-form" onSubmit={(event) => void submit(event)}>
-      <h4>Accountant allocation adjustment</h4>
-      <p>
-        Adjust the business amount while preserving the full premium and prior
-        calculation in audit history.
-      </p>
-      <label>
-        Allocated business amount
-        <input
-          required
-          inputMode="decimal"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-        />
-      </label>
-      <label>
-        Adjustment notes
-        <textarea
-          required
-          maxLength={2000}
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-        />
-      </label>
-      <div className="form-pair">
-        <label>
-          Calculation period start (optional)
-          <input
-            type="date"
-            value={periodStart}
-            onChange={(event) => setPeriodStart(event.target.value)}
-          />
-        </label>
-        <label>
-          Calculation period end (optional)
-          <input
-            type="date"
-            value={periodEnd}
-            onChange={(event) => setPeriodEnd(event.target.value)}
-          />
-        </label>
-      </div>
-      <div className="button-row">
-        <button disabled={saving}>
-          {saving ? 'Saving…' : 'Save adjustment'}
-        </button>
-        <button type="button" className="secondary-button" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </form>
+    <AllocationAdjustmentForm
+      allocation={record.allocation}
+      premiumMinor={record.premiumMinor}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+    />
   );
 }
 
@@ -565,6 +508,7 @@ export function InsurancePage() {
       })),
     );
   }, []);
+
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -574,6 +518,7 @@ export function InsurancePage() {
       ),
     );
   }, [load]);
+
   async function save(draft: InsuranceDraft, id?: string) {
     setError('');
     try {
@@ -596,6 +541,7 @@ export function InsurancePage() {
       throw failure;
     }
   }
+
   async function adjust(
     record: InsuranceRecord,
     amount: string,
@@ -628,6 +574,7 @@ export function InsurancePage() {
       throw failure;
     }
   }
+
   return (
     <section aria-labelledby="insurance-heading">
       <div className="page-heading">
@@ -759,7 +706,7 @@ export function InsurancePage() {
                           Edit policy
                         </button>
                       ) : null}
-                      {!isOwner ? (
+                      {canAdjustInsuranceAllocation(user) ? (
                         <button
                           className="secondary-button"
                           onClick={() =>

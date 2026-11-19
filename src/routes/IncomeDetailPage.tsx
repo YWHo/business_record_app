@@ -10,9 +10,11 @@ import {
   plainIncomeValue,
 } from '../features/income/businessIncome';
 import { ReconcileForm, type IncomeRecord } from './IncomePage';
+import { hasPermission } from '../lib/permissions';
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
+
   return (
     <div>
       <dt>{label}</dt>
@@ -56,7 +58,9 @@ export function IncomeDetailPage() {
         </div>
       </section>
     );
+
   if (!record) return <p role="status">Loading income…</p>;
+
   const details = record.details ?? {};
   return (
     <section aria-labelledby="income-detail-heading">
@@ -117,10 +121,12 @@ export function IncomeDetailPage() {
           · {record.reconciliation.reconcilerEmail}
         </p>
       ) : null}
-      <section className="panel">
-        <h2>Reconciliation</h2>
-        <ReconcileForm record={record} onSaved={load} />
-      </section>
+      {hasPermission(user, 'ACCOUNTING_ADJUST') && (
+        <section className="panel">
+          <h2>Reconciliation</h2>
+          <ReconcileForm record={record} onSaved={load} />
+        </section>
+      )}
       <AttachmentPanel
         recordType="INCOME"
         recordId={record.id}

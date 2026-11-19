@@ -3,6 +3,8 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
+import { IncomeReconciliationForm } from '../features/income/IncomeReconciliationForm';
+import { hasPermission } from '../lib/permissions';
 
 export type IncomeType = 'PLATFORM' | 'CONTRACT' | 'SUBSCRIPTION' | 'GENERAL';
 export interface IncomeReference {
@@ -77,9 +79,15 @@ export interface IncomeDraft {
   newSubscribers: string;
   cancelledSubscribers: string;
 }
-const today = () => new Date().toISOString().slice(0, 10);
-const amount = (minor: unknown) =>
-  typeof minor === 'number' ? (minor / 100).toFixed(2) : '';
+
+const today = () => {
+  return new Date().toISOString().slice(0, 10);
+};
+
+const amount = (minor: unknown) => {
+  return typeof minor === 'number' ? (minor / 100).toFixed(2) : '';
+};
+
 export function emptyIncomeDraft(): IncomeDraft {
   const date = today();
   return {
@@ -121,6 +129,7 @@ export function emptyIncomeDraft(): IncomeDraft {
     cancelledSubscribers: '',
   };
 }
+
 export function incomeDraftFrom(record: IncomeRecord): IncomeDraft {
   const draft = emptyIncomeDraft(),
     details = record.details ?? {};
@@ -164,10 +173,13 @@ export function incomeDraftFrom(record: IncomeRecord): IncomeDraft {
     cancelledSubscribers: String(details.cancelledSubscribers ?? ''),
   };
 }
-const money = (minor: number, currency: string) =>
-  new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
+
+const money = (minor: number, currency: string) => {
+  return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
+};
+
 export function IncomeForm({
   initial,
   activities,
@@ -672,6 +684,7 @@ export function IncomeForm({
     </form>
   );
 }
+
 export function ReconcileForm({
   record,
   onSaved,
@@ -679,78 +692,29 @@ export function ReconcileForm({
   record: IncomeRecord;
   onSaved: () => Promise<void>;
 }) {
-  const [expected, setExpected] = useState(amount(record.totalAmountMinor)),
-    [actual, setActual] = useState(amount(record.totalAmountMinor)),
-    [notes, setNotes] = useState(''),
-    [open, setOpen] = useState(false);
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    await apiRequest('/api/income-reconciliations', {
-      method: 'POST',
-      body: JSON.stringify({
-        incomeId: record.id,
-        businessId: record.businessId,
-        expectedAmount: expected,
-        actualAmount: actual,
-        notes,
-      }),
-    });
-    setOpen(false);
-    await onSaved();
+  const { user } = useAuth();
+  if (!hasPermission(user, 'ACCOUNTING_ADJUST')) {
+    return null;
   }
-  if (!open)
-    return (
-      <button className="secondary-button" onClick={() => setOpen(true)}>
-        Reconcile
-      </button>
-    );
   return (
-    <form className="reference-form" onSubmit={(event) => void submit(event)}>
-      <h4>Manual reconciliation</h4>
-      <div className="form-pair">
-        <label>
-          Expected
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            required
-            value={expected}
-            onChange={(event) => setExpected(event.target.value)}
-          />
-        </label>
-        <label>
-          Actual
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            required
-            value={actual}
-            onChange={(event) => setActual(event.target.value)}
-          />
-        </label>
-      </div>
-      <label>
-        Notes
-        <textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-        />
-      </label>
-      <div className="button-row">
-        <button>Save reconciliation</button>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => setOpen(false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+    <IncomeReconciliationForm
+      key={record.id}
+      totalAmountMinor={record.totalAmountMinor}
+      onSubmit={async (values) => {
+        await apiRequest('/api/income-reconciliations', {
+          method: 'POST',
+          body: JSON.stringify({
+            incomeId: record.id,
+            businessId: record.businessId,
+            ...values,
+          }),
+        });
+        await onSaved();
+      }}
+    />
   );
 }
+
 export function IncomePage() {
   const { configuration, user } = useAuth(),
     canManage = user?.role === 'OWNER';
@@ -763,6 +727,7 @@ export function IncomePage() {
     [edit, setEdit] = useState<IncomeRecord | null>(null),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
+
   const load = useCallback(async () => {
     const [income, activityResult, clientResult] = await Promise.all([
       apiRequest<{
@@ -779,6 +744,7 @@ export function IncomePage() {
     setActivities(activityResult.activities);
     setClients(clientResult.clients);
   }, []);
+
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -788,6 +754,7 @@ export function IncomePage() {
       ),
     );
   }, [load]);
+
   async function save(draft: IncomeDraft, id?: string) {
     setError('');
     try {
@@ -805,6 +772,7 @@ export function IncomePage() {
       throw caught;
     }
   }
+
   return (
     <section aria-labelledby="income-heading">
       <div className="page-heading">

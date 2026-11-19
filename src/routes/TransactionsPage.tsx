@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
@@ -109,12 +110,16 @@ function filtersFromQuery(search: string): Filters {
         : '',
   };
 }
-const money = (minor: number, currency: string) =>
-  new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
+
+const money = (minor: number, currency: string) => {
+  return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(
     minor / 100,
   );
-const statusLabel = (status: string) =>
-  status.replaceAll('_', ' ').toLowerCase();
+};
+
+const statusLabel = (status: string) => {
+  return status.replaceAll('_', ' ').toLowerCase();
+};
 
 function ReviewPanel({
   record,
@@ -130,12 +135,14 @@ function ReviewPanel({
     [message, setMessage] = useState(''),
     [status, setStatus] = useState(record.status),
     [error, setError] = useState('');
+
   const loadComments = useCallback(async () => {
     const result = await apiRequest<{ comments: Comment[] }>(
       `/api/comments?recordType=${record.recordType}&recordId=${encodeURIComponent(record.id)}`,
     );
     setComments(result.comments);
   }, [record.id, record.recordType]);
+
   async function toggle() {
     const next = !open;
     setOpen(next);
@@ -149,6 +156,7 @@ function ReviewPanel({
       }
     }
   }
+
   async function addComment(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -170,6 +178,7 @@ function ReviewPanel({
       );
     }
   }
+
   async function updateStatus() {
     setError('');
     try {
@@ -189,6 +198,7 @@ function ReviewPanel({
       );
     }
   }
+
   const statuses =
     role === 'OWNER'
       ? ['NEW', 'MISSING_INFORMATION', 'READY_FOR_REVIEW', 'VOIDED']
@@ -198,6 +208,7 @@ function ReviewPanel({
           ...(record.status === 'READY_FOR_REVIEW' ? ['REVIEWED'] : []),
           ...(record.status === 'REVIEWED' ? ['PROCESSED'] : []),
         ];
+
   return (
     <section className="review-panel">
       <button
@@ -287,6 +298,7 @@ export function TransactionsPage() {
   const { businesses } = useBusinessDirectory();
   const { configuration, user } = useAuth();
   const canSaveFilters = hasPermission(user, 'FILTER_MANAGE');
+  const searchSequence = useRef(0);
   const businessNames = useMemo(
     () => new Map(businesses.map((business) => [business.id, business.name])),
     [businesses],
@@ -314,6 +326,7 @@ export function TransactionsPage() {
     }),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
+
   const entityNames = useMemo(() => {
     const names = new Map(
       legalEntities.map((entity) => [
@@ -331,13 +344,16 @@ export function TransactionsPage() {
     }
     return names;
   }, [businesses, legalEntities]);
+
   const field =
     (key: keyof Filters) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setFilters({ ...filters, [key]: event.target.value });
+
   const loadSaved = useCallback(
     async (filterMode: typeof mode) => {
       if (!canSaveFilters) return;
+
       const result = await apiRequest<{ savedFilters: SavedFilter[] }>(
         `/api/saved-filters?filterType=${filterMode}`,
       );
@@ -345,8 +361,10 @@ export function TransactionsPage() {
     },
     [canSaveFilters],
   );
+
   const search = useCallback(
     async (activeFilters: Filters, activeMode: typeof mode, pageNumber = 1) => {
+      const sequence = ++searchSequence.current;
       const query = new URLSearchParams();
       for (const key of Object.keys(activeFilters) as Array<keyof Filters>) {
         const value = activeFilters[key];
@@ -358,20 +376,34 @@ export function TransactionsPage() {
       const endpoint = businessId
         ? `/api/businesses/${businessId}/${collection}`
         : `/api/${collection}`;
-      const result = await apiRequest<{
-        transactions: Transaction[];
-        summary: typeof summary;
-        page: PageMetadata;
-      }>(`${endpoint}?${query}`);
-      setRecords(result.transactions);
-      setSummary(result.summary);
-      setPage(
-        result.page ?? {
-          number: pageNumber,
-          size: result.transactions.length || 50,
-          hasNext: false,
-        },
-      );
+      try {
+        const result = await apiRequest<{
+          transactions: Transaction[];
+          summary: typeof summary;
+          page: PageMetadata;
+        }>(`${endpoint}?${query}`);
+        if (sequence !== searchSequence.current) {
+          return;
+        }
+        setError('');
+        setRecords(result.transactions);
+        setSummary(result.summary);
+        setPage(
+          result.page ?? {
+            number: pageNumber,
+            size: result.transactions.length || 50,
+            hasNext: false,
+          },
+        );
+      } catch (caught) {
+        if (sequence === searchSequence.current) {
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : 'Unable to load transactions.',
+          );
+        }
+      }
     },
     [businessId],
   );
@@ -400,6 +432,8 @@ export function TransactionsPage() {
           apiRequest<{ legalEntities: LegalEntityReference[] }>(
             '/api/legal-entities',
           ),
+          search(requestedFilters, 'TRANSACTIONS'),
+          loadSaved('TRANSACTIONS'),
         ]);
       setActivities(activityResult.activities);
       setCategories(categoryResult.categories);
@@ -411,10 +445,6 @@ export function TransactionsPage() {
         })),
       );
       setLegalEntities(entityResult.legalEntities);
-      await Promise.all([
-        search(requestedFilters, 'TRANSACTIONS'),
-        loadSaved('TRANSACTIONS'),
-      ]);
     };
     void load().catch((caught: unknown) =>
       setError(
@@ -424,6 +454,7 @@ export function TransactionsPage() {
       ),
     );
   }, [businessId, loadSaved, location.search, search]);
+
   async function changeMode(next: typeof mode) {
     const scopedEmpty = {
       ...emptyFilters,
@@ -434,6 +465,7 @@ export function TransactionsPage() {
     setError('');
     await Promise.all([search(scopedEmpty, next), loadSaved(next)]);
   }
+
   async function saveFilter(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -455,6 +487,7 @@ export function TransactionsPage() {
       );
     }
   }
+
   async function removeFilter(id: string) {
     await apiRequest('/api/saved-filters', {
       method: 'DELETE',
@@ -462,6 +495,7 @@ export function TransactionsPage() {
     });
     await loadSaved(mode);
   }
+
   async function applyFilter(item: SavedFilter) {
     const nextFilters = {
       ...emptyFilters,
@@ -471,6 +505,7 @@ export function TransactionsPage() {
     setFilters(nextFilters);
     await search(nextFilters, mode);
   }
+
   async function moveToTrash(record: Transaction) {
     if (
       !window.confirm(
@@ -478,6 +513,7 @@ export function TransactionsPage() {
       )
     )
       return;
+
     setError('');
     try {
       await apiRequest('/api/trash', {
@@ -498,6 +534,7 @@ export function TransactionsPage() {
       );
     }
   }
+
   return (
     <section aria-labelledby="transactions-heading">
       <div className="page-heading">

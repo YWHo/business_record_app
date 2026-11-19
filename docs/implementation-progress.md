@@ -1537,3 +1537,44 @@ wrapping header. The visible button reads Preview/Close preview, while its
 accessible name still identifies the file. Added a long-filename phone story.
 The seven focused attachment tests, typecheck, lint and Storybook build pass.
 Browser checks confirm no header overlap or horizontal overflow at 1280px and 390px.
+
+## Auditor role feature — Phase 8: Accountant cleanup
+
+- Phase 7 was committed by the user as `76ef20b`; the working tree was clean.
+- Added a persistent Accountant · Review access notice with accurate private
+  download/report permissions and separate public-demo restrictions. Renamed the
+  misleading ReadOnlyAccountant evidence story. Auditor read-only access remains
+  distinct; business settings still explain their owner-only editing boundary.
+- Restored the existing accountant-only allocation workflow in routed insurance
+  expense details, displaying the full premium separately from allocation,
+  notes, calculation dates and reviewer. Fixed the business detail query to
+  return persisted reviewer attribution. Reused a focused adjustment editor in
+  the legacy workspace without broadening owner/auditor permissions.
+- First explicit adjustments can create a missing historical allocation row.
+  The existing migration-0010 D1 guard protects active actor/window, unrestricted
+  grant, live source and allocation snapshots. Adjustment and before/after audit
+  evidence commit together; audit failures roll back and stale writes conflict.
+  Source amounts/identities remain unchanged and trashed/purged policies fail.
+- Reconciliation remains available to Owner/Accountant through ACCOUNTING_ADJUST;
+  Auditors see stored history with no editor. Shared editors retain drafts on
+  error, focus the error summary and protect unsaved navigation.
+- Kept comments and reviewer/processed status transitions, individual evidence
+  downloads and CSV exports. Preserved permitted archive-history reads with a
+  clear owner-generated metadata label, separate from CSV downloads. No general
+  tax/classification editor was added.
+- Fixed an observed transaction-search race: initial searches start alongside
+  reference loads and older responses/errors cannot replace newer review results.
+  Browser actions target their intended record when several records are visible.
+- Added permission, component and real SQLite HTTP regression coverage, a browser
+  Accountant/Auditor comparison, and thirteen new Storybook states for role
+  distinction, adjustments, attribution, reconciliation, and failure cases.
+  Updated README, permission notes and ADR 019. No migration was added.
+
+Validation: 446 unit/component/integration tests across 57 files, three API
+smoke scenarios, and all thirteen functional browser scenarios passed. TypeScript,
+ESLint, application build, Storybook build, changed-file formatting and whitespace
+checks passed. Browser coverage includes phone/tablet/desktop layouts; pixel
+snapshot comparisons were not run. E2E resets used only the isolated test profile;
+development showcase and remote resources were unchanged.
+
+No Phase 8 commit is made; wait for the user's commit and request before Phase 9.

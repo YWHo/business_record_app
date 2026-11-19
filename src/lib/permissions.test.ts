@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   hasPermission,
+  canAdjustInsuranceAllocation,
   permissions,
   permissionsForRole,
   type Permission,
@@ -50,6 +51,15 @@ const expectedGrants: Record<PermissionRole, readonly Permission[]> = {
 };
 
 describe('predefined permission policy', () => {
+  it('keeps the attributed insurance adjustment accountant-only despite owner accounting permissions', () => {
+    expect(canAdjustInsuranceAllocation({ role: 'ACCOUNTANT' })).toBe(true);
+    for (const role of ['OWNER', 'AUDITOR', 'ADMIN', 'UNKNOWN', null]) {
+      expect(canAdjustInsuranceAllocation({ role })).toBe(false);
+    }
+    expect(canAdjustInsuranceAllocation(undefined)).toBe(false);
+    expect(hasPermission({ role: 'OWNER' }, 'ACCOUNTING_ADJUST')).toBe(true);
+  });
+
   for (const role of ['OWNER', 'ACCOUNTANT', 'AUDITOR'] as const) {
     it(`${role} has exactly its intended grants`, () => {
       expect([...permissionsForRole(role)].sort()).toEqual(
