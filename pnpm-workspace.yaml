@@ -1,3 +1,12 @@
 allowBuilds:
   esbuild: true
   workerd: true
+
+# Security fixes for transitive dependencies in the supplied November 2026 audit.
+# Remove these when upstream dependencies require patched versions themselves.
+# The glob/minimatch major upgrades require lint, build and Storybook validation.
+overrides:
+  'sharp@<0.35.5': '0.35.5'
+  'undici@>=7.0.0 <7.30.1': '7.30.1'
+  'glob@>=9.0.0 <=14.0.1': '14.0.2'
+  'minimatch@>=7.0.0 <11.0.1': '11.0.1'

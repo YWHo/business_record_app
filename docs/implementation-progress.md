@@ -1723,3 +1723,27 @@ Phase 11.
 
 This is the final planned Auditor phase. Documentation is left uncommitted for
 the user's review and commit; no later feature phase or deployment is started.
+
+## Dependency security updates
+
+- Reviewed the user-supplied audit after the Vite 8.3.8 and Storybook 10.6.8
+  updates. It reports 11 remaining findings (five high, six moderate), all
+  through development tooling: sharp, Undici 7, glob and minimatch.
+- Prepared version-qualified pnpm overrides for sharp 0.35.5, Undici 7.30.1,
+  glob 14.0.2 and minimatch 11.0.1. The rules leave Undici 8, minimatch 5 and
+  versions outside the reported vulnerable ranges unchanged. Miniflare pins
+  the vulnerable sharp/Undici versions; the glob/minimatch fixes cross major
+  versions and require compatibility validation after installation.
+- Initial installation was blocked in the agent environment: registry requests fail
+  with socket permission error 10013, and an offline lockfile-only attempt
+  cannot open pnpm's external store operation lock (access denied). No installed
+  package or lockfile was updated by these attempts.
+- The user subsequently installed the overrides and regenerated the audit.
+  The supplied report now contains no advisories and zero findings at every
+  severity. The installed dependency tree and updated lockfile include the
+  patched versions. This is evidence from the supplied report, not a fresh
+  registry audit by the agent.
+- Post-install validation: all 510 tests across 60 files, lint and the application
+  build pass. Storybook build fails with an esbuild directory access-denied
+  error before manager bundling completes, as it did before these four
+  overrides. Storybook and isolated E2E validation remain outstanding.
