@@ -346,46 +346,90 @@ describe('SQL-backed central authorization', () => {
   );
 
   it.each([
-    ['2026-09-27', '2026-09-26T12:00:00.000Z', '2026-09-27T11:00:00.000Z'],
-    ['2026-04-05', '2026-04-04T11:00:00.000Z', '2026-04-05T12:00:00.000Z'],
+    [
+      'EXPENSE',
+      '2026-09-27',
+      '2026-09-26T12:00:00.000Z',
+      '2026-09-27T11:00:00.000Z',
+    ],
+    [
+      'EXPENSE',
+      '2026-04-05',
+      '2026-04-04T11:00:00.000Z',
+      '2026-04-05T12:00:00.000Z',
+    ],
+    [
+      'WORK_SESSION',
+      '2026-09-27',
+      '2026-09-26T12:00:00.000Z',
+      '2026-09-27T11:00:00.000Z',
+    ],
+    [
+      'WORK_SESSION',
+      '2026-04-05',
+      '2026-04-04T11:00:00.000Z',
+      '2026-04-05T12:00:00.000Z',
+    ],
+    [
+      'INCOME',
+      '2026-09-27',
+      '2026-09-26T12:00:00.000Z',
+      '2026-09-27T11:00:00.000Z',
+    ],
+    [
+      'INCOME',
+      '2026-04-05',
+      '2026-04-04T11:00:00.000Z',
+      '2026-04-05T12:00:00.000Z',
+    ],
   ])(
-    'matches Auckland DST boundaries on %s in SQL and record checks',
-    async (day, start, end) => {
+    'matches %s Auckland DST boundaries on %s in SQL and record checks',
+    async (family, day, start, end) => {
       addScope({ from: day, to: day });
       const ctx = await loadAuthorizationContext(d1, actor, now);
-      const filter = recordAccessPredicate(ctx, 'EXPENSE', 'r', now);
+      const filter = recordAccessPredicate(ctx, family, 'r', now);
       const instants = [
         new Date(Date.parse(start) - 1).toISOString(),
         start,
         new Date(Date.parse(end) - 1).toISOString(),
         end,
       ];
-      for (const instant of instants) {
+      const dates = [
+        new Date(Date.parse(day) - 86400000).toISOString().slice(0, 10),
+        day,
+        day,
+        new Date(Date.parse(day) + 86400000).toISOString().slice(0, 10),
+      ];
+      for (const [index, instant] of instants.entries()) {
+        const id = String(index);
         db.prepare('INSERT INTO access_rows VALUES (?,?,?,?,?,?,?)').run(
-          instant,
+          id,
           account,
           business,
           'business-entity-primary',
           instant,
           instant,
-          day,
+          dates[index],
         );
-        const expected = canAccessRecord(
-          ctx,
-          {
-            businessAccountId: account,
-            businessId: business,
-            legalEntityId: 'business-entity-primary',
-            effectiveDate: instant,
-          },
-          now,
-        );
+        const expected = index === 1 || index === 2;
+        expect(
+          canAccessRecord(
+            ctx,
+            {
+              businessAccountId: account,
+              businessId: business,
+              legalEntityId: 'business-entity-primary',
+              effectiveDate: family === 'INCOME' ? dates[index] : instant,
+            },
+            now,
+          ),
+        ).toBe(expected);
         expect(
           db
             .prepare(
               `SELECT id FROM access_rows r WHERE id=? AND ${filter.sql}`,
             )
-            .all(instant, ...filter.bindings).length > 0,
+            .all(id, ...filter.bindings).length > 0,
         ).toBe(expected);
       }
       expect(

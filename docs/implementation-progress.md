@@ -1651,3 +1651,36 @@ request before Phase 10.
   and Storybook builds, typecheck, lint, formatting and whitespace checks pass.
 
 This follow-up remains uncommitted with Phase 9.
+
+## Auditor role feature — Phase 10: Tests
+
+- Started from the user's committed Phase 9/local-auditor work (`dba938a`) with a
+  clean tree. Added [an acceptance coverage matrix](auditor-test-matrix.md) linking
+  role, mutation, scope, evidence, session, invitation and demo requirements to
+  their unit, SQLite HTTP and Playwright scenarios.
+- Added deterministic expiry and deferred-response tests. Six initially failed:
+  late refreshes could restore an expired/signed-out UI, overwrite a newer denial,
+  or close newly confirmed access; expired/malformed refreshed grants could render.
+  The Worker still denied protected requests. Session-version and refresh-order
+  checks now ignore stale responses and reject unavailable auditor expiry data.
+  Owner/Accountant and browser-local demo behavior remains covered and unchanged.
+- Expanded mutation coverage to auditor administration and accountant admin denial,
+  forged header/query authority, retained database state and all R2 operations.
+  Previously visible evidence is reauthorized after scope narrowing, expiry,
+  identity/membership disabling, missing scopes and future-dated access, before
+  bucket reads. Historical evidence and Owner access remain intact.
+- Extended SQL/record checks across both Auckland daylight-saving transitions for
+  expense/work-session instants and income calendar dates, using independent
+  before/at/after expectations.
+- Added a real short-lived grant browser scenario: the mounted workspace closes
+  without focus/navigation, the unchanged session cookie cannot read expired data,
+  and the owner's workspace remains available. Extracted the existing recovery
+  notice for desktop/phone Storybook coverage and added its Login UI regression.
+- Validation: all 510 tests across 60 files, three API smoke scenarios and all
+  sixteen functional browser scenarios passed. Typecheck, ESLint, application and
+  Storybook builds passed. E2E resets used only the isolated test profile;
+  development showcase and remote resources were unchanged. Pixel comparisons
+  were not run and no snapshot images changed.
+
+Phase 10 remains uncommitted. Wait for the user's commit and request before
+Phase 11.

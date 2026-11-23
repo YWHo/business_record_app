@@ -8,6 +8,7 @@ import {
 } from '../features/auth/AuthContext';
 import { DemoRoleChooser } from '../features/auth/DemoRoleChooser';
 import { LocalRoleChooser } from '../features/auth/LocalRoleChooser';
+import { AccessEndedNotice } from '../features/auth/AccessEndedNotice';
 import { TurnstileWidget } from '../features/auth/TurnstileWidget';
 
 export function LoginPage() {
@@ -78,12 +79,7 @@ export function LoginPage() {
       <section className="auth-card" aria-labelledby="login-heading">
         <span className="eyebrow">Invitation only</span>
         <h1 id="login-heading">Sign in</h1>
-        {accessEnded && (
-          <p role="status">
-            Your session or access is unavailable. Request a new sign-in link
-            during your access window, or contact the account owner.
-          </p>
-        )}
+        {accessEnded && <AccessEndedNotice />}
         <p>
           {configuration?.demoHelper
             ? 'Explore fictional New Zealand business records. Your changes stay only in this browser until you reset them.'

@@ -31,6 +31,21 @@ describe('LoginPage local identities', () => {
       resetDemo: vi.fn(),
     });
   });
+  it('shows an accessible recovery notice after a session or grant ends', () => {
+    mockedUseAuth.mockReturnValue({ ...mockedUseAuth(), accessEnded: true });
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Request a new sign-in link',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'contact the account owner',
+    );
+    expect(screen.queryByLabelText('Auditor access')).not.toBeInTheDocument();
+  });
   it.each(['owner', 'accountant', 'auditor'])(
     'offers local %s login with its seeded identity',
     async (role) => {

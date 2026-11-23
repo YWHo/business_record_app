@@ -35,6 +35,7 @@ async function request(
   method = 'GET',
   token = 'auditor-token',
   body = {},
+  claims = {},
 ) {
   return app.fetch(
     new Request(`http://localhost${path}`, {
@@ -42,6 +43,7 @@ async function request(
       headers: {
         cookie: `br_session=${token}`,
         'content-type': 'application/json',
+        ...claims,
       },
       ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
     }),
@@ -60,6 +62,49 @@ function scope(type = 'BUSINESS', id = business, from = null, to = null) {
     type === 'LEGAL_ENTITY' ? id : null,
     from,
     to,
+  );
+}
+
+function retainedState() {
+  const tables = [
+    'users',
+    'business_account_members',
+    'membership_access_scopes',
+    'invitations',
+    'invitation_access_scopes',
+    'sessions',
+    'expenses',
+    'fuel_expense_details',
+    'parking_expense_details',
+    'insurance_expense_details',
+    'expense_allocations',
+    'income_records',
+    'platform_income_details',
+    'contract_income_details',
+    'subscription_income_details',
+    'income_reconciliations',
+    'work_sessions',
+    'attachments',
+    'comments',
+    'vehicles',
+    'businesses',
+    'business_accounts',
+    'business_activities',
+    'business_entities',
+    'business_entity_periods',
+    'clients',
+    'expense_categories',
+    'retention_settings',
+    'saved_filters',
+    'audit_log',
+    'export_history',
+    'development_outbox',
+    'development_auth_outbox',
+    'authentication_challenges',
+    'access_control_guards',
+  ];
+  return Object.fromEntries(
+    tables.map((table) => [table, db.prepare(`SELECT * FROM ${table}`).all()]),
   );
 }
 beforeEach(() => {
@@ -124,6 +169,9 @@ beforeEach(() => {
     },
     DOCUMENTS: {
       get: vi.fn(async () => ({ body: new Uint8Array([1, 2, 3]) })),
+      put: vi.fn(() => Promise.resolve(null)),
+      head: vi.fn(() => Promise.resolve(null)),
+      delete: vi.fn(() => Promise.resolve()),
     },
     EXPENSIVE_RATE_LIMITER: { limit: async () => ({ success: true }) },
   };
@@ -421,6 +469,11 @@ describe('HTTP auditor authorization and SQL visibility', () => {
   });
 
   const mutations = [
+    ['POST', '/api/auditor-invitations'],
+    ['PATCH', '/api/auditor-access/api-auditor'],
+    ['POST', '/api/auditor-access/api-auditor/revoke'],
+    ['POST', '/api/auditor-access/api-auditor/expire'],
+    ['POST', '/api/auditor-invitations/guessed/revoke'],
     ['POST', '/api/businesses/:business/expenses'],
     ['PATCH', '/api/businesses/:business/expenses/guessed'],
     ['POST', '/api/businesses/:business/income'],
@@ -469,9 +522,7 @@ describe('HTTP auditor authorization and SQL visibility', () => {
   it.each(mutations)(
     'denies auditor %s %s before mutation or storage work',
     async (method, path) => {
-      const before = db
-        .prepare('SELECT count(*) AS count FROM audit_log')
-        .get().count;
+      const before = retainedState();
       expect(
         (
           await request(
@@ -479,13 +530,143 @@ describe('HTTP auditor authorization and SQL visibility', () => {
             method,
             'auditor-token',
             { role: 'OWNER', scopeType: 'ACCOUNT', businessId: otherBusiness },
+            {
+              'x-role': 'OWNER',
+              'x-user-role': 'OWNER',
+              'x-permissions': 'MEMBER_MANAGE,RECORD_EDIT,ARCHIVE_EXPORT',
+            },
           )
         ).status,
       ).toBe(403);
+      expect(retainedState()).toEqual(before);
+      for (const operation of ['get', 'put', 'head', 'delete']) {
+        expect(env.DOCUMENTS[operation]).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it.each(
+    mutations.filter(
+      ([, path]) =>
+        path.startsWith('/api/auditor-') ||
+        path === '/api/invitations' ||
+        path === '/api/users/disable',
+    ),
+  )(
+    'does not grant accountant administration through %s %s',
+    async (method, path) => {
+      const before = retainedState();
       expect(
-        db.prepare('SELECT count(*) AS count FROM audit_log').get().count,
-      ).toBe(before);
+        (
+          await request(path, method, 'accountant-token', {
+            role: 'OWNER',
+            userId: 'dev-owner',
+          })
+        ).status,
+      ).toBe(403);
+      expect(retainedState()).toEqual(before);
+    },
+  );
+
+  it('ignores forged authority headers and query claims on permitted reads', async () => {
+    const claims = {
+      'x-role': 'OWNER',
+      'x-user-id': 'dev-owner',
+      'x-business-account-id': 'foreign-account',
+      'x-permissions': 'ARCHIVE_EXPORT',
+    };
+    for (const path of [
+      '/api/businesses',
+      '/api/transactions',
+      '/api/reports/summary',
+    ]) {
+      const expected = await (await request(path)).json();
+      const response = await request(
+        `${path}?role=OWNER&scopeType=ACCOUNT&accountId=foreign-account`,
+        'GET',
+        'auditor-token',
+        {},
+        claims,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual(expected);
+    }
+    expect(
+      (
+        await request(
+          '/api/exports/archive?scope=FULL&role=OWNER',
+          'GET',
+          'auditor-token',
+          {},
+          claims,
+        )
+      ).status,
+    ).toBe(403);
+  });
+
+  it.each([
+    ['scope narrowed', 404],
+    ['expired', 403],
+    ['disabled membership', 401],
+    ['disabled identity', 401],
+    ['missing scopes', 403],
+    ['future window', 403],
+  ])(
+    'rechecks previously visible evidence after access is %s',
+    async (change, status) => {
+      db.prepare(
+        `INSERT INTO attachments (id,business_account_id,record_type,record_id,version_group_id,object_key,original_filename,mime_type,file_size,sha256,created_by,created_at,retention_until,purge_eligible_at)
+      VALUES ('phase10-file',?,'EXPENSE',?,'phase10-file','phase10-file','phase10-evidence.png','image/png',3,?,'dev-owner','2026-09-01','2036-03-31','2036-04-01')`,
+      ).run(account, expense, 'a'.repeat(64));
+      const preview = await request('/api/attachments/preview?id=phase10-file');
+      expect(preview.status).toBe(200);
+      expect(preview.headers.get('cache-control')).toBe('private, no-store');
+      env.DOCUMENTS.get.mockClear();
+      if (change === 'scope narrowed') {
+        scope('BUSINESS', otherBusiness);
+      } else if (change === 'expired') {
+        db.exec(
+          "UPDATE business_account_members SET access_expires_at='2020-01-01T00:00:00.000Z' WHERE user_id='api-auditor'",
+        );
+      } else if (change === 'disabled membership') {
+        db.exec(
+          "UPDATE business_account_members SET status='DISABLED' WHERE user_id='api-auditor'",
+        );
+      } else if (change === 'disabled identity') {
+        db.exec("UPDATE users SET status='DISABLED' WHERE id='api-auditor'");
+      } else if (change === 'missing scopes') {
+        db.exec(
+          "DELETE FROM membership_access_scopes WHERE user_id='api-auditor'",
+        );
+      } else {
+        db.exec(
+          "UPDATE business_account_members SET access_starts_at='2098-01-01T00:00:00.000Z' WHERE user_id='api-auditor'",
+        );
+      }
+      for (const path of [
+        `/api/businesses/${business}/expenses/${expense}`,
+        `/api/comments?recordType=EXPENSE&recordId=${expense}`,
+        `/api/attachments?recordType=EXPENSE&recordId=${expense}`,
+        '/api/attachments/preview?id=phase10-file',
+      ]) {
+        const response = await request(path);
+        expect(response.status, path).toBe(status);
+        expect(await response.text()).not.toContain('phase10-evidence.png');
+      }
       expect(env.DOCUMENTS.get).not.toHaveBeenCalled();
+      expect(
+        (
+          await request(
+            `/api/businesses/${business}/expenses/${expense}`,
+            'GET',
+            'owner-token',
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        db.prepare("SELECT id FROM attachments WHERE id='phase10-file'").get()
+          .id,
+      ).toBe('phase10-file');
     },
   );
 

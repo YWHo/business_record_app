@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -68,6 +69,14 @@ function assertDemoEditing() {
   }
 }
 
+function auditorAccessHasEnded(user: AuthUser | null): boolean {
+  if (user?.role !== 'AUDITOR') {
+    return false;
+  }
+  const expiry = Date.parse(user.access?.accessExpiresAt ?? '');
+  return !Number.isFinite(expiry) || Date.now() >= expiry;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -120,8 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessEnded, setAccessEnded] = useState(false);
+  const sessionVersion = useRef(0);
+  const refreshSequence = useRef(0);
 
   const refresh = useCallback(async () => {
+    const version = sessionVersion.current;
+    const sequence = ++refreshSequence.current;
     if (publicDemo) {
       setUser(publicDemoRole ? demoUser(publicDemoRole) : null);
       setAccessEnded(false);
@@ -129,9 +142,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const result = await apiRequest<{ user: AuthUser }>('/api/auth/me');
-      setUser(result.user);
-      setAccessEnded(false);
+      if (
+        version !== sessionVersion.current ||
+        sequence !== refreshSequence.current
+      ) {
+        return;
+      }
+      const ended = auditorAccessHasEnded(result.user);
+      setUser(ended ? null : result.user);
+      setAccessEnded(ended);
     } catch (caught) {
+      if (
+        version !== sessionVersion.current ||
+        sequence !== refreshSequence.current
+      ) {
+        return;
+      }
       if (
         !(caught instanceof ApiError) ||
         ![401, 403].includes(caught.status)
@@ -150,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const expiry = user.access?.accessExpiresAt;
     const check = () => {
       if (expiry && Date.now() >= Date.parse(expiry)) {
+        sessionVersion.current += 1;
         setUser(null);
         setAccessEnded(true);
         return;
@@ -172,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const version = sessionVersion.current;
     void apiRequest<AuthConfiguration>('/api/auth/config')
       .then(async (config) => {
         publicDemo = config.environment === 'demo';
@@ -184,11 +212,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : await apiRequest<{ user: AuthUser }>('/api/auth/me').catch(
               () => null,
             );
-        if (!active) {
+        if (!active || version !== sessionVersion.current) {
           return;
         }
         setConfiguration(config);
-        setUser(current?.user ?? null);
+        const ended =
+          !publicDemo && auditorAccessHasEnded(current?.user ?? null);
+        setUser(ended ? null : (current?.user ?? null));
+        setAccessEnded(ended);
       })
       .catch((caught) => {
         setConfigurationError(
@@ -204,6 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     return () => {
       active = false;
+      sessionVersion.current += 1;
     };
   }, []);
 
@@ -216,6 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       refresh,
       localLogin: async (email) => {
+        const version = ++sessionVersion.current;
         const result = await apiRequest<{ user: AuthUser }>(
           '/api/dev/auth/login',
           { method: 'POST', body: JSON.stringify({ email }) },
@@ -224,6 +257,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           result.user.role === 'AUDITOR'
             ? await apiRequest<{ user: AuthUser }>('/api/auth/me')
             : result;
+        if (version !== sessionVersion.current) {
+          return;
+        }
+        if (auditorAccessHasEnded(current.user)) {
+          throw new ApiError(401, { error: 'Auditor access is unavailable.' });
+        }
         setUser(current.user);
         setAccessEnded(false);
       },
@@ -238,18 +277,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         }
         sessionStorage.setItem(demoRoleKey, role);
+        sessionVersion.current += 1;
         publicDemoRole = role;
         setUser(demoUser(role));
         setAccessEnded(false);
         return Promise.resolve();
       },
       logout: async () => {
+        const version = ++sessionVersion.current;
         if (publicDemo) {
           sessionStorage.removeItem(demoRoleKey);
           publicDemoRole = null;
         } else {
           await apiRequest('/api/auth/logout', { method: 'POST' });
         }
+        if (version !== sessionVersion.current) {
+          return;
+        }
+        sessionVersion.current += 1;
         setUser(null);
         setAccessEnded(false);
       },
