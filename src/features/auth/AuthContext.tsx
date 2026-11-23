@@ -33,6 +33,8 @@ export interface AuthConfiguration {
   turnstileSiteKey: string | null;
 }
 
+export type DemoRole = AuthUser['role'];
+
 interface AuthContextValue {
   configuration: AuthConfiguration | null;
   configurationError?: string;
@@ -41,14 +43,30 @@ interface AuthContextValue {
   user: AuthUser | null;
   refresh: () => Promise<void>;
   localLogin: (email: string) => Promise<void>;
-  demoLogin: (role: 'OWNER' | 'ACCOUNTANT') => Promise<void>;
+  demoLogin: (role: DemoRole) => Promise<void>;
   logout: () => Promise<void>;
   resetDemo: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 let publicDemo = false;
+let publicDemoRole: DemoRole | null = null;
 const demoRoleKey = 'business-records-demo-role';
+
+function storedDemoRole(): DemoRole | null {
+  const role = sessionStorage.getItem(demoRoleKey);
+  return role === 'OWNER' || role === 'ACCOUNTANT' || role === 'AUDITOR'
+    ? role
+    : null;
+}
+
+function assertDemoEditing() {
+  if (publicDemoRole !== 'OWNER' && publicDemoRole !== 'ACCOUNTANT') {
+    throw new ApiError(403, {
+      error: 'This demo role is read-only. Changes are unavailable.',
+    });
+  }
+}
 
 export class ApiError extends Error {
   constructor(
@@ -69,6 +87,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase();
   if (publicDemo && method !== 'GET' && method !== 'HEAD') {
+    assertDemoEditing();
     return (await recordDemoMutation(path, init ?? {})) as T;
   }
   const response = await fetchWithRateLimitRetry(path, {
@@ -103,6 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessEnded, setAccessEnded] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (publicDemo) {
+      setUser(publicDemoRole ? demoUser(publicDemoRole) : null);
+      setAccessEnded(false);
+      return;
+    }
     try {
       const result = await apiRequest<{ user: AuthUser }>('/api/auth/me');
       setUser(result.user);
@@ -120,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user?.role !== 'AUDITOR') {
+    if (user?.role !== 'AUDITOR' || configuration?.environment === 'demo') {
       return;
     }
     const expiry = user.access?.accessExpiresAt;
@@ -144,18 +168,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', check);
       window.clearTimeout(timer);
     };
-  }, [refresh, user?.role, user?.access]);
+  }, [configuration?.environment, refresh, user?.role, user?.access]);
 
   useEffect(() => {
     let active = true;
     void apiRequest<AuthConfiguration>('/api/auth/config')
       .then(async (config) => {
         publicDemo = config.environment === 'demo';
-        const storedRole = sessionStorage.getItem(demoRoleKey);
-        const role =
-          storedRole === 'OWNER' || storedRole === 'ACCOUNTANT'
-            ? storedRole
-            : null;
+        const role = publicDemo ? storedDemoRole() : null;
+        publicDemoRole = role;
         const current = publicDemo
           ? role
             ? { user: demoUser(role) }
@@ -199,11 +220,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           '/api/dev/auth/login',
           { method: 'POST', body: JSON.stringify({ email }) },
         );
-        setUser(result.user);
+        const current =
+          result.user.role === 'AUDITOR'
+            ? await apiRequest<{ user: AuthUser }>('/api/auth/me')
+            : result;
+        setUser(current.user);
         setAccessEnded(false);
       },
       demoLogin: (role) => {
+        if (
+          configuration?.environment !== 'demo' ||
+          !configuration.demoHelper ||
+          !['OWNER', 'ACCOUNTANT', 'AUDITOR'].includes(role)
+        ) {
+          return Promise.reject(
+            new Error('Demo role selection is unavailable.'),
+          );
+        }
         sessionStorage.setItem(demoRoleKey, role);
+        publicDemoRole = role;
         setUser(demoUser(role));
         setAccessEnded(false);
         return Promise.resolve();
@@ -211,6 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout: async () => {
         if (publicDemo) {
           sessionStorage.removeItem(demoRoleKey);
+          publicDemoRole = null;
         } else {
           await apiRequest('/api/auth/logout', { method: 'POST' });
         }
@@ -218,6 +254,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessEnded(false);
       },
       resetDemo: async () => {
+        if (!publicDemo) {
+          throw new Error('Demo reset is unavailable.');
+        }
+        assertDemoEditing();
         await resetDemoData();
         window.location.reload();
       },
@@ -228,10 +268,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-function demoUser(role: 'OWNER' | 'ACCOUNTANT'): AuthUser {
+function demoUser(role: DemoRole): AuthUser {
   return {
     id: `browser-demo-${role.toLowerCase()}`,
-    email: role === 'OWNER' ? 'owner@demo.invalid' : 'accountant@demo.invalid',
+    email: `${role.toLowerCase()}@demo.invalid`,
     role,
     status: 'ACTIVE',
     businessAccountId: 'business-account-primary',

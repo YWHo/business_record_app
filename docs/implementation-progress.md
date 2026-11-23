@@ -1596,3 +1596,58 @@ No Phase 8 commit is made; wait for the user's commit and request before Phase 9
 - Validation: 448 tests across 57 files, all thirteen functional browser scenarios,
   TypeScript, ESLint, application and Storybook builds, formatting and whitespace
   checks passed. E2E used only isolated test-profile state. No commit was made.
+
+## Auditor role feature — Phase 9: Demo Auditor
+
+- Started from a clean tree after the user-authorized Phase 8, readability and
+  unload-fix commits (`61512ce`, `80b6e1e`, `85f71ce`).
+- Added Continue as Demo Auditor to a reusable public-demo role chooser. All three
+  personas remain tab-local simulations without server login, sessions or cookies.
+  The auditor persona survives reload and explicit refresh; window focus does not
+  call private authentication endpoints or replace it with the fixed server role.
+- Reused the auditor workspace, permissions, form redirects, report summaries and
+  audit views. The notice explicitly describes all fictional businesses/dates,
+  existing browser edits and no demo expiry, without inventing a private grant.
+- Blocked auditor/missing/unknown role overlay writes before IndexedDB recording.
+  Hid reset controls and rejected direct reset calls. Sign-out/role switching
+  preserves Owner/Accountant browser-local editing. Demo identity selection cannot
+  replace a private session, and no browser role is sent to the Worker.
+- Preserved the independent server boundary: fixed read principal, early mutation
+  denial, bounded reads, cache/rate limits and no R2 binding. No schema, seed,
+  remote resource or server authorization behavior changed.
+- Added seven demo session tests, entry/notice tests, forged-role and HTTP method
+  rejection coverage, and a browser walkthrough checking inspection, direct local
+  mutation denial, reload/focus, responsive layouts and return to Owner mode.
+  Added five Storybook states for the chooser and demo notice, including phone
+  layouts and an Auditor-entry interaction. Updated README, permissions and ADR 020.
+- Validation: all 465 tests across 58 files, three API smoke scenarios and all
+  fourteen functional browser scenarios passed, along with typecheck, ESLint,
+  local/demo application and Storybook builds. Browser tests used only the isolated test
+  profile. Development showcase and remote resources were unchanged. Pixel
+  comparisons were not run.
+
+Phase 9 is left uncommitted for user review. Wait for the user's commit and
+request before Phase 10.
+
+### Local auditor entry follow-up
+
+- Added a separate Local Auditor shortcut using the guarded loopback login helper,
+  not the browser-only demo persona. Added reusable local role selection stories
+  for all roles, Auditor entry and phone layout.
+- Added an additive local auditor seed and `pnpm db:seed:local:auditor` for existing
+  databases. Normal local/test seed/reset commands include it after migrations.
+  The synthetic identity is scoped to IT Contracting and expires 30 days after
+  initial seeding. Repeating the additive seed does not extend expiry, restore a
+  disabled membership, recreate removed scopes or reset financial records.
+- Applied only the additive seed to the existing development database and verified
+  its persisted scope/expiry. No development reset or remote changes were made.
+- Local Auditor login now fetches current access metadata before opening the
+  workspace. Missing/unavailable access explains the additive seed command and
+  owner-managed status/scope/expiry checks. Existing private/demo guards remain.
+- Added real SQLite HTTP tests for seeding, scoped login, mutation/export denial,
+  expiry/status/scope failure and local-only guards; UI entry/metadata tests and
+  a real-session browser scenario. All 478 tests across 59 files and all fifteen
+  functional browser scenarios pass. All three API smoke scenarios, application
+  and Storybook builds, typecheck, lint, formatting and whitespace checks pass.
+
+This follow-up remains uncommitted with Phase 9.

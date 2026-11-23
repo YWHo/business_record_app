@@ -1,6 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import { AuditorAccessNotice } from './AuditorAccessNotice';
 describe('AuditorAccessNotice', () => {
+  it('explains the fictional demo scope without inventing a private membership expiry', () => {
+    render(<AuditorAccessNotice demo />);
+    expect(screen.getByLabelText('Auditor access')).toHaveTextContent(
+      'Demo Auditor',
+    );
+    expect(screen.getByText(/all fictional businesses/)).toBeVisible();
+    expect(screen.getByText(/no access expiry/)).toBeVisible();
+    expect(
+      screen.queryByText(/Scope details are unavailable/),
+    ).not.toBeInTheDocument();
+    expect(document.querySelector('time')).toBeNull();
+  });
   it('shows each additive scope, record period and an explicit NZ expiry without editing controls', () => {
     render(
       <AuditorAccessNotice

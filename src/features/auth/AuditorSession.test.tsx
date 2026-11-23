@@ -20,10 +20,88 @@ function AccessState() {
     </p>
   );
 }
+function LocalAuditorEntry() {
+  const { user, loading, localLogin } = useAuth();
+  return (
+    <>
+      <p>
+        {loading
+          ? 'Loading'
+          : (user?.access?.scopes[0]?.label ?? 'No scope loaded')}
+      </p>
+      <button onClick={() => void localLogin('auditor@local.test')}>
+        Local auditor
+      </button>
+    </>
+  );
+}
 describe('auditor access refresh', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+  it('loads auditor scope metadata immediately after local login', async () => {
+    let signedIn = false;
+    const fetcher = vi.fn<typeof fetch>((input) => {
+      const path =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      if (path === '/api/dev/auth/login') {
+        signedIn = true;
+      }
+      const user = {
+        id: 'local-auditor',
+        email: 'auditor@local.test',
+        role: 'AUDITOR',
+        status: 'ACTIVE',
+      };
+      return Promise.resolve(
+        new Response(
+          JSON.stringify(
+            path === '/api/auth/config'
+              ? { environment: 'local', localHelper: true }
+              : {
+                  user: signedIn
+                    ? {
+                        ...user,
+                        ...(path === '/api/auth/me'
+                          ? {
+                              access: {
+                                accessStartsAt: null,
+                                accessExpiresAt: '2099-01-01T00:00:00.000Z',
+                                scopes: [
+                                  {
+                                    scopeType: 'BUSINESS',
+                                    label: 'IT Contracting',
+                                    dateFrom: null,
+                                    dateTo: null,
+                                  },
+                                ],
+                              },
+                            }
+                          : {}),
+                      }
+                    : null,
+                },
+          ),
+        ),
+      );
+    });
+    vi.stubGlobal('fetch', fetcher);
+    render(
+      <AuthProvider>
+        <LocalAuditorEntry />
+      </AuthProvider>,
+    );
+    await screen.findByText('No scope loaded');
+    fireEvent.click(screen.getByRole('button', { name: 'Local auditor' }));
+    expect(await screen.findByText('IT Contracting')).toBeVisible();
+    expect(
+      fetcher.mock.calls.filter(([input]) => input === '/api/auth/me'),
+    ).toHaveLength(2);
   });
   it.each(['server revocation', 'known expiry'])(
     'removes the active workspace after %s',

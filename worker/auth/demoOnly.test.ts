@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { authConfiguration, requestLogin, verifyLogin } from '../routes/auth';
 import { acceptInvitation, bootstrapOwner } from '../routes/accounts';
 import type { Env } from '../types';
+import { requireUser } from './authorization';
 
 function environment(overrides: Partial<Env> = {}): Env {
   const limiter = { limit: () => Promise.resolve({ success: true }) };
@@ -26,6 +27,19 @@ function environment(overrides: Partial<Env> = {}): Env {
 }
 
 describe('demo authentication boundary', () => {
+  it.each(['OWNER', 'ACCOUNTANT', 'AUDITOR'])(
+    'ignores the browser %s role claim when reading shared demo data',
+    async (role) => {
+      const user = await requireUser(
+        new Request('https://demo.example.invalid/api/businesses', {
+          headers: { 'x-demo-role': role, cookie: `br_session=forged-${role}` },
+        }),
+        environment(),
+      );
+      expect(user.role).toBe('ACCOUNTANT');
+      expect(user.id).toBe('demo-readonly-principal');
+    },
+  );
   it('advertises role switching only for the demo environment', async () => {
     const request = new Request('https://demo.example.invalid/api/auth/config');
     const demo = await authConfiguration(request, environment()).json<{

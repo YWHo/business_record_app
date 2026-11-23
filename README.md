@@ -93,12 +93,23 @@ Seed identities:
 
 - Owner: `owner@local.test`
 - Accountant: `accountant@local.test`
+- Auditor: `auditor@local.test` (IT Contracting only; expires 30 days after seeding)
 - Disabled accountant: `disabled@local.test`
 
-The sign-in screen exposes local owner/accountant shortcuts only when the
+The sign-in screen exposes local owner/accountant/auditor shortcuts only when the
 guarded helper is available. The regular passwordless flow also works locally:
 submit an active email at `POST /api/auth/login`, then read its single-use
 15-minute URL from the owner-protected `GET /api/dev/auth/outbox` endpoint.
+
+For an existing local database, add the auditor without resetting records:
+
+```bash
+pnpm db:seed:local:auditor
+```
+
+This command preserves an existing auditor's expiry, disabled status and changed
+scopes. If access later expires or is revoked, use the local owner's auditor
+access screen to manage it. Normal local/test seeding includes this identity.
 
 Sign in and preserve the returned HTTP-only cookie:
 
@@ -246,10 +257,19 @@ connection or operational subscriber database is implied.
 The demo is a separate named Cloudflare environment for portfolio visitors. It
 uses only fictional records, its own Worker, D1 database, variables, and
 rate-limit namespace, and never reads production bindings. It has no R2 binding.
-Visitors choose **Continue as Demo Owner** or **Continue as Demo Accountant**;
+Visitors choose **Continue as Demo Owner**, **Continue as Demo Accountant**, or
+**Continue as Demo Auditor**;
 that selection exists only in the current browser tab and creates no server
 session or cookie. Email login and the loopback development helper are not
 exposed in demo mode.
+
+Demo Auditor opens a read-only workspace for all fictional businesses and record
+dates, including edits already stored in that browser. It has no private
+membership or access expiry. Editing, comments, review updates, uploads, downloads,
+exports and resetting browser data are unavailable in this role. Signing out and
+choosing Demo Owner or Demo Accountant preserves their existing browser-local
+editing workflow. Browser role selection never changes the server's read-only
+principal or creates a real auditor grant.
 
 Keep the demo on the Workers Free plan initially. Quota exhaustion may
 temporarily make the demo unavailable; do not bypass protections or

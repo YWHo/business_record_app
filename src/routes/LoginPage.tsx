@@ -1,6 +1,13 @@
 import { type SubmitEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth, apiRequest } from '../features/auth/AuthContext';
+import {
+  useAuth,
+  apiRequest,
+  ApiError,
+  type DemoRole,
+} from '../features/auth/AuthContext';
+import { DemoRoleChooser } from '../features/auth/DemoRoleChooser';
+import { LocalRoleChooser } from '../features/auth/LocalRoleChooser';
 import { TurnstileWidget } from '../features/auth/TurnstileWidget';
 
 export function LoginPage() {
@@ -42,11 +49,19 @@ export function LoginPage() {
       await localLogin(identity);
       await navigate('/app/businesses');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unable to sign in.');
+      setError(
+        identity === 'auditor@local.test' &&
+          caught instanceof ApiError &&
+          caught.status === 401
+          ? 'Local auditor access is unavailable. On an existing setup, run pnpm db:seed:local:auditor once. If already seeded, check the membership scope, status and expiry as the owner.'
+          : caught instanceof Error
+            ? caught.message
+            : 'Unable to sign in.',
+      );
     }
   };
 
-  const loginWithDemoRole = async (role: 'OWNER' | 'ACCOUNTANT') => {
+  const loginWithDemoRole = async (role: DemoRole) => {
     setError('');
     try {
       await demoLogin(role);
@@ -119,46 +134,13 @@ export function LoginPage() {
         ) : null}
 
         {configuration?.localHelper ? (
-          <div className="local-auth">
-            <h2>Local development</h2>
-            <button
-              type="button"
-              onClick={() => void loginWithLocalIdentity('owner@local.test')}
-            >
-              Continue as local owner
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() =>
-                void loginWithLocalIdentity('accountant@local.test')
-              }
-            >
-              Continue as local accountant
-            </button>
-          </div>
+          <LocalRoleChooser
+            onSelect={(identity) => void loginWithLocalIdentity(identity)}
+          />
         ) : null}
 
         {configuration?.demoHelper ? (
-          <div className="local-auth">
-            <h2>Public demonstration</h2>
-            <button
-              type="button"
-              onClick={() => void loginWithDemoRole('OWNER')}
-            >
-              Continue as Demo Owner
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => void loginWithDemoRole('ACCOUNTANT')}
-            >
-              Continue as Demo Accountant
-            </button>
-            <small>
-              All identities, businesses, and amounts are synthetic.
-            </small>
-          </div>
+          <DemoRoleChooser onSelect={(role) => void loginWithDemoRole(role)} />
         ) : null}
       </section>
     </main>

@@ -115,7 +115,7 @@ export function AppShellPresentation({
         {contextControl ? (
           <div className="shell-context-control">{contextControl}</div>
         ) : null}
-        {isDemo ? (
+        {isDemo && !auditor ? (
           <button
             type="button"
             className="demo-reset-quick secondary-button"
@@ -145,13 +145,18 @@ export function AppShellPresentation({
         </aside>
 
         <main className="shell-main">
-          {auditor && <AuditorAccessNotice access={auditorAccess} />}
+          {auditor && (
+            <AuditorAccessNotice access={auditorAccess} demo={isDemo} />
+          )}
           {!auditor && role === 'ACCOUNTANT' && (
             <AccountantAccessNotice demo={isDemo} />
           )}
           {isDemo ? (
             <p className="demo-banner">
-              <strong>Demo</strong> · Changes are saved only in this browser
+              <strong>Demo</strong> ·{' '}
+              {auditor
+                ? 'Read-only inspection of fictional data'
+                : 'Changes are saved only in this browser'}
             </p>
           ) : null}
           <div className="page-content">{children ?? <Outlet />}</div>

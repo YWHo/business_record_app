@@ -9,17 +9,27 @@ function date(value: string) {
 
 export function AuditorAccessNotice({
   access,
+  demo = false,
 }: {
   access?: AuditorAccessDetails;
+  demo?: boolean;
 }) {
   return (
     <aside className="auditor-access-notice" aria-label="Auditor access">
-      <strong>Auditor access · Read-only</strong>
+      <strong>
+        {demo ? 'Demo Auditor · Read-only' : 'Auditor access · Read-only'}
+      </strong>
       <p>
         You can inspect permitted records, evidence, reports and audit history.
         Changes and downloads are unavailable.
       </p>
-      {access ? (
+      {demo ? (
+        <p>
+          Access: all fictional businesses and record dates, including changes
+          already saved in this browser. This demo has no access expiry. Private
+          auditor access has owner-managed scope and expiry.
+        </p>
+      ) : access ? (
         <>
           <ul>
             {access.scopes.map((scope, index) => (

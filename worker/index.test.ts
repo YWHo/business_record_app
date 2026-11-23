@@ -82,33 +82,37 @@ describe('Worker security middleware', () => {
     expect(response.headers.get('retry-after')).toBe('10');
   });
 
-  it('rejects every demo mutation before a database, bucket, or limiter call', async () => {
-    const response = await worker.fetch(
-      incoming(
-        new Request('https://demo.example.invalid/api/comments', {
-          method: 'POST',
-        }),
-      ),
-      {
-        ...environment,
-        APP_ENV: 'demo',
-        APP_ORIGIN: 'https://demo.example.invalid',
-        DB: new Proxy({} as D1Database, {
-          get: () => {
-            throw new Error('D1 must not be accessed');
-          },
-        }),
-        DOCUMENTS: new Proxy({} as R2Bucket, {
-          get: () => {
-            throw new Error('R2 must not be accessed');
-          },
-        }),
-      },
-    );
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+    'rejects demo %s before a database, bucket, or limiter call',
+    async (method) => {
+      const response = await worker.fetch(
+        incoming(
+          new Request('https://demo.example.invalid/api/comments', {
+            method,
+            headers: { 'x-demo-role': 'OWNER' },
+          }),
+        ),
+        {
+          ...environment,
+          APP_ENV: 'demo',
+          APP_ORIGIN: 'https://demo.example.invalid',
+          DB: new Proxy({} as D1Database, {
+            get: () => {
+              throw new Error('D1 must not be accessed');
+            },
+          }),
+          DOCUMENTS: new Proxy({} as R2Bucket, {
+            get: () => {
+              throw new Error('R2 must not be accessed');
+            },
+          }),
+        },
+      );
 
-    expect(response.status).toBe(403);
-    expect(response.headers.get('set-cookie')).toBeNull();
-  });
+      expect(response.status).toBe(403);
+      expect(response.headers.get('set-cookie')).toBeNull();
+    },
+  );
 
   it('reports exhausted demo storage capacity without internal details', async () => {
     const allow = { limit: () => Promise.resolve({ success: true }) };

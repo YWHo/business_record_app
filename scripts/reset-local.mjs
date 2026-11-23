@@ -59,6 +59,14 @@ runWrangler([
   '--file',
   './scripts/seed-local.sql',
 ]);
+runWrangler([
+  'd1',
+  'execute',
+  'business-records-local',
+  ...localStateArguments,
+  '--file',
+  './scripts/seed-local-auditor.sql',
+]);
 
 if (!testProfile) {
   runWrangler([

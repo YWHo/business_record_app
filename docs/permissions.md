@@ -234,3 +234,23 @@ Unit coverage lives in `worker/services/accessControlService.test.ts`. Real
 SQLite tests in `scripts/access-control.integration.test.mjs` exercise current
 membership changes, scoped directory identity, database-side counts/pagination,
 and agreement between SQL predicates and per-record checks at DST boundaries.
+
+## Browser-local Demo Auditor (Phase 9)
+
+The demo role chooser includes Auditor alongside Owner and Accountant. All three
+personas are tab-local simulations without real login, sessions or cookies.
+Demo Auditor reuses the read-only navigation and action permissions; its notice
+explicitly describes all fictional businesses/dates and no expiry. It is not a
+private scoped grant, and does not run private membership-refresh/expiry checks.
+
+The demo API adapter rejects Auditor and missing/unknown roles before recording
+any IndexedDB mutation. Auditor cannot reset the overlay; existing browser edits
+remain readable without being changed. Owner/Accountant editing and reset remain
+available after switching roles. This is a demonstration boundary, not protection
+against someone modifying their own browser: changing the simulated role cannot
+grant private access or make shared D1/R2 writable.
+
+No browser role is sent to the Worker. Its fixed read principal, mutation denial,
+rate limits, cache and missing R2 binding remain unchanged. Download/export routes
+retain independent demo restrictions. No synthetic auditor identity or membership
+is seeded into D1. See [ADR 020](adr/020-browser-local-demo-auditor.md).

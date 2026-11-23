@@ -57,3 +57,8 @@ export const Phone: Story = {
   globals: { viewport: { value: 'phonePortrait', isRotated: false } },
 };
 export const Unavailable: Story = { args: { access: undefined } };
+export const DemoAuditor: Story = { args: { access: undefined, demo: true } };
+export const DemoAuditorPhone: Story = {
+  ...DemoAuditor,
+  globals: { viewport: { value: 'phonePortrait', isRotated: false } },
+};
