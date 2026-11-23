@@ -793,6 +793,10 @@ p {
   background: #eef4f8;
 }
 
+.secondary-button:not(:disabled):hover {
+  color: #fff;
+}
+
 .notice {
   margin-top: 1rem;
   border-left: 4px solid;
