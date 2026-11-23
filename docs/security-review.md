@@ -1,6 +1,6 @@
 # Security and reliability review
 
-Auditor Phase 5 adds server-side capability checks for every protected handler
+The completed Auditor implementation enforces server-side capability checks for every protected handler
 and fresh membership/scope/window checks on private requests. A read-only D1
 query boundary filters source records and their related evidence, history,
 directory, reference, and aggregate projections before pagination or return.
@@ -20,7 +20,7 @@ Scope: Phase 20 review plus the version 2 public-demo cost/abuse addendum coveri
 
 ## Review outcome
 
-The application keeps authorization and validation at the Worker boundary and has no public production signup path. Phase 20 closed the concrete gaps found during review: deployed unsafe requests now require the configured origin; rate limiting covers client and stable-subject dimensions; uploads and exports have a dedicated low-volume limiter; unauthorized upload streams are discarded incrementally without buffering their bodies; remote security-provider calls are time-bounded and fail closed; the email relay must use HTTPS; security headers cover static and API responses; URL tokens are removed from browser history after capture; textual CSV formula prefixes are neutralized; demo bootstrap is unreachable; and the resolved dependency graph has no known advisories at the configured threshold. The version 2c re-review made invitation acceptance failure-safe, defers export completion history until every streamed entry passes integrity checks, caps account-administration collections, broadens account-isolation regression coverage, and applies expensive-operation limits per business account. Version 2c also makes the public demo server strictly read-only, removes its authentication/session surface, moves visitor interaction to an IndexedDB overlay, retains bounded reads, and adds account-scoped data authorization.
+The application keeps authorization and validation at the Worker boundary and has no public production signup path. Phase 20 closed the concrete gaps found during review: deployed unsafe requests now require the configured origin; rate limiting covers client and stable-subject dimensions; uploads and exports have a dedicated low-volume limiter; unauthorized upload streams are discarded incrementally without buffering their bodies; remote security-provider calls are time-bounded and fail closed; the email relay must use HTTPS; security headers cover static and API responses; URL tokens are removed from browser history after capture; textual CSV formula prefixes are neutralized; demo bootstrap is unreachable; and the dependency graph passed the configured advisory threshold at that review. Dependency audits are point-in-time evidence and must be repeated for each release. The version 2c re-review made invitation acceptance failure-safe, defers export completion history until every streamed entry passes integrity checks, caps account-administration collections, broadens account-isolation regression coverage, and applies expensive-operation limits per business account. Version 2c also makes the public demo server strictly read-only, removes its authentication/session surface, moves visitor interaction to an IndexedDB overlay, retains bounded reads, and adds account-scoped data authorization.
 
 ## Threat model
 
@@ -58,9 +58,31 @@ concurrent acceptance, replay, role tampering and login-window cases are covered
 in `scripts/auditor-lifecycle.integration.test.mjs`; real local browser coverage
 is in `e2e/auditor-membership.spec.ts`. See [ADR 018](adr/018-auditor-membership-lifecycle.md).
 
-Before production release, replace every placeholder binding/origin, set all documented Wrangler secrets, bind Turnstile to the exact public hostname, keep R2 private, apply migrations to the explicitly named environment, configure WAF/DDoS and observability alerts, verify response headers and origin rejection, run the dependency audit and full automated suite, create and verify a complete export, and rehearse recovery in an isolated environment. Phase 21 turns this gate into the final deployment and recovery runbook.
+Before production release, replace every placeholder binding/origin, set all documented Wrangler secrets, bind Turnstile to the exact public hostname, keep R2 private, apply migrations to the explicitly named environment, configure WAF/DDoS and observability alerts, verify response headers and origin rejection, run the dependency audit and full automated suite, create and verify a complete export, and rehearse recovery in an isolated environment. Use the current [release checklist](release-checklist.md), [deployment guide](deployment-guide.md) and [recovery guide](recovery-guide.md) for that gate.
 
 For the demo, keep the Free plan unless a later review deliberately changes it; confirm demo/production binding separation and the absence of a demo R2 binding; verify the read limiter, ten-minute JSON response cache, and universal write rejection; leave server upload, archive, email, and purge disabled; keep only synthetic data; periodically inspect Workers/D1 usage and 429/5xx trends; and treat budget alerts as notifications rather than hard caps. Static hashed assets are cached immutably and the application shell does not require D1 or R2.
+
+## Auditor acceptance evidence
+
+Phases 1–10 of the Auditor plan are implemented; Phase 10 was committed as
+`74e33f5`. Its recorded validation passed 510 tests across 60 files, three live
+local API scenarios, sixteen functional browser scenarios, typecheck, lint,
+application build and Storybook build. This is repository acceptance evidence,
+not a claim that a remote environment has been migrated, deployed or audited.
+
+The tests include unchanged retained state and no R2 calls after rejected
+mutations, reauthorization of previously visible evidence, invitation rollback
+and replay, account/business/entity/date isolation, live membership expiry,
+revocation and stale response handling. See the [coverage matrix](auditor-test-matrix.md).
+The private Worker remains authoritative when browser controls or role claims
+are manipulated. Optional auditor downloads/exports and custom role editing
+are not enabled. Browser preview cannot prevent saving or screenshots, and
+revocation cannot erase already delivered data.
+
+Local Auditor uses a real, guarded local session; Demo Auditor is a simulation
+without private scope/expiry or a server session. Demo role switching never
+changes the fixed server principal or permits shared writes. These are separate
+boundaries and have separate tests and [operating guidance](auditor-access-guide.md).
 
 ## Reference material
 

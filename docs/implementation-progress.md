@@ -1,5 +1,14 @@
 # Implementation progress
 
+## Auditor feature checkpoint
+
+Runtime phases 1–10 are committed, most recently as `74e33f5`. The final
+documentation phase is implemented and awaits the user's review/commit.
+Earlier pending-commit statements below describe the state when those entries
+were written; they do not override this checkpoint. Current references are the
+[owner guide](auditor-access-guide.md), [permission matrix](permissions.md),
+[architecture](architecture.md) and [acceptance coverage](auditor-test-matrix.md).
+
 ## Phase 1: Project scaffold
 
 Status: Complete
@@ -1684,3 +1693,33 @@ This follow-up remains uncommitted with Phase 9.
 
 Phase 10 remains uncommitted. Wait for the user's commit and request before
 Phase 11.
+
+## Auditor role feature — Phase 11: Documentation
+
+- Started from the user's committed Phase 10 (`74e33f5`) with a clean tree.
+- Updated README role/status descriptions and current Owner/Accountant/Auditor
+  capability summaries. Verified every permission row against the shared role
+  bundles. Removed obsolete staged-rollout statements from the current policy
+  and data model; retained the original gap analysis as a historical baseline.
+- Added an owner access guide for invitations, additive scopes, record dates,
+  access windows, acceptance versus sign-in, expiry/revocation, explicit status
+  restoration, stale form conflicts and local/demo troubleshooting. Distinguished
+  stored membership status from natural time expiry, and preview from download.
+- Updated architecture, schema relationships, operational guidance, security
+  evidence, regression index and deployment/release checks. Described the scoped
+  query boundary, atomic access lifecycle, current-session checks and stale
+  response protection without claiming browser controls replace server policy.
+- Reviewed the plan's acceptance criteria against the committed coverage matrix:
+  central roles, scoped/temporary/revocable reads, mutation denial, preserved
+  Accountant review, separate preview/report/export/archive capabilities,
+  read-only UI and retained audit identity are implemented and covered.
+- Current-phase validation: all 510 tests across 60 files pass; local link
+  targets, documented pnpm commands, owner UI labels, role-matrix consistency,
+  changed-file formatting and whitespace checks pass. Runtime code is unchanged.
+  Phase 10's three API scenarios, sixteen browser scenarios, typecheck, lint,
+  application build and Storybook build remain the last runtime validation.
+  No remote deployment, dependency audit, pixel comparison or resource change
+  was performed during this documentation phase.
+
+This is the final planned Auditor phase. Documentation is left uncommitted for
+the user's review and commit; no later feature phase or deployment is started.

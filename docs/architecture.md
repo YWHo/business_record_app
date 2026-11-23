@@ -26,19 +26,56 @@ Bindings are deliberately non-inheritable in `wrangler.jsonc`, so every named en
 
 ## Identity and authorization
 
-The Worker owns every identity and role decision. Passwordless sign-in and invitation URLs contain random single-use tokens; D1 stores only their SHA-256 hashes. Authentication challenges expire after 15 minutes, invitations after 72 hours, and sessions after 8 hours. Session cookies are HTTP-only and same-site strict, with the secure flag on HTTPS.
+The Worker owns every identity and role decision. Passwordless sign-in and invitation URLs contain random single-use tokens; D1 stores only their SHA-256 hashes. Authentication challenges expire after 15 minutes, invitations after at most 72 hours (or earlier at Auditor access expiry), and sessions after 8 hours. Membership windows can end access before a session expires. Session cookies are HTTP-only and same-site strict, with the secure flag on HTTPS.
 
 Production login is rejected through a route-specific Cloudflare rate limiter before database work and requires server-side Turnstile verification. Rate-limit keys are hashed and cover both the connecting client and a stable subject when one is available, preventing simple email or account rotation from bypassing a single dimension. A separate limiter protects invitation and bootstrap routes, while a dedicated lower-volume limiter protects uploads and archive generation per business account. These application limits supplement rather than replace Cloudflare account-level DDoS and WAF controls. The email service posts a minimal provider-neutral payload only to a configured HTTPS relay; both relay and Turnstile calls have bounded timeouts and fail closed. Local email requests are written to D1 outboxes instead.
 
 Every state-changing API request in demo or production must carry an `Origin` exactly matching `APP_ORIGIN`. The GET-based streaming export also requires same-origin browser Fetch Metadata because successful generation records history. These checks provide an explicit cross-site request boundary in addition to strict same-site cookies. Static assets and Worker responses set restrictive content-type, framing, referrer, permissions, and transport policies. Magic-link and invitation pages capture their one-time token once and immediately replace the browser-history entry without the query string.
 
-Owner bootstrap requires the configured email and an administrative secret. It creates no session, is idempotent only for the same owner, and refuses silent ownership transfer. Further accounts originate only from owner-created accountant invitations. Invitation acceptance batches its guarded identity creation, active membership creation, and token consumption; it never reactivates a globally disabled identity. Disabling an accountant retains its database identity and audit references while deleting every active session for that membership's account.
+Owner bootstrap requires the configured email and an administrative secret. It creates no session, is idempotent only for the same owner, and refuses silent ownership transfer. Additional members originate from owner-created Accountant or Auditor invitations. Invitation acceptance batches its guarded identity creation, membership/scopes, audit evidence and token consumption without creating a session or reactivating a disabled identity. Membership disabling retains identity and audit references while invalidating that membership's account sessions.
 
-The local login helper selects only configured seeded identities and requires both `APP_ENV=local` and a loopback request hostname. It never bypasses normal route authorization.
+The local login helper signs in eligible existing memberships only when `APP_ENV=local`, `LOCAL_AUTH_ENABLED=true` and a loopback request hostname all match. Seeded Owner, Accountant and scoped/expiring Auditor shortcuts use the same session and route authorization checks.
 
-The public demo has no real authentication route, session, or cookie. Owner/accountant selection is held in the current tab's `sessionStorage` solely to simulate UI permissions. The Worker independently treats every demo request as read-only, returns immutable synthetic records for bounded GET requests, caches successful JSON reads at the edge for ten minutes, and rejects every non-read API request before D1 or R2 work. The demo has no R2 binding.
+The public demo has no real authentication route, session, or cookie. Owner/Accountant/Auditor selection is held in the current tab's `sessionStorage` solely to simulate UI permissions. Demo Auditor denies overlay writes/resets and describes its fictional scope without private membership expiry. The Worker independently uses a fixed read principal, serves bounded synthetic GET requests, caches successful JSON reads at the edge for ten minutes, and rejects every non-read API request before D1 or R2 work. Browser role selection never changes that principal. The demo has no R2 binding.
 
 Demo D1 is restored from a deterministic synthetic seed through an operator-only command that requires the exact remote demo target and always supplies both `--remote` and `--env demo`. Visitor edits, comments, status changes, tombstones, and temporary records form an IndexedDB overlay in that visitor's browser. Resetting the visible demo clears only that overlay. Demo document selection and preview stay browser-local and never reach the Worker or R2.
+
+## Scoped auditor authorization
+
+The shared fixed-role bundles live in `src/lib/permissions.ts`. The Worker route
+registry adds a required capability to every protected handler and fails closed
+for unmapped policy. A role grant alone is not authentication or record access:
+private requests authenticate the session and load fresh active account, user,
+membership, access window and validated scopes into request-local state.
+
+One to sixteen account/business/legal-entity scopes form additive grants. Each
+grant intersects its identity with its own inclusive accounting-date limits;
+membership start/expiry are separate instants with inclusive/exclusive edges.
+Historical legal-entity attribution comes from persisted records, not the
+business's current entity. Missing, invalid or excessive scopes deny access.
+
+Auditor reads pass through `scopedReadDatabase`, a read-only D1 adapter using
+filtered CTEs before counts, totals, pagination or nested/child reads. Supported
+query shapes cannot override the views, address physical `main` tables or write.
+Scope JSON and all identifiers are bound data. Source lifecycle and tenant rules
+still apply. Unauthorized record IDs return 404 without exposing parent details.
+
+Preview and download use separate endpoints and capabilities; report summaries,
+CSV exports and full archives are separate actions. Restricted financial audit
+history excludes member/authentication events. Owner and Accountant workflows
+retain domain-specific review/adjustment rules after capability checks.
+
+Auditor invitations and membership changes use optimistic revisions and a
+CHECK-guarded atomic D1 batch for scopes, status, sessions and audit evidence.
+Edits, explicit expiry and revocation invalidate sessions; normal requests also
+reload current authorization. Browser focus checks and expiry timers remove the
+workspace when access ends. Session versions and refresh ordering prevent stale
+responses from reopening ended access or overwriting a newer result.
+
+See the [permission matrix](permissions.md), [owner access guide](auditor-access-guide.md),
+[data model](data-model.md), [query boundary ADR](adr/017-scoped-read-query-boundary.md),
+[lifecycle ADR](adr/018-auditor-membership-lifecycle.md) and
+[acceptance coverage](auditor-test-matrix.md).
 
 ## Workspace tenancy and legal identity
 
@@ -119,7 +156,7 @@ report migration, but are not mixed into the primary dashboard.
 
 ## Reference data lifecycle
 
-Business activities and vehicles are database-backed reference records exposed through authenticated Worker routes. Both roles may read active and inactive records because historical financial and mileage views need their labels. Every mutation is owner-only and validated again at the Worker boundary.
+Business activities and vehicles are database-backed reference records exposed through authenticated Worker routes. Owners and Accountants may read active/inactive historical labels; Auditor reference reads are limited by granted source/business visibility. Every mutation is owner-only and validated again at the Worker boundary.
 
 The selected-business settings area separates details, legal entity periods,
 activities, vehicles, categories, clients, and member guidance into focused
@@ -177,7 +214,7 @@ General expenses deliberately have no detail row. Their configurable category an
 
 An insurance write batches three relational records: the common full-premium expense, specialised policy detail, and a separate allocation. The premium always remains an integer minor-unit source value. Percentage methods store basis points and derive the allocated minor-unit amount at the Worker boundary; 100% business derives both fields, kilometres-based allocation additionally requires a calculation period, and undetermined leaves both nullable.
 
-Owners control source policy and premium fields. Both roles may read insurance, but the accountant mutation surface is limited to an allocation-adjustment route that forces `ACCOUNTANT_ADJUSTMENT`, caps the amount at the full premium, and stores the reviewer ID. Meaningful allocation changes write before/after method, percentage, and amount summaries to the append-only audit log. UI wording does not claim tax correctness or final profit.
+Owners control source policy and premium fields. All three roles may read insurance within their grants, but the accountant mutation surface is limited to an allocation-adjustment route that forces `ACCOUNTANT_ADJUSTMENT`, caps the amount at the full premium, and stores the reviewer ID. Meaningful allocation changes write before/after method, percentage, and amount summaries to the append-only audit log. UI wording does not claim tax correctness or final profit.
 
 ## Income boundary and reconciliation
 
@@ -193,7 +230,7 @@ and derives legal-entity attribution from the effective transaction date. A
 date edit that crosses an operating-period boundary requires explicit
 confirmation before root and typed detail attribution are updated.
 
-Owners create and update income source records; accountants have read access. A separate reconciliation endpoint is available to both roles and appends expected and actual integer minor-unit values with actor attribution. D1 generates the difference while the Worker derives the exact-match flag. Reconciliation does not mutate the source income row or imply a bank integration.
+Owners create and update income source records; accountants have read access. A separate reconciliation endpoint is available to Owners and Accountants and appends expected and actual integer minor-unit values with actor attribution. D1 generates the difference while the Worker derives the exact-match flag. Reconciliation does not mutate the source income row or imply a bank integration.
 
 ## Private document storage
 
@@ -259,7 +296,7 @@ The record-status endpoint owns workflow transitions. Owners prepare, reopen, or
 
 ## Retention and deletion boundary
 
-Normal deletion is a reversible owner-only transition: the Worker records the prior workflow status in the audit event, sets `TRASHED` plus `deleted_at`, and excludes the record from live source and transaction queries. Restore recovers that prior status. Both roles may inspect trash and immutable audit history, but accountants cannot trash, restore, change retention policy, or purge.
+Normal deletion is a reversible owner-only transition: the Worker records the prior workflow status in the audit event, sets `TRASHED` plus `deleted_at`, and excludes the record from live source and transaction queries. Restore recovers that prior status. Owners and Accountants may inspect retained trash and immutable audit history; Accountants cannot trash, restore, change retention policy or purge. Auditors receive scoped financial history rather than retention/trash administration.
 
 Permanent purge requires all three server-side conditions: the record is already trashed, its stored `purge_eligible_at` boundary has passed, and the owner supplied the exact explicit confirmation. The current policy never shortens retention dates already assigned to records; changes affect future calculations only. A referenced fuel expense remains protected until its work-session references are removed.
 

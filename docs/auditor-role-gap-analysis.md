@@ -1,7 +1,9 @@
 # Auditor role gap analysis
 
-Status: Phase 1 complete. This is the pre-implementation baseline; Phase 2 policy
-definitions are documented separately in [permissions.md](permissions.md).
+Status: historical Phase 1 baseline, retained to explain the original gaps and
+decisions. The Auditor feature is now implemented. For current behavior, use the
+[permission matrix](permissions.md), [owner guide](auditor-access-guide.md),
+[architecture](architecture.md) and [acceptance coverage](auditor-test-matrix.md).
 
 Baseline: repository inspected on 9 November 2026 against
 `../business_records_auditor_role_feature_plan.md`. This document describes
@@ -12,16 +14,16 @@ the next phase.
 
 ## Current authorization and identity
 
-| Area | Observed implementation | Required change |
-| --- | --- | --- |
-| Runtime roles | `worker/types.ts` and `src/features/auth/AuthContext.tsx` support OWNER and ACCOUNTANT only. | Add shared explicit permission identifiers and predefined bundles before enabling AUDITOR. Unknown roles must fail closed. |
-| Membership roles | Migration 0006 permits OWNER, ACCOUNTANT, ADMIN, BOOKKEEPER, and MEMBER, though only the first two are supported by runtime types. | Add AUDITOR without activating the reserved roles or granting them fallback permissions. |
-| Legacy identity roles | Migration 0001 restricts `users.role` to OWNER/ACCOUNTANT; invitations allow ACCOUNTANT only. | Update all relevant constraints and acceptance writes, not just membership types. Membership remains the authority. |
-| Membership state | `business_account_members` has ACTIVE/DISABLED status and account/user identity, but no access window or scope rows. | Add access start/expiry and validated account/business/entity/date scopes; retain historical identity. |
-| Request authentication | `worker/auth/authorization.ts` hashes the session cookie and joins current user, membership, and account on every protected request. Active status and session expiry are checked. | Preserve these checks and include current membership identity, window, and scope in the authorization context. |
-| Session creation | `worker/services/authService.ts` selects an active membership; session creation and login-link handling have no membership-window checks. | Reject future/expired auditor memberships during login/session creation and on every subsequent request. |
-| Authorization helper | `requireRole` compares a role allowlist. Many reads and some mutations use `requireUser` alone. | Introduce central permission assertions and scope-aware queries. Adding AUDITOR to a type alone would expose authenticated-only mutations. |
-| Tenant boundary | Queries bind `businessAccountId`; `businessContextService.ts` checks business ownership and resolves effective-dated entity attribution. | Keep account predicates and add access-scope predicates. Existing account ownership is not sufficient for a restricted auditor. |
+| Area                   | Observed implementation                                                                                                                                                            | Required change                                                                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Runtime roles          | `worker/types.ts` and `src/features/auth/AuthContext.tsx` support OWNER and ACCOUNTANT only.                                                                                       | Add shared explicit permission identifiers and predefined bundles before enabling AUDITOR. Unknown roles must fail closed.                 |
+| Membership roles       | Migration 0006 permits OWNER, ACCOUNTANT, ADMIN, BOOKKEEPER, and MEMBER, though only the first two are supported by runtime types.                                                 | Add AUDITOR without activating the reserved roles or granting them fallback permissions.                                                   |
+| Legacy identity roles  | Migration 0001 restricts `users.role` to OWNER/ACCOUNTANT; invitations allow ACCOUNTANT only.                                                                                      | Update all relevant constraints and acceptance writes, not just membership types. Membership remains the authority.                        |
+| Membership state       | `business_account_members` has ACTIVE/DISABLED status and account/user identity, but no access window or scope rows.                                                               | Add access start/expiry and validated account/business/entity/date scopes; retain historical identity.                                     |
+| Request authentication | `worker/auth/authorization.ts` hashes the session cookie and joins current user, membership, and account on every protected request. Active status and session expiry are checked. | Preserve these checks and include current membership identity, window, and scope in the authorization context.                             |
+| Session creation       | `worker/services/authService.ts` selects an active membership; session creation and login-link handling have no membership-window checks.                                          | Reject future/expired auditor memberships during login/session creation and on every subsequent request.                                   |
+| Authorization helper   | `requireRole` compares a role allowlist. Many reads and some mutations use `requireUser` alone.                                                                                    | Introduce central permission assertions and scope-aware queries. Adding AUDITOR to a type alone would expose authenticated-only mutations. |
+| Tenant boundary        | Queries bind `businessAccountId`; `businessContextService.ts` checks business ownership and resolves effective-dated entity attribution.                                           | Keep account predicates and add access-scope predicates. Existing account ownership is not sufficient for a restricted auditor.            |
 
 Do not rewrite applied migrations 0001–0008. The next ordered migration starts
 at 0009. SQLite CHECK constraints require a carefully tested table rebuild or
@@ -36,21 +38,21 @@ without introducing expiry for current owners/accountants.
 This is the current behavior to preserve except for the explicitly planned
 archive restriction. It is narrower than a generic full-control role bundle.
 
-| Capability | OWNER today | ACCOUNTANT today | AUDITOR target |
-| --- | --- | --- | --- |
-| Read records, dashboard, business/entity history | Account-wide | Account-wide | Scope/date constrained |
-| Create/edit source records and reference data | Yes | No | No |
-| Upload/replace attachments | Yes | No | No |
-| Read attachment metadata and download evidence | Yes | Yes | View only by default |
-| Comment and reconcile income | Yes | Yes | No |
-| Update workflow state | Owner transition set | Reviewer transition set | No |
-| Dedicated accountant allocation adjustment | No; owner edits source/allocation through owner workflow | Yes | No |
-| Read audit history and retained trash | Yes | Yes | Permitted history only |
-| Trash/restore/purge | Yes, with existing safeguards | No | No |
-| Read retention settings | Yes | Yes | No administrative exposure by default |
-| Change retention, members, business/entity structure | Yes | No | No |
-| Generate portable ZIP archive | Yes | Yes | No |
-| Separately export a report without evidence archive | No separate endpoint | No separate endpoint | Denied by default |
+| Capability                                           | OWNER today                                              | ACCOUNTANT today        | AUDITOR target                        |
+| ---------------------------------------------------- | -------------------------------------------------------- | ----------------------- | ------------------------------------- |
+| Read records, dashboard, business/entity history     | Account-wide                                             | Account-wide            | Scope/date constrained                |
+| Create/edit source records and reference data        | Yes                                                      | No                      | No                                    |
+| Upload/replace attachments                           | Yes                                                      | No                      | No                                    |
+| Read attachment metadata and download evidence       | Yes                                                      | Yes                     | View only by default                  |
+| Comment and reconcile income                         | Yes                                                      | Yes                     | No                                    |
+| Update workflow state                                | Owner transition set                                     | Reviewer transition set | No                                    |
+| Dedicated accountant allocation adjustment           | No; owner edits source/allocation through owner workflow | Yes                     | No                                    |
+| Read audit history and retained trash                | Yes                                                      | Yes                     | Permitted history only                |
+| Trash/restore/purge                                  | Yes, with existing safeguards                            | No                      | No                                    |
+| Read retention settings                              | Yes                                                      | Yes                     | No administrative exposure by default |
+| Change retention, members, business/entity structure | Yes                                                      | No                      | No                                    |
+| Generate portable ZIP archive                        | Yes                                                      | Yes                     | No                                    |
+| Separately export a report without evidence archive  | No separate endpoint                                     | No separate endpoint    | Denied by default                     |
 
 `worker/services/reviewService.ts` defines different status transitions for
 owners and accountants. A broad REVIEW_UPDATE permission must preserve those
@@ -62,17 +64,17 @@ general tax-classification editor.
 
 ## Backend enforcement inventory
 
-| Surface | Current boundary | Work required before auditor activation |
-| --- | --- | --- |
-| `expenseRecords`, `fuelRecords`, `insuranceRecords`, `incomeRecords`, `workSessions` routes | Account-scoped source reads; owner-only source writes; specialized review mutations | Check explicit permissions and scope on both legacy and business-scoped APIs, including guessed record IDs. |
-| `businesses` routes and business repositories | Account/business ownership; entity resolution from effective date | Restrict directory, details, periods, accountant groupings, dashboard aggregates, and reference lists to visible data. Preserve persisted historical entity attribution. |
-| `review.ts` | Authenticated transactions, comments, status changes, reconciliations in income routes, and saved-filter operations | Deny auditor writes, including saved filters; scope search, pagination, counts, and comment targets server-side. |
-| `attachments.ts` | Owner upload; authenticated metadata/file reads with account and parent checks | Separate ATTACHMENT_VIEW from ATTACHMENT_DOWNLOAD; scope every version through its authoritative parent. |
-| `exports.ts` | Authenticated history/status and ZIP generation; demo ZIP denied | Separate REPORT_VIEW, REPORT_EXPORT, and ARCHIVE_EXPORT; scope history and summaries and reject forbidden requests before expensive work. |
-| `governance.ts` | Authenticated audit/trash/retention reads; owner-only destructive actions/settings | Add AUDIT_VIEW and scoped history/trash checks; keep retention management and destructive controls unavailable. |
-| `accounts.ts`, `invitationService.ts` | Owner-only membership administration; accountant-only invitations | Add dedicated auditor invitation/access lifecycle with validated scopes/windows and audit events. |
-| Activities, vehicles, categories, clients | Account/business reads and owner-only lifecycle changes | Scope reference visibility and use BUSINESS_MANAGE for writes without weakening tenant checks. |
-| Development helpers | Local environment plus loopback guards | Preserve guards. Add deterministic auditor fixtures only when authorization is safe. |
+| Surface                                                                                     | Current boundary                                                                                                    | Work required before auditor activation                                                                                                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `expenseRecords`, `fuelRecords`, `insuranceRecords`, `incomeRecords`, `workSessions` routes | Account-scoped source reads; owner-only source writes; specialized review mutations                                 | Check explicit permissions and scope on both legacy and business-scoped APIs, including guessed record IDs.                                                              |
+| `businesses` routes and business repositories                                               | Account/business ownership; entity resolution from effective date                                                   | Restrict directory, details, periods, accountant groupings, dashboard aggregates, and reference lists to visible data. Preserve persisted historical entity attribution. |
+| `review.ts`                                                                                 | Authenticated transactions, comments, status changes, reconciliations in income routes, and saved-filter operations | Deny auditor writes, including saved filters; scope search, pagination, counts, and comment targets server-side.                                                         |
+| `attachments.ts`                                                                            | Owner upload; authenticated metadata/file reads with account and parent checks                                      | Separate ATTACHMENT_VIEW from ATTACHMENT_DOWNLOAD; scope every version through its authoritative parent.                                                                 |
+| `exports.ts`                                                                                | Authenticated history/status and ZIP generation; demo ZIP denied                                                    | Separate REPORT_VIEW, REPORT_EXPORT, and ARCHIVE_EXPORT; scope history and summaries and reject forbidden requests before expensive work.                                |
+| `governance.ts`                                                                             | Authenticated audit/trash/retention reads; owner-only destructive actions/settings                                  | Add AUDIT_VIEW and scoped history/trash checks; keep retention management and destructive controls unavailable.                                                          |
+| `accounts.ts`, `invitationService.ts`                                                       | Owner-only membership administration; accountant-only invitations                                                   | Add dedicated auditor invitation/access lifecycle with validated scopes/windows and audit events.                                                                        |
+| Activities, vehicles, categories, clients                                                   | Account/business reads and owner-only lifecycle changes                                                             | Scope reference visibility and use BUSINESS_MANAGE for writes without weakening tenant checks.                                                                           |
+| Development helpers                                                                         | Local environment plus loopback guards                                                                              | Preserve guards. Add deterministic auditor fixtures only when authorization is safe.                                                                                     |
 
 Review the complete route registry in `worker/index.ts` during Phase 5, including
 development endpoints and GET routes with side effects. Do not rely on HTTP
@@ -171,18 +173,18 @@ Follow the plan's eleven phases, stopping for user commit after each. Phase 1
 only creates this inventory and updates progress; there is no runtime or UI
 change to exercise with new unit/e2e tests or stories.
 
-| Phase | Deliverable and required validation |
-| --- | --- |
-| 2: Permission model | Central definitions/bundles and fail-closed unit matrix; preserve current route behavior until enforcement. |
-| 3: Schema | Populated migration regression, constraints/indexes, foreign-key checks, existing memberships/session/audit preservation. Do not expose auditor login yet. |
-| 4: Authorization | Unit tests for status, windows, scope unions, invalid grants, tenant mismatch, effective dates, and direct-record access. |
-| 5: Backend | Real local Worker/D1/R2 API e2e for auditor reads, every mutation family, GET side effects, ID tampering, query scope, attachment preview/download, report/archive separation, and owner/accountant regression. |
-| 6: Membership | Unit/API and Playwright invitation acceptance, scope/window validation, replay, scope/expiry changes, immediate revocation; stories for new reusable membership UI. |
-| 7: Auditor UI | Component tests, Storybook role/scope/expiry/empty/error states, and Playwright read-only navigation/direct routes across phone/tablet/desktop. |
-| 8: Accountant cleanup | Review/comment/reconciliation/allocation and export regression tests; stories distinguish review from audit access. |
-| 9: Demo Auditor | Browser-local persona, overlay write rejection, reload/reset/isolation e2e, and demo backend protections. |
-| 10: Certification | Consolidate full role/permission/scope/window matrix, API tampering, expiry/revocation, visual/responsive checks; coverage must already accompany earlier features. |
-| 11: Documentation | Reconcile README, architecture, data model, role matrix, operations and progress with verified final behavior. |
+| Phase                 | Deliverable and required validation                                                                                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2: Permission model   | Central definitions/bundles and fail-closed unit matrix; preserve current route behavior until enforcement.                                                                                                     |
+| 3: Schema             | Populated migration regression, constraints/indexes, foreign-key checks, existing memberships/session/audit preservation. Do not expose auditor login yet.                                                      |
+| 4: Authorization      | Unit tests for status, windows, scope unions, invalid grants, tenant mismatch, effective dates, and direct-record access.                                                                                       |
+| 5: Backend            | Real local Worker/D1/R2 API e2e for auditor reads, every mutation family, GET side effects, ID tampering, query scope, attachment preview/download, report/archive separation, and owner/accountant regression. |
+| 6: Membership         | Unit/API and Playwright invitation acceptance, scope/window validation, replay, scope/expiry changes, immediate revocation; stories for new reusable membership UI.                                             |
+| 7: Auditor UI         | Component tests, Storybook role/scope/expiry/empty/error states, and Playwright read-only navigation/direct routes across phone/tablet/desktop.                                                                 |
+| 8: Accountant cleanup | Review/comment/reconciliation/allocation and export regression tests; stories distinguish review from audit access.                                                                                             |
+| 9: Demo Auditor       | Browser-local persona, overlay write rejection, reload/reset/isolation e2e, and demo backend protections.                                                                                                       |
+| 10: Certification     | Consolidate full role/permission/scope/window matrix, API tampering, expiry/revocation, visual/responsive checks; coverage must already accompany earlier features.                                             |
+| 11: Documentation     | Reconcile README, architecture, data model, role matrix, operations and progress with verified final behavior.                                                                                                  |
 
 Use pnpm throughout. Run relevant unit/component, migration, API/browser e2e,
 and Storybook checks as their surfaces change, plus lint/typecheck/build gates

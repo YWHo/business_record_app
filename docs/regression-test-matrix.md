@@ -3,6 +3,12 @@
 This matrix identifies the automated checks that protect the highest-risk
 application boundaries. Run the full set before a release.
 
+The [auditor acceptance matrix](auditor-test-matrix.md) maps the complete
+Owner/Accountant/Auditor policy to unit, SQLite HTTP, live D1/R2 and browser
+coverage, including grant edits, expiry, revocation, stale responses, evidence
+preview/export separation and both local/demo entry modes. It supplements the
+general application boundaries below.
+
 | Boundary                             | Automated coverage                                                                                                                                                                                                                                           | Command                                                                 |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | Populated schema upgrade             | Applies the first five migrations, inserts representative private-workspace history, then applies the account/business/entity migrations. Verifies memberships, operating periods, root and inherited attribution, review flags, triggers, and foreign keys. | `pnpm test:migrations`                                                  |

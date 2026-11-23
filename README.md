@@ -5,7 +5,7 @@ mileage, and supporting documents. It is designed for small New Zealand business
 workflows and deliberately avoids making tax-treatment decisions.
 
 **[Try the live demo](https://business-records-demo.brian-ho-nz.workers.dev/)**
-— explore the synthetic owner and accountant workflows without signing up.
+— explore synthetic Owner, Accountant and Auditor workflows without signing up.
 
 ## Current status
 
@@ -15,7 +15,9 @@ effective-dated legal-entity attribution, private versioned documents, review
 and retention controls, portable backups, and server-derived dashboards.
 Critical lifecycles have Storybook, unit, migration, and Playwright coverage,
 and an isolated, cost-bounded public demo offers synthetic New Zealand
-owner/accountant scenarios without signup. Local development still needs no
+Owner/Accountant editing and read-only Auditor inspection without signup.
+Private auditors have owner-managed scope and expiry enforced by the Worker.
+Local development still needs no
 Cloudflare account or email provider.
 
 Start with the guide that matches the job:
@@ -23,11 +25,38 @@ Start with the guide that matches the job:
 - [Architecture](docs/architecture.md) and [data model](docs/data-model.md)
 - [Production and demo deployment](docs/deployment-guide.md)
 - [Routine operations](docs/operations-guide.md)
+- [Auditor invitations and access](docs/auditor-access-guide.md),
+  [permission matrix](docs/permissions.md), and
+  [auditor acceptance coverage](docs/auditor-test-matrix.md)
 - [Backup, incident recovery, and redeployment](docs/recovery-guide.md)
 - [Security review](docs/security-review.md) and
   [architecture decisions](docs/adr/)
 - [Regression matrix](docs/regression-test-matrix.md) and
   [release checklist](docs/release-checklist.md)
+
+## Access roles
+
+| Capability                                         | Owner                       | Accountant                                    | Auditor                                          |
+| -------------------------------------------------- | --------------------------- | --------------------------------------------- | ------------------------------------------------ |
+| Read records and history                           | Account-wide by default     | Account-wide by default                       | Granted account/business/entity and record dates |
+| Create/edit source records and upload evidence     | Yes                         | No                                            | No                                               |
+| Comment, reconcile income and update review status | Yes, with owner transitions | Yes, with reviewer transitions                | No                                               |
+| Insurance allocation                               | Owner source workflow       | Attributed adjustment, preserving the premium | Read stored results                              |
+| Individual evidence downloads and summary CSV      | Yes                         | Yes                                           | No                                               |
+| Full evidence ZIP archive                          | Yes                         | No                                            | No                                               |
+| Manage users, scopes, entities and retention       | Yes                         | No                                            | No                                               |
+| Required access expiry                             | No default expiry           | No default expiry                             | Yes                                              |
+
+Auditors can preview supported evidence and view summary reports; download and
+export actions remain separate permissions. Membership status, account identity,
+scope, source lifecycle and retention rules still apply to every role. The fixed
+roles do not provide a general classification editor or custom role builder.
+
+Owners invite private auditors under **Account settings → Invite an auditor**.
+Acceptance creates a membership, not a session; the recipient then signs in with
+an emailed link during the granted access window. See the
+[auditor access guide](docs/auditor-access-guide.md) for scope, expiry, revocation
+and local/demo differences.
 
 ## Local setup — no Cloudflare account required
 
@@ -237,7 +266,7 @@ incomplete ending evidence remains unavailable.
 first-class record families within the selected business. Platform and
 subscription records preserve their net-payment details; contracts link a
 reusable client and invoice details; general income stays intentionally simple.
-Both roles can append reconciliations under the existing review permissions.
+Owners and Accountants can append reconciliations under the review permissions.
 
 **Mileage** records timezone-aware work sessions, vehicles, odometers, and
 optional gross revenue. D1 generates distance from the odometers, while the
@@ -481,7 +510,7 @@ ready record, and process a reviewed record; they cannot void source records.
 Voided records retain their terminal history. Review identity and time are
 stored on financial records, meaningful transitions are audited, and any later
 owner edit to source data resets status to **New** and clears stale review
-attribution. Both roles can append attributed, timestamped comments; prior
+attribution. Owners and Accountants can append attributed, timestamped comments; prior
 comments cannot be edited away through the API.
 
 ## Exports and local backups

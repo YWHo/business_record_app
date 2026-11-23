@@ -23,10 +23,12 @@ memberships retain their identities, scopes and historical references. See
 ```text
 business_accounts ─ business_entities (legal entities)
   ├─ business_account_members ─ users
+  │    └─ membership_access_scopes
   ├─ businesses ─ business_entity_periods ─ business_entities
   ├─ sessions
   ├─ authentication_challenges ─ development_auth_outbox (local only)
   ├─ invitations ─ development_outbox (local only)
+  │    └─ invitation_access_scopes
   ├─ expenses ─┬─ fuel_expense_details ─ vehicles
   │            ├─ parking_expense_details ─ vehicles
   │            ├─ insurance_expense_details ─ vehicles
@@ -47,7 +49,7 @@ expense_categories (configurable lookup records)
 
 ## Authentication lifecycle
 
-`authentication_challenges` stores hashed, expiring, single-use login tokens associated with an existing active user. `invitations` separately stores hashed, expiring, single-use accountant invitations for a business account and their creating workspace owner. The two local outbox tables retain action URLs only in the simulated local database; deployed environments send those URLs through the configured relay.
+`authentication_challenges` stores hashed, expiring, single-use login tokens associated with an existing active user. `invitations` separately stores hashed, expiring, single-use Accountant or Auditor invitations for a business account and their creating workspace owner. The two local outbox tables retain action URLs only in the simulated local database; deployed environments send those URLs through the configured relay.
 
 A partial unique index permits at most one active `OWNER` membership per business account. Users are disabled rather than deleted so historical foreign keys and audit actors remain intact. Disabling a membership deletes that account's sessions; authorization checks user, account, and membership status on every protected request.
 
@@ -80,11 +82,14 @@ that behavior for existing bootstrap, accountant acceptance, and seed paths.
 Auditor and reserved roles receive no implicit grants. Scope/date query indexes
 supplement the existing account/business/entity/date record indexes.
 
-This is schema support only. Until permission and scope enforcement is ready,
-the Worker permits authentication/session creation only for OWNER/ACCOUNTANT,
-and the accountant acceptance path explicitly rejects stored AUDITOR
-invitations. No auditor login, invitation UI, or scoped access is enabled by
-this migration. A missing grant will mean no access when scope checks land.
+Migration 0009 alone introduced schema support. The completed Worker now enables
+Auditor acceptance/sign-in only with valid persisted scopes and access windows.
+Missing, malformed or excessive grants deny access. Migration 0010 supplies
+guarded lifecycle batches and optimistic revisions. Owner edits, explicit expiry
+and revocation invalidate account sessions while preserving historical identity.
+Current authorization checks account/user/membership state and the window on
+every protected request, independently of session expiry or browser role claims.
+See the [permission policy](permissions.md) and [owner guide](auditor-access-guide.md).
 
 `business_accounts` identifies an application workspace and reserves plan/subscription fields for later commercial use. `business_entities` holds optional legal and trading names, NZBN/company identifiers, entity type, country, and lifecycle independently of the workspace. `business_account_members` owns workspace roles. Consequently, the `OWNER` role describes application administration and is not stored or displayed as legal ownership.
 

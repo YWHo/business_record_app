@@ -1,5 +1,10 @@
 # Permission policy
 
+Status: the three fixed roles, owner-managed Auditor lifecycle, scoped private
+reads and local/demo entry points are implemented. This is the current policy;
+the [Phase 1 gap analysis](auditor-role-gap-analysis.md) is historical. See the
+[owner guide](auditor-access-guide.md) and [acceptance coverage](auditor-test-matrix.md).
+
 Accountants are labelled **Accountant · Review access**. They retain review and
 processing transitions, comments, income reconciliation, evidence downloads and
 CSV reports. Source records and administration remain owner-only. Public-demo
@@ -54,12 +59,11 @@ cannot begin before its configured start and ends at its exclusive expiry.
 
 Owners can edit scopes/windows, expire access now, revoke access, or revoke a
 pending invitation. Changes use optimistic revisions, atomic audit writes and
-session invalidation. Editing preserves membership status; restoration requires
-explicit owner selection and an active global identity. Identities, scopes and
+session invalidation. Editing preserves stored status; restoring a DISABLED or
+explicitly EXPIRED status requires owner selection and an active global identity.
+An ACTIVE membership whose window elapsed can become available again after an
+owner-approved window extension. Identities, scopes and
 historical references remain retained. See [ADR 018](adr/018-auditor-membership-lifecycle.md).
-
-Status: Phase 5 backend enforcement implemented. Auditor invitation/session
-creation and the dedicated auditor UI remain later phases.
 
 `src/lib/permissions.ts` defines the shared permission vocabulary, immutable
 predefined role bundles, `permissionsForRole`, and `hasPermission`. It has no
@@ -96,10 +100,11 @@ download and report-export policy grants are not enabled. Reserved database
 roles (ADMIN, BOOKKEEPER, MEMBER), malformed values, and unknown roles have no
 permissions. Returned bundles are frozen; callers cannot modify shared policy.
 
-The Worker recognizes AUDITOR on existing sessions and validates current grants
-and access windows before data access. Session creation, email login requests,
-and accountant invitation acceptance remain guarded until Phase 6 adds the
-auditor lifecycle. No public signup or self-registration is enabled.
+The Worker supports private Auditor invitation acceptance and normal email
+sign-in, validating current grants and access windows during session creation
+and on protected requests. The recipient must have an active identity and
+membership, valid scope and an active access window. No public signup or
+self-registration is enabled.
 
 `hasPermission(context, permission)` evaluates only a predefined role grant.
 It does not establish authentication or check active membership, access dates,
@@ -107,31 +112,30 @@ tenant ownership, record visibility, or a business/entity/date scope. The Worker
 performs those checks independently at the API boundary. Never authorize a
 private request from a browser-supplied role or permission list.
 
-These bundles describe target coarse capabilities, not a replacement for domain
+These bundles describe coarse capabilities, not a replacement for domain
 rules. REVIEW_UPDATE preserves existing role-specific status transitions.
 ACCOUNTING_ADJUST does not grant owners access to the dedicated accountant-only
 insurance adjustment endpoint: owners retain their existing allocation editing
 workflow. RECORD_DELETE does not bypass retention or purge safeguards.
 
-Phase 5 wires the policy into the API router. Accountants retain review,
+The API router enforces the policy. Accountants retain review,
 individual evidence downloads, and bounded CSV summary exports; full ZIP
 archives now require owner permission and unrestricted account scope. The
-summary is a separate report, not an evidence archive. Later auditor UI phases
-use the same definitions for visibility, with server checks authoritative.
+summary is a separate report, not an evidence archive. Auditor UI action
+visibility uses the same definitions, with server checks authoritative.
 
 Policy tests live in `src/lib/permissions.test.ts`. They check every role against
 every permission, unknown and reserved roles, missing user context, unknown
 permissions, and immutable, duplicate-free grants. Existing browser workflows
-remain the owner/accountant behavior regression suite. Phase 5 adds HTTP/SQLite
-integration coverage, a real-D1 auditor API scenario, and export-action unit
-tests and Storybook states. The original Phase 2 introduced only policy code.
+remain the owner/accountant behavior regression suite. HTTP/SQLite tests, real
+local D1/R2 scenarios, session-race regressions and Storybook states cover the
+remaining boundaries; see the linked acceptance matrix for the complete map.
 
-## Worker authorization service (Phase 4)
+## Worker authorization service
 
 `worker/services/accessControlService.ts` supplies central membership-aware
-permission and visibility checks. It is implemented and tested separately from
-route enforcement, applied in Phase 5. Auditor session creation remains
-blocked by the staged rollout guard.
+permission and visibility checks. Authentication and route enforcement use the
+same current membership context. A schema row alone never grants access.
 
 After authenticating a private request, call `loadAuthorizationContext` with
 the authenticated user's ID and account ID. It independently joins the current
@@ -140,7 +144,7 @@ construct this context from request JSON, query parameters, browser storage,
 or the role cached in a session; do not reuse it across requests. Loaded
 contexts and grants are immutable. Missing/invalid grants or more than sixteen
 scopes fail closed, rather than truncating to a potentially broader grant.
-Membership administration must enforce this scope cap when it lands.
+Membership administration enforces this cap on invitations and grant edits.
 
 The Worker's `hasPermission` and `assertPermission` add active account/user/
 membership checks and access-window validation to the shared role bundle.
@@ -176,11 +180,11 @@ authoritative parent's predicate, rather than choosing a date independently.
 
 The SQL builder and per-record checks do not authenticate sessions, authorize
 mutations, or replace domain-specific rules. Callers still assert the action's
-permission and validate persisted references. Demo requests need an explicit
-read-only integration in Phase 5; the synthetic demo principal has no real
-membership to load, and must never receive a private-authentication bypass.
+permission and validate persisted references. Public demo requests use their
+independent read-only path with a fixed synthetic principal. They never load
+or bypass a private membership from browser role selection.
 
-## API enforcement (Phase 5)
+## API enforcement
 
 The Worker registry assigns every protected handler an explicit permission.
 Unknown policy mappings fail closed. Public authentication, invitation-token

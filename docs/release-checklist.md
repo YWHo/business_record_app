@@ -19,6 +19,11 @@ resource setup remain in the [deployment guide](deployment-guide.md).
 - Run `pnpm test:e2e:visual` separately in the consistent WSL/Linux rendering
   environment and review screenshot differences against the shared baselines.
 - Review every unapplied migration. Never edit one that has been applied.
+- For an upgrade from before auditor support, review migrations 0009/0010 as a
+  compatible schema/code rollout. Preserve existing grants, token hashes and
+  historical references; never apply synthetic local/demo seeds to production.
+- Review the [auditor acceptance matrix](auditor-test-matrix.md) and current
+  [role policy](permissions.md), including denied exports and stale-session tests.
 
 ## Deploy one environment at a time
 
@@ -52,6 +57,14 @@ production.
 - After a demo reseed, allow up to ten minutes for edge-cached GET responses to
   expire. Reload or reopen an installed PWA, then use **Reset Demo Data** to
   clear that browser's IndexedDB overlay; this button does not reset remote D1.
+- Verify all three demo personas. Demo Auditor must have no mutation/reset or
+  export controls and must create no server session/cookie; use Demo Owner or
+  Accountant for browser reset checks.
+- In an authorized private test workspace, verify scoped Auditor invitation,
+  acceptance followed by separate sign-in, denied out-of-scope IDs and writes,
+  preview/download separation, expiry/revocation and preserved Accountant review.
+  Follow the [auditor guide](auditor-access-guide.md); do not use public-demo role
+  switching as evidence of private server authorization.
 - Observe Worker errors, D1 latency/errors, R2 activity, rate-limit responses,
   and email delivery before declaring the release complete.
 - Record deployment/version IDs, migration and integrity results, UTC time,

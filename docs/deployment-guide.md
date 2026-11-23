@@ -282,7 +282,7 @@ Do not paste the real key into shared logs. The call is idempotent only for the
 configured email and creates no session. Sign in through the emailed link,
 confirm the owner-only screens, create a small test record and attachment,
 download it, generate an all-records export, and store that archive safely.
-Invite the accountant only after these checks pass.
+Invite Accountants or scoped, expiring Auditors only after these checks pass. Follow the [auditor access guide](auditor-access-guide.md) for grant and recipient sign-in verification.
 
 ## 5. First public demo deployment
 
@@ -326,7 +326,7 @@ entry.
 The reset requires typing `business-records-demo` because it destroys and
 reseeds remote demo rows. Successful demo JSON reads are cached at Cloudflare's
 edge for ten minutes without another D1 query, so a remote reset can take up to
-ten minutes to appear at an edge location. Verify both browser roles,
+ten minutes to appear at an edge location. Verify all three browser roles,
 browser-local edits and reset, cross-browser isolation, the 30-per-10-second
 burst and 120-per-minute sustained read limits, `Retry-After` responses, and
 rejection of every non-GET API request. Check that the demo D1 ID and hostname
@@ -442,7 +442,7 @@ pnpm exec wrangler deploy --env demo --dry-run \
 pnpm deploy:demo
 ```
 
-Verify `/api/health`, both simulated roles, a representative server read,
+Verify `/api/health`, all three simulated roles, a representative server read,
 server-side rejection of writes, and the changed workflow. Reload or reopen an
 installed demo PWA if it is still displaying the prior application shell.
 
@@ -517,7 +517,7 @@ Worker. If deployment fails after a successful reset, assess compatibility
 before rolling back because a Worker rollback does not reverse D1 migrations.
 After deployment, allow for the ten-minute edge-cache window, reload or reopen
 the PWA, clear its browser-local overlay with **Reset Demo Data**, and verify
-both demo roles again.
+all three demo roles again.
 
 For any runbook, if verification fails, stop further deployment, preserve the
 failure output, and follow the [recovery guide](recovery-guide.md). Rolling back

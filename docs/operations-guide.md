@@ -10,6 +10,20 @@ The application `OWNER` role administers one workspace; it does not assert legal
 
 ## Routine schedule
 
+### Auditor access
+
+Use **Account settings → Auditor access** for scoped, temporary inspection grants.
+Choose Accountant when the task needs review/comment/adjustment or download
+capabilities. Follow the [auditor access guide](auditor-access-guide.md) for
+invitation, scheduled sign-in, scope edits, expiry, revocation and restoration.
+Review both effective access state and stored membership status; a displayed
+expiry can result from time passing without a stored status change.
+
+Grant edits and explicit expiry/revocation end existing workspace sessions and
+retain identities and audit evidence. If a stale form conflicts, reload rather
+than editing D1 directly. A new sign-in link does not bypass an inactive window
+or disabled membership. A temporary network failure alone is not revocation.
+
 ### Daily or after an alert
 
 - Check Worker 5xx, 429, latency, and request-volume trends without logging bodies or credentials.
@@ -21,7 +35,7 @@ The application `OWNER` role administers one workspace; it does not assert legal
 
 - Review D1 query/error and storage trends and R2 object/operation trends.
 - Review demo quotas, throttling, unexpected traffic, and recent reset outcome.
-- Confirm production D1 and R2 bindings still point to their dedicated resources and neither R2 bucket is public.
+- Confirm production D1 and R2 bindings still point to their dedicated resources and the production bucket is private; public demo has no R2 binding.
 - Download a new all-records export if business activity warrants a shorter interval than the configured reminder.
 
 ### Monthly
