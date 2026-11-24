@@ -1773,3 +1773,32 @@ the user's review and commit; no later feature phase or deployment is started.
 - No local development data or remote resources were reset or reseeded, and no
   deployment, migration or git commit was performed. Existing provisioned demo
   databases require a deliberate demo reseed to display the revised records.
+
+## Staging/static demo redesign: Phase 1 foundation checkpoint
+
+- Read the externally maintained staging-and-static-demo plan. Added a versioned,
+  reproducible fictional JSON baseline generated solely from migrations and
+  the repository demo seed in an in-memory database. Authentication tables,
+  tokens, credentials, private evidence and remote configuration are excluded.
+- Added pure baseline reads and bounded business/entity/status/search/date
+  queries, with Auckland instant-date boundaries, calendar income dates and
+  deterministic pagination. The core collection client applies browser overlay
+  edits before filtering and counting; network access is never a fallback.
+- Namespaced the demo overlay database by dataset version, leaving the previous
+  unversioned browser database intact. Updated migration/browser fixtures for
+  that namespace. The lightweight version metadata avoids loading the full
+  fixture into the ordinary application bundle.
+- Added seed-to-bundle equivalence checks, integer-money/privacy assertions,
+  immutable baseline/query/reset tests, an API-blocked browser persistence test,
+  and desktop/phone Storybook examples. See [static demo data](static-demo-data.md).
+- This is a review checkpoint within Phase 1, not a claim of complete static
+  application parity. Detail, reference, transaction, dashboard/report, history
+  and evidence adapters remain before switching AuthContext off the server-backed
+  demo reads. No Phase 2 routing, staging credentials, bindings, remote reset,
+  deployment or git commit is included.
+- Validation: all 529 tests across 63 files, typecheck, changed-source lint and
+  application build pass. Three Chromium scenarios pass against a frontend-only
+  validation server, including a static-client scenario with all API requests
+  blocked. The application bundle remains approximately its previous size;
+  the full dataset is not loaded by the existing AuthContext. Storybook's build
+  still stops at the previously observed esbuild directory access-denied error.

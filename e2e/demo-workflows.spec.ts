@@ -204,12 +204,12 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   ).toBeVisible();
   await firstPage.evaluate(`(async () => {
     await new Promise((resolve, reject) => {
-      const deletion = indexedDB.deleteDatabase('business-records-public-demo');
+      const deletion = indexedDB.deleteDatabase('business-records-static-demo-2026-11-platforms-v1');
       deletion.onsuccess = () => resolve();
       deletion.onerror = () => reject(deletion.error);
     });
     await new Promise((resolve, reject) => {
-      const request = indexedDB.open('business-records-public-demo', 1);
+      const request = indexedDB.open('business-records-static-demo-2026-11-platforms-v1', 1);
       request.onupgradeneeded = () =>
         request.result.createObjectStore('overlay');
       request.onsuccess = () => {
@@ -280,7 +280,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
     periods: unknown[];
   }>(`(async () => {
     const database = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('business-records-public-demo', 2);
+      const request = indexedDB.open('business-records-static-demo-2026-11-platforms-v1', 2);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -348,7 +348,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
     periods: number;
   }>(`(async () => {
     const database = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('business-records-public-demo', 2);
+      const request = indexedDB.open('business-records-static-demo-2026-11-platforms-v1', 2);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });

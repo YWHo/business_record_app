@@ -1,3 +1,5 @@
+import { staticDemoStorageName } from './demoDatasetVersion';
+
 export const demoStorageSchemaVersion = 2;
 
 export interface DemoBusinessEntityPeriod {
@@ -36,7 +38,7 @@ interface RecordScope {
   legalEntityId: string | null;
 }
 
-const databaseName = 'business-records-public-demo';
+const databaseName = staticDemoStorageName;
 const legacyStoreName = 'overlay';
 const legacyOperationsKey = 'operations';
 const operationStoreName = 'operations';
