@@ -23,6 +23,18 @@ body {
   min-height: 100vh;
 }
 
+.copyright-footer {
+  padding: 1rem;
+  color: #526475;
+  text-align: center;
+}
+
+@media (max-width: 37.49rem) {
+  .app-shell + .copyright-footer {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
+
 button,
 a {
   font: inherit;

@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import { AccountShell, BusinessShell } from './components/ShellLayouts';
 import { PwaStatus } from './features/pwa/PwaStatus';
+import { CopyrightFooter } from './components/CopyrightFooter';
 import { useAuth } from './features/auth/AuthContext';
 import { BusinessDirectoryProvider } from './features/business/BusinessDirectoryContext';
 import { AcceptInvitationPage } from './routes/AcceptInvitationPage';
@@ -219,6 +220,7 @@ export function App() {
           </Route>
         </Route>
       </Routes>
+      <CopyrightFooter />
     </>
   );
 }
