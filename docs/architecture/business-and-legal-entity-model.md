@@ -17,7 +17,7 @@ business account
 ```
 
 A business account is the application tenancy and billing boundary. A business
-is an operating context such as Uber Eats or IT Contracting. A legal entity is
+is an operating context such as DoorDash or IT Contracting. A legal entity is
 the person or organization legally operating that business during a defined
 period. Membership role describes application authority, not legal ownership.
 

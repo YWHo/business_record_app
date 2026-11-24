@@ -38,7 +38,7 @@ const taxiCompany = {
 const businesses: BusinessSummary[] = [
   {
     id: 'business-delivery',
-    name: 'Uber Eats',
+    name: 'DoorDash',
     description: 'Food delivery',
     businessType: 'PLATFORM_SERVICES',
     defaultCurrency: 'NZD',
@@ -122,7 +122,7 @@ export const AppShell: Story = {
   globals: { viewport: { value: 'desktop', isRotated: false } },
   render: () => (
     <AppShellPresentation
-      contextLabel="Uber Eats"
+      contextLabel="DoorDash"
       contextControl={
         <BusinessSwitcherComponent
           businesses={businesses}
@@ -142,7 +142,7 @@ export const AppShell: Story = {
         <div className="page-heading">
           <div>
             <span className="eyebrow">Business dashboard</span>
-            <h1 id="story-dashboard-heading">Uber Eats</h1>
+            <h1 id="story-dashboard-heading">DoorDash</h1>
             <p>Food delivery · Brian Ho (Sole trader)</p>
           </div>
           <a className="button-link" href="#add-expense">
@@ -183,7 +183,7 @@ export const MyBusinessCard: Story = {
 
 export const BusinessContext: Story = {
   render: () => (
-    <BusinessContextBadge businessName="Uber Eats" entity={soleTrader} />
+    <BusinessContextBadge businessName="DoorDash" entity={soleTrader} />
   ),
 };
 
@@ -316,7 +316,7 @@ export const AuditorWorkspace: Story = {
   globals: { viewport: { value: 'desktop', isRotated: false } },
   render: () => (
     <AppShellPresentation
-      contextLabel="Uber Eats"
+      contextLabel="DoorDash"
       userEmail="auditor@example.invalid"
       onLogout={() => undefined}
       auditor
@@ -326,7 +326,7 @@ export const AuditorWorkspace: Story = {
         scopes: [
           {
             scopeType: 'BUSINESS',
-            label: 'Uber Eats',
+            label: 'DoorDash',
             dateFrom: '2026-04-01',
             dateTo: '2027-03-31',
           },
@@ -341,7 +341,7 @@ export const AuditorWorkspace: Story = {
       ]}
     >
       <section>
-        <h1>Uber Eats</h1>
+        <h1>DoorDash</h1>
         <p>
           Inspect records and supporting evidence within your granted scope.
         </p>

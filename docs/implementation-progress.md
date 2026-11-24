@@ -1747,3 +1747,29 @@ the user's review and commit; no later feature phase or deployment is started.
   build pass. Storybook build fails with an esbuild directory access-denied
   error before manager bundling completes, as it did before these four
   overrides. Storybook and isolated E2E validation remain outstanding.
+
+## Driving platform showcase: combined Uber services and DoorDash
+
+- Renamed the public-demo and rich local showcase delivery business to DoorDash
+  and the ride-hailing business to Uber. Uber's description, provider labels,
+  statements, mixed-service shifts, fuel and insurance now include both rides
+  and Uber Eats. One mixed shift retains one odometer block and one combined
+  statement retains one income record. Existing amounts, identifiers, business
+  counts and historical legal-entity attribution are preserved.
+- Updated directory/dashboard Storybook examples, presentation expectations,
+  demo browser fixtures and current documentation. Platform names illustrate
+  organisation of fictional records; these examples do not claim to reproduce
+  actual statements or determine accounting/tax treatment.
+- Added eight in-memory SQLite integration checks across both seed profiles
+  for combined statements, separate DoorDash providers, shared Uber costs,
+  derived kilometres, non-overlapping shifts and historical attribution.
+  All 518 tests across 61 files pass. Existing demo/local rich-history regression
+  assertions also pass using Node SQLite because the sqlite3 CLI is unavailable.
+- Lint, application build and both demo browser scenarios pass. Browser validation
+  used the existing API mocks with a frontend-only Vite server because the
+  standard E2E Worker cannot access Wrangler's external registry directory.
+  Storybook examples were updated; its build remains blocked by the previously
+  observed esbuild filesystem access-denied error.
+- No local development data or remote resources were reset or reseeded, and no
+  deployment, migration or git commit was performed. Existing provisioned demo
+  databases require a deliberate demo reseed to display the revised records.

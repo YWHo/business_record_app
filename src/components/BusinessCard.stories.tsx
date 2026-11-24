@@ -14,8 +14,8 @@ const meta = {
   args: {
     business: {
       id: 'business-ride',
-      name: 'Uber Ride',
-      description: 'Ride-hailing',
+      name: 'Uber',
+      description: 'Uber rides and Uber Eats deliveries',
       businessType: 'PLATFORM_SERVICES',
       defaultCurrency: 'NZD',
       status: 'ACTIVE',
@@ -46,7 +46,7 @@ export const SoleTrader: Story = {
     business: {
       ...meta.args.business,
       id: 'business-delivery',
-      name: 'Uber Eats',
+      name: 'DoorDash',
       description: 'Food delivery',
       currentLegalEntity: {
         id: 'entity-owner',

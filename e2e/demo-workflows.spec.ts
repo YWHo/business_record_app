@@ -139,7 +139,7 @@ async function mockImmutableDemo(
                 businesses: [
                   {
                     id: 'business-demo-activity-delivery',
-                    name: 'Uber Eats',
+                    name: 'DoorDash',
                     description: 'Food delivery',
                     businessType: 'PLATFORM_SERVICES',
                     defaultCurrency: 'NZD',
@@ -158,8 +158,8 @@ async function mockImmutableDemo(
                   },
                   {
                     id: 'business-demo-activity-rideshare',
-                    name: 'Uber Ride',
-                    description: 'Ride-hailing',
+                    name: 'Uber',
+                    description: 'Uber rides and Uber Eats deliveries',
                     businessType: 'PLATFORM_SERVICES',
                     defaultCurrency: 'NZD',
                     status: 'ACTIVE',
@@ -239,7 +239,16 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await firstPage
     .getByRole('button', { name: 'Continue as Demo Owner' })
     .click();
-  await firstPage.getByRole('link', { name: 'Open Uber Eats' }).click();
+  await expect(
+    firstPage.getByRole('link', { name: 'Open Uber', exact: true }),
+  ).toBeVisible();
+  await expect(
+    firstPage.getByRole('article', { name: 'Uber', exact: true }),
+  ).toContainText('Uber rides and Uber Eats deliveries');
+  await expect(
+    firstPage.getByRole('link', { name: 'Open Uber Eats', exact: true }),
+  ).toHaveCount(0);
+  await firstPage.getByRole('link', { name: 'Open DoorDash' }).click();
   await firstPage.setViewportSize({ width: 320, height: 720 });
   await expect(
     firstPage.getByRole('button', { name: 'Reset demo data' }),
@@ -319,7 +328,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   await secondPage
     .getByRole('button', { name: 'Continue as Demo Owner' })
     .click();
-  await secondPage.getByRole('link', { name: 'Open Uber Eats' }).click();
+  await secondPage.getByRole('link', { name: 'Open DoorDash' }).click();
   await secondPage.getByRole('link', { name: 'Business settings' }).click();
   await secondPage.getByRole('link', { name: 'Clients', exact: true }).click();
   await expect(
@@ -388,7 +397,7 @@ test('demo auditor inspects records without sessions or browser-local mutations 
     await expect(
       page.getByRole('link', { name: 'Accountant view', exact: true }),
     ).toHaveCount(0);
-    await page.getByRole('link', { name: 'Open Uber Eats' }).click();
+    await page.getByRole('link', { name: 'Open DoorDash' }).click();
     const base = '/app/businesses/business-demo-activity-delivery';
     await page.goto(`${base}/expenses`);
     await page.getByRole('link', { name: 'Fictional office supplier' }).click();

@@ -44,8 +44,8 @@ describe('reusable presentation components', () => {
         <BusinessCard
           business={{
             id: 'business-ride',
-            name: 'Uber Ride',
-            description: 'Ride-hailing',
+            name: 'Uber',
+            description: 'Uber rides and Uber Eats deliveries',
             businessType: 'PLATFORM_SERVICES',
             defaultCurrency: 'NZD',
             status: 'ACTIVE',
@@ -67,15 +67,16 @@ describe('reusable presentation components', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getByRole('article', { name: 'Uber Ride' }),
-    ).toHaveTextContent('Ride-hailing');
+    expect(screen.getByRole('article', { name: 'Uber' })).toHaveTextContent(
+      'Uber rides and Uber Eats deliveries',
+    );
     expect(screen.getByText('Taxi Limited')).toBeInTheDocument();
     expect(screen.getByText('Limited company')).toBeInTheDocument();
     expect(screen.getByText('96 records')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Open Uber Ride' }),
-    ).toHaveAttribute('href', '/app/businesses/business-ride');
+    expect(screen.getByRole('link', { name: 'Open Uber' })).toHaveAttribute(
+      'href',
+      '/app/businesses/business-ride',
+    );
   });
 
   it('exposes business switching as a labelled controlled selection', () => {

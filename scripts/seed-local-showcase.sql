@@ -2,21 +2,21 @@ PRAGMA foreign_keys = ON;
 
 UPDATE businesses
 SET name = CASE id
-      WHEN 'business-activity-delivery' THEN 'Uber Eats'
-      WHEN 'business-activity-rideshare' THEN 'Uber Ride'
+      WHEN 'business-activity-delivery' THEN 'DoorDash'
+      WHEN 'business-activity-rideshare' THEN 'Uber'
       WHEN 'business-activity-contracting' THEN 'IT Contracting'
       WHEN 'business-activity-saas' THEN 'Music Streaming'
     END,
     description = CASE id
       WHEN 'business-activity-delivery' THEN 'Food delivery'
-      WHEN 'business-activity-rideshare' THEN 'Ride-hailing'
+      WHEN 'business-activity-rideshare' THEN 'Uber rides and Uber Eats deliveries'
       WHEN 'business-activity-contracting' THEN 'IT services'
       WHEN 'business-activity-saas' THEN 'SaaS website'
     END,
     updated_at = '2026-10-01T00:00:00.000Z';
 
--- One shared vehicle follows a non-overlapping daily schedule: ride-hailing
--- during commuter/night periods and delivery during lunch/dinner periods.
+-- One shared vehicle follows a non-overlapping DoorDash/Uber schedule.
+-- Each mixed Uber rides/Eats shift uses one odometer block, not one per service.
 WITH RECURSIVE days(day_number, work_date) AS (
   VALUES (0, '2026-09-21')
   UNION ALL
@@ -31,14 +31,14 @@ WITH RECURSIVE days(day_number, work_date) AS (
     30000 + day_number * 150 + 45 AS odometer_start,
     30000 + day_number * 150 + 70 AS odometer_end,
     6900 + day_number * 175 AS revenue,
-    'Lunch delivery round' AS notes
+    'DoorDash lunch delivery round' AS notes
   FROM days
   UNION ALL
   SELECT printf('showcase-delivery-dinner-%02d', day_number + 1),
     'activity-delivery', work_date || 'T17:30:00.000Z',
     work_date || 'T20:30:00.000Z', 30000 + day_number * 150 + 70,
     30000 + day_number * 150 + 105, 9800 + day_number * 225,
-    'Dinner delivery round'
+    'DoorDash dinner delivery round'
   FROM days
   UNION ALL
   SELECT printf('showcase-rideshare-morning-%02d', day_number + 1),
@@ -46,8 +46,8 @@ WITH RECURSIVE days(day_number, work_date) AS (
     work_date || 'T09:00:00.000Z', 30000 + day_number * 150,
     30000 + day_number * 150 + 45, 12600 + day_number * 240,
     CASE WHEN strftime('%w', work_date) IN ('0', '6')
-      THEN 'Weekend morning ride-hailing shift'
-      ELSE 'Weekday commuter ride-hailing shift' END
+      THEN 'Weekend Uber rides shift'
+      ELSE 'Weekday Uber rides shift' END
   FROM days
   UNION ALL
   SELECT printf('showcase-rideshare-night-%02d', day_number + 1),
@@ -55,8 +55,8 @@ WITH RECURSIVE days(day_number, work_date) AS (
     work_date || 'T23:59:00.000Z', 30000 + day_number * 150 + 105,
     30000 + day_number * 150 + 150, 15100 + day_number * 275,
     CASE WHEN strftime('%w', work_date) IN ('0', '6')
-      THEN 'Weekend evening ride-hailing shift'
-      ELSE 'Weekday evening ride-hailing shift' END
+      THEN 'Weekend Uber rides and Uber Eats shift; one shared odometer block'
+      ELSE 'Weekday Uber rides and Uber Eats shift; one shared odometer block' END
   FROM days
 )
 INSERT INTO work_sessions (
@@ -71,20 +71,20 @@ SELECT id, activity_id, 'vehicle-current', started_at, ended_at,
   'dev-owner', ended_at, ended_at, '2037-03-31', '2037-04-01'
 FROM sessions;
 
--- Weekly Tuesday delivery and Thursday ride-hailing settlements.
+-- Weekly Tuesday DoorDash and Thursday combined Uber rides/Eats settlements.
 WITH RECURSIVE weeks(week_number) AS (
   VALUES (0) UNION ALL SELECT week_number + 1 FROM weeks WHERE week_number < 9
 ), payouts AS (
   SELECT printf('showcase-delivery-payout-%02d', week_number + 1) AS id,
     'activity-delivery' AS activity_id,
     date('2026-07-28', printf('+%d days', week_number * 7)) AS paid_on,
-    47200 + week_number * 1350 AS amount, 'Harbour Hopper' AS provider
+    47200 + week_number * 1350 AS amount, 'DoorDash' AS provider
   FROM weeks
   UNION ALL
   SELECT printf('showcase-rideshare-payout-%02d', week_number + 1),
     'activity-rideshare',
     date('2026-07-30', printf('+%d days', week_number * 7)),
-    63800 + week_number * 1725, 'Koru Ride'
+    63800 + week_number * 1725, 'Uber'
   FROM weeks
 )
 INSERT INTO income_records (
@@ -93,7 +93,9 @@ INSERT INTO income_records (
   updated_at, retention_until, purge_eligible_at
 )
 SELECT id, activity_id, 'PLATFORM', provider, paid_on, amount, 'NZD',
-  'PROCESSED', 'Weekly platform settlement', 'dev-owner',
+  'PROCESSED', CASE WHEN activity_id LIKE '%rideshare'
+    THEN 'Combined Uber rides and Uber Eats statement'
+    ELSE 'Weekly DoorDash delivery statement' END, 'dev-owner',
   paid_on || 'T00:10:00.000Z', paid_on || 'T00:10:00.000Z',
   '2037-03-31', '2037-04-01'
 FROM payouts;
@@ -103,12 +105,12 @@ WITH RECURSIVE weeks(week_number) AS (
 ), payouts AS (
   SELECT printf('showcase-delivery-payout-%02d', week_number + 1) AS id,
     date('2026-07-28', printf('+%d days', week_number * 7)) AS paid_on,
-    47200 + week_number * 1350 AS amount, 'Harbour Hopper' AS provider
+    47200 + week_number * 1350 AS amount, 'DoorDash' AS provider
   FROM weeks
   UNION ALL
   SELECT printf('showcase-rideshare-payout-%02d', week_number + 1),
     date('2026-07-30', printf('+%d days', week_number * 7)),
-    63800 + week_number * 1725, 'Koru Ride'
+    63800 + week_number * 1725, 'Uber'
   FROM weeks
 )
 INSERT INTO platform_income_details (
@@ -148,7 +150,9 @@ INSERT INTO expenses (
 )
 SELECT id, activity_id, 'FUEL', 'category-fuel', merchant, purchased_at,
   amount, 'NZD', CAST(round(amount * 3.0 / 23.0) AS INTEGER), 'GST_INCLUDED',
-  'Weekly fuel fill', 'ONE_OFF', 'REVIEWED', 'dev-owner', purchased_at,
+  CASE WHEN activity_id LIKE '%rideshare'
+    THEN 'Shared fuel for Uber rides and Uber Eats'
+    ELSE 'DoorDash delivery fuel' END, 'ONE_OFF', 'REVIEWED', 'dev-owner', purchased_at,
   purchased_at, '2037-03-31', '2037-04-01'
 FROM fuel;
 
@@ -201,7 +205,9 @@ INSERT INTO expenses (
 )
 SELECT id, activity_id, 'INSURANCE', category, 'Rimu Mutual',
   month_start || 'T00:00:00.000Z', amount, 'NZD', NULL, 'NO_GST',
-  'Monthly insurance premium', 'RECURRING', 'PROCESSED', 'dev-owner',
+  CASE WHEN activity_id = 'activity-rideshare'
+    THEN 'Shared Uber rides and Uber Eats vehicle insurance premium'
+    ELSE 'Monthly insurance premium' END, 'RECURRING', 'PROCESSED', 'dev-owner',
   month_start || 'T00:05:00.000Z', month_start || 'T00:05:00.000Z',
   '2037-03-31', '2037-04-01'
 FROM insurance;

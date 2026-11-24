@@ -132,7 +132,7 @@ IDs remain the historical accounting evidence.
 Migration 0008 creates one business per legacy top-level activity, creates the
 initial operating periods, and fills business/legal-entity attribution on root
 records and their dependent details and metadata. The public demo uses explicit
-fictional sole-trader and company identities, including an Uber Ride entity
+fictional sole-trader and company identities, including an Uber entity
 change. A private legacy sole-trader entity whose legal name is unknown is not
 renamed from its user's email; it and its attributed records are retained with
 `attribution_review_required = 1` until verified.

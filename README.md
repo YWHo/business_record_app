@@ -96,6 +96,13 @@ businesses with recent delivery and ride-hailing shifts, platform settlements,
 fuel, insurance, parking, six months of contracting, and six months of SaaS
 activity. Each business has at least 20 records.
 
+The driving examples use **DoorDash** for a separate delivery business and
+**Uber** for both rides and Uber Eats. Uber has combined synthetic statements,
+mixed-service shifts with one odometer block, and shared fuel and insurance
+examples, without duplicating earnings or distance between its services.
+These fictional examples illustrate record organisation, not actual platform
+statement formats or tax treatment.
+
 Playwright uses a separate minimal fixture so richer development examples do
 not change test totals, ordering, or screenshots:
 
@@ -359,7 +366,7 @@ pnpm db:reset:demo -- --confirm business-records-demo
 `pnpm db:seed:demo` replaces records without applying migrations first and has
 the same confirmation guard. The seed provides a synthetic account, four
 businesses with legal-entity operating periods, two users, two vehicles,
-fictional clients/providers, work sessions, platform payments, IT invoices, SaaS
+fictional clients and transactions, work sessions, platform payments, IT invoices, SaaS
 summaries, expenses, allocations, reconciliations, comments, audit history,
 saved filters, and mixed review statuses.
 
