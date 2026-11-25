@@ -25,7 +25,12 @@ test('static demo reads and overlay changes need no backend requests', async ({
     await recordDemoMutation('/api/businesses/' + businessId + '/expenses', {
       method: 'POST', body: JSON.stringify({ expenseType: 'GENERAL', merchantName: 'Offline browser example', purchaseDatetime: '2026-09-20T00:00:00Z', totalAmount: '12.34' }),
     });
+    const { readStaticDemoDetail } = await import('/src/features/demo/staticDemoDetails.ts');
+    const fuel = await readStaticDemoDetail('business-demo-activity-delivery', 'expenses', 'demo-fuel-1');
+    if (fuel.fuelLitres !== 40 || fuel.vehicleRegistration !== 'KORU24') throw new Error('Static fuel detail missing');
     const beforeReload = await readStaticDemoRecords(businessId, 'expenses', { search: 'Offline browser example' });
+    const created = await readStaticDemoDetail(businessId, 'expenses', beforeReload.records[0].id);
+    if (created.totalAmountMinor !== 1234) throw new Error('Browser-created detail missing');
     return { names, count: beforeReload.resultCount };
   })()`);
   expect(result).toEqual({

@@ -45,7 +45,7 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Detail projections, cross-record transactions, dashboard/report calculations,
+Work-session detail projections, cross-record transactions, dashboard/report calculations,
 audit/history/reference projections and fictional evidence must be converted
 and verified before changing that live read path. Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
@@ -54,3 +54,10 @@ Current browser tests prove the core client can read, edit, persist through a
 reload, and reset with all `/api` requests blocked. They also preserve the
 existing simulated Owner/Accountant/Auditor flows. Storybook includes a static
 baseline directory story at desktop and phone sizes.
+
+`staticDemoDetails.ts` now reads scoped expense and income detail records,
+including fuel/parking fields, insurance premium and allocation, platform,
+contract and subscription details, and reconciliation evidence. It applies the
+overlay before locating the record, so browser-created records can be opened
+and reset records disappear. Valid IDs requested under another business fail
+closed. These detail functions are not yet connected to AuthContext.

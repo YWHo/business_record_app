@@ -1802,3 +1802,21 @@ the user's review and commit; no later feature phase or deployment is started.
   blocked. The application bundle remains approximately its previous size;
   the full dataset is not loaded by the existing AuthContext. Storybook's build
   still stops at the previously observed esbuild directory access-denied error.
+
+## Static demo Phase 1: expense and income detail checkpoint
+
+- Added business-scoped static expense and income detail projections. Joined
+  fuel, parking, insurance, allocation, platform, contract, subscription and
+  reconciliation data retain parent identities and integer monetary values.
+  Related detail rows must belong to the same business as their parent.
+- Applied browser overlays to the complete scoped detail collection before
+  selecting a record; browser-created records open and disappear on reset.
+  Missing IDs and valid IDs under another business fail closed without fetching.
+- Added five focused tests and extended the API-blocked Chromium scenario to
+  read seeded fuel evidence and a browser-created expense detail. All 534 tests
+  across 64 files pass, as do TypeScript and changed-source lint. The browser
+  scenario passes with all API requests blocked.
+- This remains within Phase 1. Work-session detail metrics, transactions,
+  dashboards/reports, history/references, evidence and final live read-path
+  integration remain. No routing/environment/authentication changes, database
+  resets, remote operations or commits were performed.
