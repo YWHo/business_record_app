@@ -27,6 +27,8 @@ test('static demo reads and overlay changes need no backend requests', async ({
     });
     const { readStaticDemoDetail } = await import('/src/features/demo/staticDemoDetails.ts');
     const fuel = await readStaticDemoDetail('business-demo-activity-delivery', 'expenses', 'demo-fuel-1');
+    const session = await readStaticDemoDetail('business-demo-activity-delivery', 'work-sessions', 'demo-session-1');
+    if (session.distanceKm !== 88 || session.revenuePerHourMinor !== 5720 || session.fuelCalculationStatus !== 'UNAVAILABLE') throw new Error('Static session metrics incorrect');
     if (fuel.fuelLitres !== 40 || fuel.vehicleRegistration !== 'KORU24') throw new Error('Static fuel detail missing');
     const beforeReload = await readStaticDemoRecords(businessId, 'expenses', { search: 'Offline browser example' });
     const created = await readStaticDemoDetail(businessId, 'expenses', beforeReload.records[0].id);

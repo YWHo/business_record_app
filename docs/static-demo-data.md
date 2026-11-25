@@ -45,7 +45,7 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Work-session detail projections, cross-record transactions, dashboard/report calculations,
+Cross-record transactions, dashboard/report calculations,
 audit/history/reference projections and fictional evidence must be converted
 and verified before changing that live read path. Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
@@ -61,3 +61,12 @@ contract and subscription details, and reconciliation evidence. It applies the
 overlay before locating the record, so browser-created records can be opened
 and reset records disappear. Valid IDs requested under another business fail
 closed. These detail functions are not yet connected to AuthContext.
+
+Work-session details also recompute distance, duration, revenue rates and fuel
+metrics after applying browser edits, using the Worker's pure calculators.
+Distance always comes from odometers. Ending fuel evidence must be a visible
+fuel expense in the same business and vehicle; only a full fill with usable
+litres and matching currency supplies cost metrics. Exact calculations require
+all three driving/full-tank confirmations. Missing evidence remains unavailable
+even if the browser overlay claims an exact result. This is fictional demo
+presentation; private server validation and authorization remain unchanged.

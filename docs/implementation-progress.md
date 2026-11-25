@@ -1820,3 +1820,25 @@ the user's review and commit; no later feature phase or deployment is started.
   dashboards/reports, history/references, evidence and final live read-path
   integration remain. No routing/environment/authentication changes, database
   resets, remote operations or commits were performed.
+
+## Static demo Phase 1: work-session details and metrics checkpoint
+
+- Extended the static detail reader to work sessions, with activity/vehicle
+  labels and current browser-local fuel evidence. Reused the Worker's pure
+  mileage/revenue and fuel calculators after overlay application so submitted
+  distances or stale calculation labels cannot override the evidence.
+- Missing revenue retains null rates. Ending fuel must belong to the same
+  business/vehicle and be a full fill with usable litres and same-currency cost.
+  Exact fuel metrics require all three confirmations; absent or out-of-scope
+  evidence remains unavailable. Browser creates and edits use the same detail
+  reader without a network fallback.
+- Added five focused cases, extended the API-blocked Chromium scenario to
+  verify mileage/revenue/fuel metrics, and added a Storybook evidence example.
+  All 539 tests across 65 files, changed-source lint, TypeScript and application
+  build pass. The API-blocked browser scenario passes.
+- Storybook build was attempted and remains blocked by the previously observed
+  esbuild filesystem access-denied error; its new story is typechecked.
+- The live AuthContext read path remains unchanged. Transactions, dashboards,
+  reports, history/references, fictional evidence and final integration remain
+  within Phase 1. No new environment, authentication path, database reset,
+  remote action or git commit is included.
