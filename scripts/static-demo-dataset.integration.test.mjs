@@ -34,6 +34,9 @@ it('bundles exactly the fictional SQL baseline and no authentication or storage 
     'income_reconciliations',
     'work_sessions',
     'comments',
+    'audit_log',
+    'saved_filters',
+    'retention_settings',
   ]);
   expect(new Set(Object.keys(fixture.tables))).toEqual(allowed);
   const db = new DatabaseSync(':memory:');
@@ -45,6 +48,20 @@ it('bundles exactly the fictional SQL baseline and no authentication or storage 
       db.exec(name.startsWith('0009_') ? `BEGIN;${sql}COMMIT;` : sql);
     }
     db.exec(read('./seed-demo.sql'));
+    expect(fixture.actors).toEqual(
+      db
+        .prepare('SELECT id,email,display_name,role FROM users ORDER BY id')
+        .all(),
+    );
+    for (const actor of fixture.actors) {
+      expect(Object.keys(actor).sort()).toEqual([
+        'display_name',
+        'email',
+        'id',
+        'role',
+      ]);
+      expect(actor.email).toMatch(/@example\.invalid$/);
+    }
     for (const table of allowed) {
       expect(
         fixture.tables[table],

@@ -1,8 +1,8 @@
 # Static demo data foundation
 
 The staging/static-demo redesign plan is maintained outside this repository.
-This is the first implementation checkpoint within its data phase, not the
-completed conversion of the public demo application.
+These adapters are being implemented within its data phase; the live public
+demo application's read path has not been switched over yet.
 
 ## Dataset
 
@@ -18,6 +18,11 @@ and R2 object keys. All monetary minor-unit values remain safe integers. A
 regression test compares every bundled table to the fictional SQL seed, so seed
 changes require intentional regeneration. Never generate this file from a
 private or staging database.
+
+The dataset now also contains the fictional audit log, saved filters and
+retention settings. A separate author projection contains only seeded ID, email,
+display name and role for comment/audit labels. Its emails must use
+`example.invalid`; no session, password, token or invitation data is included.
 
 The baseline includes DoorDash, combined Uber rides/Eats, IT Contracting and
 Music Streaming. Historical legal-entity periods and attribution are retained.
@@ -45,8 +50,8 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Audit/history/reference projections and fictional evidence must be converted
-and verified before changing that live read path. Complete those within Phase 1;
+Fictional evidence reads and final API integration/parity checks remain before
+changing that live read path. Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
 
 Current browser tests prove the core client can read, edit, persist through a
@@ -81,7 +86,7 @@ SQLite integration tests compare static responses directly against the Worker
 for the supported filter cases. This reader is not yet wired into AuthContext.
 
 `staticDemoReports.ts` adds source-total reports and financial totals with
-FULL, MONTH and TAX_YEAR periods using the fixed fictional March year end.
+FULL, MONTH and TAX_YEAR periods using the fictional baseline's fiscal settings.
 Reports group by family, subtype and currency; insurance remains the full
 premium. Financial totals distinguish recorded income from cash received for
 contract invoices, using the Worker's pure combination helper. Browser edits,
@@ -98,9 +103,33 @@ and financial calculators, recomputes from current browser edits and preserves
 the dashboard's existing UTC substring date semantics. Missing session revenue
 stays unavailable, currencies remain separate, and unsafe money totals fail
 closed. Account-wide, business and activity scopes are supported. The fixed
-fictional March year end and the same current Auckland tax-year default are used.
+fictional March year end is the default; browser edits to the fiscal settings
+are validated and reflected consistently in reports and dashboard periods.
+The current Auckland tax-year default follows those settings.
 
 Integration tests compare complete dashboard responses with the SQLite-backed
 Worker for all four businesses, account/activity scopes and an empty period.
 Browser-created invoices, records, receipts and trash affect the derived results.
 This adapter is still not connected to the live AuthContext read path.
+
+## References and history
+
+`staticDemoReferences.ts` provides activities, vehicles, clients, categories,
+legal entities, full business operating periods and retention settings. Browser
+reference edits and legal-entity transitions retain historical creation metadata.
+New clients/categories default to active like the Worker. Retention/fiscal
+settings use the Worker's validator before financial readers consume them.
+
+`staticDemoHistory.ts` supplies scoped comments, role-owned seeded saved filters,
+and filtered/paginated audit history. Seeded actor labels are fictional metadata,
+not authenticated identities. Browser comments use a DEMO author label. Recorded
+overlay operations appear as `BROWSER_LOCAL_CHANGE`, explicitly marked simulated
+and not server audit evidence. Auditor views include recognized financial
+changes and exclude configuration changes. The browser overlay remains shared
+by simulated roles within the same demo namespace; none of these readers grants
+private server authority.
+
+`staticDemoGovernance.ts` reads browser trash with retained source metadata and
+restore support. Eligibility is presentation only: no R2 purge or database delete
+is executed. Export status accurately reports the baseline's empty archive
+history and never claims that a private backup or download was created.

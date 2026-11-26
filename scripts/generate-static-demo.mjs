@@ -41,13 +41,19 @@ try {
     'income_reconciliations',
     'work_sessions',
     'comments',
+    'audit_log',
+    'saved_filters',
+    'retention_settings',
   ]) {
     tables[table] = db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all();
   }
   const metadata = JSON.parse(
     read('src/features/demo/staticDemoMetadata.json'),
   );
-  const dataset = { version: metadata.version, tables };
+  const actors = db
+    .prepare('SELECT id,email,display_name,role FROM users ORDER BY id')
+    .all();
+  const dataset = { version: metadata.version, tables, actors };
   const target = new URL('src/features/demo/staticDemoDataset.json', root);
   writeFileSync(target, JSON.stringify(dataset, null, 2) + '\n');
   console.log(`Generated static fictional demo ${dataset.version}.`);

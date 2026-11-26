@@ -8,6 +8,7 @@ import {
 import { readStaticDemoDetailCollection } from './staticDemoDetails';
 import { readStaticDemoTable } from './staticDemo';
 import { applyDemoOverlay } from './demoStore';
+import { readStaticDemoRetentionSettings } from './staticDemoReferences';
 
 type Row = Record<string, unknown>;
 function withBusinessDefaults(row: Row, business: Row): Row {
@@ -24,14 +25,15 @@ function text(value: unknown): string {
 function detail(value: unknown): Row {
   return value && typeof value === 'object' ? (value as Row) : {};
 }
-function currentTaxYear() {
+function currentTaxYear(month: number, day: number) {
   const date = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Pacific/Auckland',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(new Date());
-  return String(Number(date.slice(0, 4)) + (date.slice(5) > '03-31' ? 1 : 0));
+  const end = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return String(Number(date.slice(0, 4)) + (date.slice(5) > end ? 1 : 0));
 }
 function safeTotals(value: unknown): void {
   if (!value || typeof value !== 'object') {
@@ -49,8 +51,11 @@ export async function readStaticDemoDashboard(
   businessId?: string,
   query = new URLSearchParams(),
 ) {
-  const taxYear = query.get('taxYear') ?? currentTaxYear();
-  const period = exportPeriod('TAX_YEAR', null, taxYear, 3, 31);
+  const { retentionSettings } = await readStaticDemoRetentionSettings();
+  const month = Number(retentionSettings.taxYearEndMonth);
+  const day = Number(retentionSettings.taxYearEndDay);
+  const taxYear = query.get('taxYear') ?? currentTaxYear(month, day);
+  const period = exportPeriod('TAX_YEAR', null, taxYear, month, day);
   const activityId = businessId
     ? null
     : query.get('activityId')?.trim() || null;

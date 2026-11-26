@@ -1912,3 +1912,33 @@ the user's review and commit; no later feature phase or deployment is started.
   reset, remote action or git commit is included.
 - Phase 1 now requires reference/history/evidence projections and final API
   integration/parity checks before advancing to Phase 2 routing.
+
+## Static demo Phase 1: reference, history and governance checkpoint
+
+- Added static activity, vehicle, client, category, legal-entity, business-period
+  and retention-setting reads with browser overlay support. Historical period
+  creation metadata survives entity transitions, and new clients/categories
+  retain the Worker's active-by-default behaviour.
+- Extended the deterministic fictional fixture with audit events, saved filters,
+  retention settings and a separate four-field author projection. Fixture tests
+  verify exact seeded values and `example.invalid` author emails; authentication
+  tables, credentials, sessions, tokens, outboxes and R2 keys remain excluded.
+- Added scoped comments, role-owned seeded filters and filtered/paginated history.
+  Browser comments are labelled DEMO; overlay events are explicitly simulated
+  changes, not server audit evidence. Auditor reads include recognized financial
+  reviews but exclude configuration changes. Added trash/restore projections
+  with retained metadata and empty archive status without generating backups.
+- Browser fiscal changes now use the Worker's validator and are consumed by both
+  reports and dashboards. Tests compare changed fiscal periods with the Worker;
+  invalid settings fail closed and reset restores the fictional baseline.
+- Added 21 integration cases covering Worker response parity, bounded history,
+  cross-business comment denial, metadata retention, browser edits, author labels,
+  financial versus configuration history, trash, settings and reset behaviour.
+  All 606 tests across 69 files, changed-source lint, TypeScript, formatting and
+  application build pass. Three Chromium scenarios pass on the frontend-only
+  validation server, including reference/history reads with all APIs blocked.
+- Added a Storybook reference/history example. The story is typechecked; its build
+  still encounters the existing esbuild filesystem access-denied error.
+- No live API read-path switch, private authentication change, deployment, database
+  reset or git commit was performed. Fictional evidence and final API integration
+  remain within Phase 1; Phase 2 routing is not started.

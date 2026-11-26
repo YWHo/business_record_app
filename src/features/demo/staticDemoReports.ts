@@ -2,6 +2,7 @@ import { exportPeriod } from '../../../worker/services/exportService';
 import { combineFinancialTotals } from '../../../worker/services/dashboardService';
 import { readStaticDemoDetailCollection } from './staticDemoDetails';
 import { readStaticDemoTable } from './staticDemo';
+import { readStaticDemoRetentionSettings } from './staticDemoReferences';
 
 const businessDate = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Pacific/Auckland',
@@ -29,14 +30,14 @@ function safeAmount(value: unknown): number {
 }
 
 async function reportSource(query: URLSearchParams) {
-  // These are the fiscal settings of the fixed fictional baseline, not settings
-  // read from a private account or the host deployment.
+  // Fiscal settings come from the fictional baseline plus browser edits only.
+  const { retentionSettings } = await readStaticDemoRetentionSettings();
   const period = exportPeriod(
     query.get('scope') ?? 'FULL',
     query.get('month'),
     query.get('taxYear'),
-    3,
-    31,
+    Number(retentionSettings.taxYearEndMonth),
+    Number(retentionSettings.taxYearEndDay),
   );
   const businessId = query.get('businessId')?.trim();
   const entityId = query.get('legalEntityId')?.trim();

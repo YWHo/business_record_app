@@ -29,6 +29,13 @@ test('static demo reads and overlay changes need no backend requests', async ({
     const { readStaticDemoTransactions } = await import('/src/features/demo/staticDemoTransactions.ts');
     const { readStaticDemoReport, readStaticDemoFinancialTotals } = await import('/src/features/demo/staticDemoReports.ts');
     const { readStaticDemoDashboard } = await import('/src/features/demo/staticDemoDashboard.ts');
+    const { readStaticDemoReferences, readStaticDemoBusinessDetails } = await import('/src/features/demo/staticDemoReferences.ts');
+    const { readStaticDemoAudit, readStaticDemoComments } = await import('/src/features/demo/staticDemoHistory.ts');
+    const clients = await readStaticDemoReferences('clients');
+    const businessDetails = await readStaticDemoBusinessDetails(businessId);
+    const audit = await readStaticDemoAudit(new URLSearchParams({ businessId, action: 'BROWSER_LOCAL_CHANGE' }), 'AUDITOR');
+    const comments = await readStaticDemoComments('business-demo-activity-delivery', 'INCOME', 'demo-platform-1');
+    if (clients.clients.length !== 2 || businessDetails.operatingPeriods.length !== 2 || !audit.auditEvents.length || !comments.comments.length) throw new Error('Static reference or history data missing');
     const dashboard = await readStaticDemoDashboard(businessId, new URLSearchParams('taxYear=2027'));
     const { readStaticDemoTable } = await import('/src/features/demo/staticDemo.ts');
     const baselineExpense = readStaticDemoTable('expenses').filter((row) => row.business_id === businessId && !row.deleted_at && !row.purged_at && row.status !== 'VOIDED').reduce((sum, row) => sum + row.total_amount_minor, 0);

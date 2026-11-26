@@ -5,6 +5,8 @@ import { readStaticDemoDetail } from './staticDemoDetails';
 import { readStaticDemoTransactions } from './staticDemoTransactions';
 import { readStaticDemoReport } from './staticDemoReports';
 import { readStaticDemoDashboard } from './staticDemoDashboard';
+import { readStaticDemoReferences } from './staticDemoReferences';
+import { readStaticDemoAudit } from './staticDemoHistory';
 
 const meta = {
   title: 'Demo/Static business baseline',
@@ -18,7 +20,44 @@ const meta = {
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
+
 export const AllBusinesses: Story = {};
+
+export const ReferencesAndHistory: Story = {
+  loaders: [
+    async () => ({
+      clients: await readStaticDemoReferences('clients'),
+      audit: await readStaticDemoAudit(new URLSearchParams('pageSize=5')),
+    }),
+  ],
+  render: (_, { loaded }) => {
+    const clients = loaded.clients as Awaited<
+      ReturnType<typeof readStaticDemoReferences>
+    >;
+    const audit = loaded.audit as Awaited<
+      ReturnType<typeof readStaticDemoAudit>
+    >;
+    return (
+      <section className="panel">
+        <h2>Fictional clients and history</h2>
+        <ul>
+          {clients.clients.map((row) => (
+            <li key={String(row.id)}>{String(row.name)}</li>
+          ))}
+        </ul>
+        <h3>Seeded audit events</h3>
+        <ul>
+          {audit.auditEvents.map((row) => (
+            <li key={String(row.id)}>
+              {String(row.summary)} — {String(row.userEmail)}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  },
+};
+
 export const Dashboard: Story = {
   loaders: [
     async () => ({
@@ -55,6 +94,7 @@ export const Dashboard: Story = {
     );
   },
 };
+
 export const FinancialReport: Story = {
   loaders: [
     async () => ({
@@ -95,6 +135,7 @@ export const FinancialReport: Story = {
     );
   },
 };
+
 export const Transactions: Story = {
   loaders: [
     async () => ({
@@ -133,6 +174,7 @@ export const Transactions: Story = {
     );
   },
 };
+
 export const Phone: Story = {
   globals: { viewport: { value: 'phonePortrait', isRotated: false } },
 };

@@ -11686,6 +11686,224 @@
         "business_id": "business-demo-activity-contracting",
         "legal_entity_id": "business-entity-primary"
       }
+    ],
+    "audit_log": [
+      {
+        "id": "demo-audit-1",
+        "user_id": "demo-owner",
+        "action": "WORK_SESSION_CREATED",
+        "entity_type": "WORK_SESSION",
+        "entity_id": "demo-session-1",
+        "business_activity_id": "demo-activity-delivery",
+        "summary": "Work session recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-03T09:20:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-delivery",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-2",
+        "user_id": "demo-owner",
+        "action": "EXPENSE_CREATED",
+        "entity_type": "EXPENSE",
+        "entity_id": "demo-fuel-1",
+        "business_activity_id": "demo-activity-delivery",
+        "summary": "Fuel expense recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-03T05:00:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-delivery",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-3",
+        "user_id": "demo-owner",
+        "action": "INCOME_CREATED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-platform-1",
+        "business_activity_id": "demo-activity-delivery",
+        "summary": "Platform income recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-04T00:10:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-delivery",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-4",
+        "user_id": "demo-accountant",
+        "action": "RECORD_STATUS_CHANGED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-platform-1",
+        "business_activity_id": "demo-activity-delivery",
+        "summary": "Income status changed to reviewed.",
+        "changed_fields_json": "{\"status\":{\"before\":\"READY_FOR_REVIEW\",\"after\":\"REVIEWED\"}}",
+        "created_at": "2026-08-05T01:00:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-delivery",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-5",
+        "user_id": "demo-accountant",
+        "action": "INCOME_RECONCILED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-platform-1",
+        "business_activity_id": "demo-activity-delivery",
+        "summary": "Platform payout reconciled.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-05T01:00:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-delivery",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-6",
+        "user_id": "demo-owner",
+        "action": "EXPENSE_CREATED",
+        "entity_type": "EXPENSE",
+        "entity_id": "demo-parking-1",
+        "business_activity_id": "demo-activity-contracting",
+        "summary": "Parking expense recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-06T20:35:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-contracting",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-7",
+        "user_id": "demo-owner",
+        "action": "INCOME_CREATED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-contract-paid",
+        "business_activity_id": "demo-activity-contracting",
+        "summary": "Contract invoice recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-07-31T00:10:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-contracting",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-8",
+        "user_id": "demo-accountant",
+        "action": "RECORD_STATUS_CHANGED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-contract-paid",
+        "business_activity_id": "demo-activity-contracting",
+        "summary": "Contract invoice processed.",
+        "changed_fields_json": "{\"status\":{\"before\":\"REVIEWED\",\"after\":\"PROCESSED\"}}",
+        "created_at": "2026-08-01T01:00:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-contracting",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-9",
+        "user_id": "demo-owner",
+        "action": "INCOME_CREATED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-subscription-1",
+        "business_activity_id": "demo-activity-saas",
+        "summary": "Subscription summary recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-01T00:15:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-saas",
+        "legal_entity_id": "demo-entity-saas-limited"
+      },
+      {
+        "id": "demo-audit-10",
+        "user_id": "demo-accountant",
+        "action": "COMMENT_CREATED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-platform-1",
+        "business_activity_id": "demo-activity-delivery",
+        "summary": "Review comment added.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-05T01:05:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-delivery",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-11",
+        "user_id": "demo-owner",
+        "action": "INCOME_CREATED",
+        "entity_type": "INCOME",
+        "entity_id": "demo-contract-open",
+        "business_activity_id": "demo-activity-contracting",
+        "summary": "Outstanding contract invoice recorded.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-20T00:10:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-contracting",
+        "legal_entity_id": "business-entity-primary"
+      },
+      {
+        "id": "demo-audit-12",
+        "user_id": "demo-accountant",
+        "action": "COMMENT_CREATED",
+        "entity_type": "EXPENSE",
+        "entity_id": "demo-parking-2",
+        "business_activity_id": "demo-activity-rideshare",
+        "summary": "Missing receipt requested.",
+        "changed_fields_json": null,
+        "created_at": "2026-08-15T01:00:00.000Z",
+        "business_account_id": "business-account-primary",
+        "business_id": "business-demo-activity-rideshare",
+        "legal_entity_id": "demo-entity-taxi-limited"
+      }
+    ],
+    "saved_filters": [
+      {
+        "id": "demo-filter-owner",
+        "business_account_id": "business-account-primary",
+        "user_id": "demo-owner",
+        "name": "Needs my attention",
+        "filter_type": "TRANSACTIONS",
+        "criteria_json": "{\"status\":\"MISSING_INFORMATION\"}",
+        "created_at": "2026-08-15T01:00:00.000Z",
+        "updated_at": "2026-08-15T01:00:00.000Z"
+      },
+      {
+        "id": "demo-filter-accountant",
+        "business_account_id": "business-account-primary",
+        "user_id": "demo-accountant",
+        "name": "Ready for review",
+        "filter_type": "TRANSACTIONS",
+        "criteria_json": "{\"status\":\"READY_FOR_REVIEW\"}",
+        "created_at": "2026-08-15T01:00:00.000Z",
+        "updated_at": "2026-08-15T01:00:00.000Z"
+      }
+    ],
+    "retention_settings": [
+      {
+        "business_account_id": "business-account-primary",
+        "singleton_id": 1,
+        "retention_tax_years": 10,
+        "tax_year_end_month": 3,
+        "tax_year_end_day": 31,
+        "backup_reminder_days": 30,
+        "updated_by": "demo-owner",
+        "updated_at": "2026-04-01T00:00:00.000Z"
+      }
     ]
-  }
+  },
+  "actors": [
+    {
+      "id": "demo-accountant",
+      "email": "demo-accountant@example.invalid",
+      "display_name": "Demo Accountant",
+      "role": "ACCOUNTANT"
+    },
+    {
+      "id": "demo-owner",
+      "email": "demo-owner@example.invalid",
+      "display_name": "John Doe",
+      "role": "OWNER"
+    }
+  ]
 }
