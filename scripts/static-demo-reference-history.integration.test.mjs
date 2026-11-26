@@ -36,6 +36,7 @@ import { viewReport } from '../worker/routes/reports';
 import { dashboard } from '../worker/routes/dashboard';
 import { readStaticDemoReport } from '../src/features/demo/staticDemoReports';
 import { readStaticDemoDashboard } from '../src/features/demo/staticDemoDashboard';
+import { seedStaticDemoEvidence } from './static-demo-evidence-fixture.mjs';
 import {
   resetDemoData,
   recordDemoMutation,
@@ -73,6 +74,7 @@ beforeAll(() => {
     db.exec(name.startsWith('0009_') ? `BEGIN;${sql}COMMIT;` : sql);
   }
   db.exec(read('./seed-demo.sql'));
+  seedStaticDemoEvidence(db);
 });
 
 afterAll(() => db.close());

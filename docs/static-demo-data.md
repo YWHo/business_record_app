@@ -50,8 +50,8 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Fictional evidence reads and final API integration/parity checks remain before
-changing that live read path. Complete those within Phase 1;
+Final API integration/parity checks remain before changing that live read path.
+Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
 
 Current browser tests prove the core client can read, edit, persist through a
@@ -133,3 +133,35 @@ private server authority.
 restore support. Eligibility is presentation only: no R2 purge or database delete
 is executed. Export status accurately reports the baseline's empty archive
 history and never claims that a private backup or download was created.
+
+## Fictional evidence
+
+`staticDemoEvidence.ts` supplies business-scoped document lists and record
+attachment histories. A separate `staticDemoEvidenceManifest.json` describes four
+small, passive PDFs under `public/demo-evidence/<dataset-version>/`: a fuel
+receipt example, combined Uber rides/Eats statement, contract invoice and
+subscription summary. All are explicitly labelled fictional and derive their
+recorded amount from the corresponding synthetic parent. The manifest contains
+static asset paths, sizes and hashes; it contains no R2 object keys or private
+file URLs. `pnpm demo:generate` deterministically regenerates both records and
+evidence. The PWA precaches these public PDFs for offline previews.
+
+The reader validates the business and visible parent, hides evidence for trashed
+records, retains replacement history and lists only current versions in the
+document directory. Attachment histories and directories are capped at 200.
+Receipt counts use all current versions before that presentation cap, keeping
+transaction receipt filters, dashboard attention and directory missing-receipt
+counts consistent. Reset restores the bundled evidence.
+
+Browser uploads retain filenames and replacement metadata only, matching the
+existing overlay: bytes are not persisted or sent anywhere. Their preview URL
+is null. Only bundled manifest entries can receive a static preview URL, and
+download URLs are always null; supplied URLs cannot create private-file access.
+Replacement targets must belong to the same business and record. Missing or
+out-of-scope replacement chains fail closed.
+
+Worker parity tests insert manifest metadata into an in-memory test database
+only. Neither the real demo seed nor local/remote storage receives attachments
+or fabricated R2 objects. Component tests cover opening/closing PDF previews;
+the API-blocked browser harness fetches a real static PDF and exercises browser
+replacement versions. Storybook includes desktop and phone evidence examples.

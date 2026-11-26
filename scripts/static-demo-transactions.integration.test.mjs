@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest';
 import { listTransactions } from '../worker/routes/review';
 import { readStaticDemoTransactions } from '../src/features/demo/staticDemoTransactions';
+import { seedStaticDemoEvidence } from './static-demo-evidence-fixture.mjs';
 import {
   recordDemoMutation,
   resetDemoData,
@@ -36,6 +37,7 @@ beforeAll(() => {
     db.exec(name.startsWith('0009_') ? `BEGIN;${sql}COMMIT;` : sql);
   }
   db.exec(read('./seed-demo.sql'));
+  seedStaticDemoEvidence(db);
 });
 afterAll(() => db.close());
 beforeEach(() => resetDemoData());

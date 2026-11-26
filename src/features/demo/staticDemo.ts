@@ -1,4 +1,5 @@
 import dataset from './staticDemoDataset.json';
+import evidence from './staticDemoEvidenceManifest.json';
 import type { BusinessSummary } from '../business/BusinessDirectoryContext';
 
 export {
@@ -173,7 +174,17 @@ export function staticDemoBusinesses(): BusinessSummary[] {
       awaitingReviewCount: owned.filter((row) =>
         ['NEW', 'READY_FOR_REVIEW'].includes(String(row.status)),
       ).length,
-      missingReceiptCount: owned.filter((row) => 'expense_type' in row).length,
+      missingReceiptCount: owned.filter(
+        (row) =>
+          'expense_type' in row &&
+          row.status !== 'VOIDED' &&
+          !evidence.documents.some(
+            (document) =>
+              document.businessId === business.id &&
+              document.recordType === 'EXPENSE' &&
+              document.recordId === row.id,
+          ),
+      ).length,
       lastRecordUpdatedAt:
         owned
           .map((row) => String(row.updated_at))

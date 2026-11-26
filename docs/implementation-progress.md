@@ -1942,3 +1942,28 @@ the user's review and commit; no later feature phase or deployment is started.
 - No live API read-path switch, private authentication change, deployment, database
   reset or git commit was performed. Fictional evidence and final API integration
   remain within Phase 1; Phase 2 routing is not started.
+
+## Static demo Phase 1: fictional evidence checkpoint
+
+- Added four deterministic, clearly fictional PDF examples and a versioned
+  manifest generated from synthetic source records. Public assets contain no
+  private storage URLs or R2 keys and are included in the PWA precache.
+- Added scoped attachment history and current-document reads, parent visibility,
+  replacement groups and bounded lists. Browser uploads remain metadata-only;
+  supplied preview/download URLs are ignored. Missing or out-of-scope
+  replacements fail closed, and reset restores the bundled baseline.
+- Connected current evidence counts to transaction receipt filters, dashboard
+  attention and business-directory missing-receipt counts. Worker comparisons
+  use test-only metadata in an in-memory database; real seed SQL is unchanged.
+- Added 21 unit/component and integration cases covering Worker metadata parity,
+  artifact hashes and PDF structure, scoped reads, replacements, trash/restore,
+  reset and inline previews. All 627 tests across 71 files, TypeScript, lint,
+  formatting and application build pass. Three Chromium scenarios pass,
+  including real static PDF retrieval and replacement history while all API
+  requests are blocked.
+- Added desktop and phone Storybook evidence examples. The stories typecheck;
+  Storybook build still fails at the existing esbuild filesystem access-denied
+  error before preview compilation.
+- No live AuthContext read-path switch, routing/authentication change, database
+  reset, deployment or git commit was performed. Final API integration/parity
+  remains within Phase 1 before Phase 2 routing.

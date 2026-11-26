@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['app-icon.svg'],
+      includeAssets: ['app-icon.svg', 'demo-evidence/**/*.pdf'],
       manifest: {
         id: '/',
         name: 'Business Records',

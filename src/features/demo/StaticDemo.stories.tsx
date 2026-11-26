@@ -7,6 +7,8 @@ import { readStaticDemoReport } from './staticDemoReports';
 import { readStaticDemoDashboard } from './staticDemoDashboard';
 import { readStaticDemoReferences } from './staticDemoReferences';
 import { readStaticDemoAudit } from './staticDemoHistory';
+import { readStaticDemoDocuments } from './staticDemoEvidence';
+import { EvidencePreview } from '../attachments/EvidencePreview';
 
 const meta = {
   title: 'Demo/Static business baseline',
@@ -22,6 +24,38 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const AllBusinesses: Story = {};
+
+export const FictionalEvidence: Story = {
+  loaders: [
+    async () => ({
+      evidence: await readStaticDemoDocuments(
+        'business-demo-activity-delivery',
+      ),
+    }),
+  ],
+  render: (_, { loaded }) => {
+    const evidence = loaded.evidence as Awaited<
+      ReturnType<typeof readStaticDemoDocuments>
+    >;
+    return (
+      <section className="panel">
+        <h2>Fictional demo evidence</h2>
+        <p>
+          These bundled examples contain synthetic data. Browser uploads keep
+          filenames only.
+        </p>
+        {evidence.documents.map((file) => (
+          <EvidencePreview key={file.id} file={file} canDownload={false} />
+        ))}
+      </section>
+    );
+  },
+};
+
+export const FictionalEvidencePhone: Story = {
+  ...FictionalEvidence,
+  globals: { viewport: { value: 'phonePortrait', isRotated: false } },
+};
 
 export const ReferencesAndHistory: Story = {
   loaders: [

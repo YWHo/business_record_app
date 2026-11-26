@@ -29,6 +29,15 @@ test('static demo reads and overlay changes need no backend requests', async ({
     const { readStaticDemoTransactions } = await import('/src/features/demo/staticDemoTransactions.ts');
     const { readStaticDemoReport, readStaticDemoFinancialTotals } = await import('/src/features/demo/staticDemoReports.ts');
     const { readStaticDemoDashboard } = await import('/src/features/demo/staticDemoDashboard.ts');
+    const { readStaticDemoAttachments, readStaticDemoDocuments } = await import('/src/features/demo/staticDemoEvidence.ts');
+    const evidence = await readStaticDemoAttachments('business-demo-activity-delivery', 'EXPENSE', 'demo-fuel-1');
+    if (evidence.attachments.length !== 1 || evidence.attachments[0].downloadUrl !== null || evidence.attachments[0].mimeType !== 'application/pdf') throw new Error('Static evidence missing');
+    const pdf = await fetch(evidence.attachments[0].previewUrl);
+    if (!pdf.ok || !(await pdf.text()).includes('FICTIONAL DEMO EVIDENCE')) throw new Error('Bundled PDF unavailable');
+    await recordDemoMutation('/api/attachments', { method: 'POST', body: JSON.stringify({ businessId: 'business-demo-activity-delivery', recordType: 'EXPENSE', recordId: 'demo-fuel-1', file: 'local.pdf', replaceAttachmentId: evidence.attachments[0].id }) });
+    const versions = await readStaticDemoAttachments('business-demo-activity-delivery', 'EXPENSE', 'demo-fuel-1');
+    const documents = await readStaticDemoDocuments('business-demo-activity-delivery');
+    if (versions.attachments.length !== 2 || documents.documents.length !== 1 || documents.documents[0].previewUrl !== null || documents.documents[0].versionNumber !== 2) throw new Error('Browser evidence replacement incorrect');
     const { readStaticDemoReferences, readStaticDemoBusinessDetails } = await import('/src/features/demo/staticDemoReferences.ts');
     const { readStaticDemoAudit, readStaticDemoComments } = await import('/src/features/demo/staticDemoHistory.ts');
     const clients = await readStaticDemoReferences('clients');

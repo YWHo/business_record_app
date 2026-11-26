@@ -1,6 +1,6 @@
 import { requestPagination, pageResult } from '../../../worker/lib/pagination';
 import { readStaticDemoDetailCollection } from './staticDemoDetails';
-import { applyDemoOverlay } from './demoStore';
+import { staticDemoEvidenceCounts } from './staticDemoEvidence';
 import { readStaticDemoTable } from './staticDemo';
 
 function text(value: unknown): string {
@@ -99,10 +99,7 @@ export async function readStaticDemoTransactions(
         const [expenses, income, documents] = await Promise.all([
           readStaticDemoDetailCollection(id, 'expenses'),
           readStaticDemoDetailCollection(id, 'income'),
-          applyDemoOverlay(
-            { documents: [] as Record<string, unknown>[] },
-            `/api/businesses/${id}/documents`,
-          ),
+          staticDemoEvidenceCounts(id),
         ]);
         return [
           ...expenses.map((row) => ({ row, recordType: 'EXPENSE' })),
@@ -135,12 +132,8 @@ export async function readStaticDemoTransactions(
             row.reviewedBy === 'demo-accountant'
               ? 'demo-accountant@example.invalid'
               : null,
-          attachmentCount: documents.documents.filter(
-            (doc) =>
-              doc.recordId === row.id &&
-              doc.recordType === recordType &&
-              doc.isCurrent !== false,
-          ).length,
+          attachmentCount:
+            documents.get(`${recordType}:${String(row.id)}`) ?? 0,
         }));
       }),
     )

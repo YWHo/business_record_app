@@ -1,4 +1,6 @@
 import { applyDemoOverlay } from './demoStore';
+import { readStaticDemoDetailCollection } from './staticDemoDetails';
+import { staticDemoEvidenceCounts } from './staticDemoEvidence';
 import {
   camelCaseDemoRow,
   queryStaticDemoRecords,
@@ -15,10 +17,22 @@ const recordCollections = {
 } as const;
 
 export async function readStaticDemoBusinesses() {
-  return applyDemoOverlay(
+  const result = await applyDemoOverlay(
     { businesses: staticDemoBusinesses() },
     '/api/businesses',
   );
+  for (const business of result.businesses) {
+    const [expenses, counts] = await Promise.all([
+      readStaticDemoDetailCollection(business.id, 'expenses'),
+      staticDemoEvidenceCounts(business.id),
+    ]);
+    business.missingReceiptCount = expenses.filter(
+      (expense) =>
+        expense.status !== 'VOIDED' &&
+        !counts.has(`EXPENSE:${String(expense.id)}`),
+    ).length;
+  }
+  return result;
 }
 
 // Overlay before filtering/counting/pagination, so an edited or newly created

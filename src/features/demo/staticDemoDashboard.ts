@@ -7,7 +7,7 @@ import {
 } from '../../../worker/services/dashboardService';
 import { readStaticDemoDetailCollection } from './staticDemoDetails';
 import { readStaticDemoTable } from './staticDemo';
-import { applyDemoOverlay } from './demoStore';
+import { staticDemoEvidenceCounts } from './staticDemoEvidence';
 import { readStaticDemoRetentionSettings } from './staticDemoReferences';
 
 type Row = Record<string, unknown>;
@@ -81,10 +81,7 @@ export async function readStaticDemoDashboard(
         readStaticDemoDetailCollection(id, 'expenses'),
         readStaticDemoDetailCollection(id, 'income'),
         readStaticDemoDetailCollection(id, 'work-sessions'),
-        applyDemoOverlay(
-          { documents: [] as Row[] },
-          `/api/businesses/${id}/documents`,
-        ),
+        staticDemoEvidenceCounts(id),
       ]);
       return [
         ...expenses.map((row) => ({
@@ -106,12 +103,7 @@ export async function readStaticDemoDashboard(
         row: withBusinessDefaults(row, business),
         type,
         date: text(row[date]).slice(0, 10),
-        attachmentCount: documents.documents.filter(
-          (doc) =>
-            doc.recordId === row.id &&
-            doc.recordType === type &&
-            doc.isCurrent !== false,
-        ).length,
+        attachmentCount: documents.get(`${type}:${text(row.id)}`) ?? 0,
       }));
     }),
   );
