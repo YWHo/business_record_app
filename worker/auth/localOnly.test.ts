@@ -43,7 +43,7 @@ describe('local-only authentication boundary', () => {
     ).toBe(false);
   });
 
-  it.each(['demo', 'production'] as const)(
+  it.each(['demo', 'staging', 'production'] as const)(
     'rejects the %s environment',
     (appEnvironment) => {
       expect(

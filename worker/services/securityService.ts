@@ -5,7 +5,11 @@ import type { Env, RateLimiter } from '../types';
 const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export function isTurnstileRequired(env: Env): boolean {
-  return env.APP_ENV === 'production' || env.TURNSTILE_REQUIRED === 'true';
+  return (
+    env.APP_ENV === 'production' ||
+    env.APP_ENV === 'staging' ||
+    env.TURNSTILE_REQUIRED === 'true'
+  );
 }
 
 export function requireSameOrigin(request: Request, env: Env): void {

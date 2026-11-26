@@ -314,6 +314,12 @@ of visitor demo operation. Staging provisioning and credentials arrive in later
 phases. See [static demo architecture](docs/static-demo-data.md) for the current
 routing and storage boundaries. No remote conversion is performed by a build.
 
+## Staging configuration
+
+Staging configuration and guarded provisioning are documented separately in
+[Staging configuration](docs/staging-configuration.md). Staging resources remain
+unconfigured until explicitly created; its credential login is a later phase.
+
 ## Production authentication setup
 
 The concise sequence below is useful as a reference. For a first deployment,

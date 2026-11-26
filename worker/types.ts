@@ -1,6 +1,6 @@
 import type { AuthorizationContext } from './services/accessControlService';
 import type { PermissionRole } from '../src/lib/permissions';
-export type AppEnvironment = 'local' | 'demo' | 'production';
+export type AppEnvironment = 'local' | 'demo' | 'staging' | 'production';
 export type UserRole = PermissionRole;
 export type UserStatus = 'ACTIVE' | 'DISABLED';
 

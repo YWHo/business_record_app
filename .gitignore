@@ -10,6 +10,7 @@ worker-configuration.d.ts
 !.env.example
 !.env.demo
 !.env.cloudflare-production
+!.env.staging
 .dev.vars*
 !.dev.vars.example
 playwright-report/

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:demo": "tsc -b && vite build --mode demo",
+    "build:staging": "tsc -b && vite build --mode staging",
     "build:production": "tsc -b && vite build --mode cloudflare-production",
     "preview": "vite preview",
     "deploy:demo": "pnpm build:demo && wrangler deploy --env demo",
@@ -41,7 +42,10 @@
     "db:migrate:demo": "wrangler d1 migrations apply DB --remote --env demo",
     "db:seed:demo": "node ./scripts/manage-demo.mjs seed",
     "db:reset:demo": "node ./scripts/manage-demo.mjs reset",
-    "db:verify:demo": "wrangler d1 execute DB --remote --env demo --file ./scripts/verify-demo.sql"
+    "db:verify:demo": "wrangler d1 execute DB --remote --env demo --file ./scripts/verify-demo.sql",
+    "staging:plan": "node ./scripts/manage-staging.mjs inspect",
+    "staging:provision": "node ./scripts/manage-staging.mjs provision",
+    "staging:reset": "node ./scripts/manage-staging.mjs reset"
   },
   "dependencies": {
     "react": "^19.3.0",

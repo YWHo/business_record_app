@@ -27,7 +27,7 @@ export interface AuthUser {
 }
 
 export interface AuthConfiguration {
-  environment: 'local' | 'demo' | 'production';
+  environment: 'local' | 'demo' | 'staging' | 'production';
   localHelper: boolean;
   demoHelper: boolean;
   turnstileRequired: boolean;

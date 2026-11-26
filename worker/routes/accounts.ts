@@ -34,7 +34,7 @@ export async function bootstrapOwner(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (env.APP_ENV === 'demo') {
+  if (env.APP_ENV === 'demo' || env.APP_ENV === 'staging') {
     throw new HttpError(404, 'Not found.');
   }
   await enforceRateLimit(request, env.AUTH_RATE_LIMITER, 'bootstrap');
@@ -263,7 +263,6 @@ export async function acceptInvitation(
   request: Request,
   env: Env,
 ): Promise<Response> {
-
   if (env.APP_ENV === 'demo') {
     throw new HttpError(404, 'Not found.');
   }

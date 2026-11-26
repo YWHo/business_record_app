@@ -126,6 +126,55 @@
         },
       ],
     },
+    // New disposable resources only. Do not reuse the legacy demo or production
+    // D1 ID. The guarded staging tools refuse this placeholder when applying.
+    "staging": {
+      "name": "business-records-staging",
+      "secrets": { "required": ["TURNSTILE_SECRET_KEY"] },
+      "vars": {
+        "APP_ENV": "staging",
+        "LOCAL_AUTH_ENABLED": "false",
+        "DEV_OWNER_EMAIL": "disabled@staging.invalid",
+        "DEV_ACCOUNTANT_EMAIL": "disabled@staging.invalid",
+        "DEV_BOOTSTRAP_KEY": "disabled",
+        "APP_ORIGIN": "https://business-records-staging.brian-ho-nz.workers.dev",
+        "TURNSTILE_REQUIRED": "true",
+        "TURNSTILE_SITE_KEY": "",
+        "EMAIL_DELIVERY_URL": "",
+        "EMAIL_FROM": "no-reply@staging.invalid",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "business-records-staging",
+          "database_id": "00000000-0000-4000-8000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "DOCUMENTS",
+          "bucket_name": "business-records-staging-documents",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "AUTH_RATE_LIMITER",
+          "namespace_id": "4001",
+          "simple": { "limit": 5, "period": 60 },
+        },
+        {
+          "name": "INVITE_RATE_LIMITER",
+          "namespace_id": "4002",
+          "simple": { "limit": 10, "period": 60 },
+        },
+        {
+          "name": "EXPENSIVE_RATE_LIMITER",
+          "namespace_id": "4003",
+          "simple": { "limit": 6, "period": 60 },
+        },
+      ],
+    },
     "production": {
       "name": "business-records",
       "secrets": {

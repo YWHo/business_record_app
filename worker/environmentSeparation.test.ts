@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import configuration from '../wrangler.jsonc?raw';
+import ts from 'typescript';
 
-const demoStart = configuration.indexOf('"demo": {');
-const productionStart = configuration.indexOf('"production": {');
-const demo = configuration.slice(demoStart, productionStart);
-const production = configuration.slice(productionStart);
+const parsed = ts.parseConfigFileTextToJson('wrangler.jsonc', configuration);
+const environments = parsed.config as { env: Record<string, object> };
+const demo = JSON.stringify(environments.env.demo, null, 2);
+const production = JSON.stringify(environments.env.production, null, 2);
 
 function captures(source: string, pattern: RegExp) {
   return new Set([...source.matchAll(pattern)].map((match) => match[1]));
@@ -12,8 +13,9 @@ function captures(source: string, pattern: RegExp) {
 
 describe('deployed environment resource separation', () => {
   it('keeps demo resources disjoint and omits document storage', () => {
-    expect(demoStart).toBeGreaterThan(-1);
-    expect(productionStart).toBeGreaterThan(demoStart);
+    expect(parsed.error).toBeUndefined();
+    expect(environments.env.demo).toBeDefined();
+    expect(environments.env.production).toBeDefined();
     const demoResources = captures(
       demo,
       /"(?:database_id|bucket_name|namespace_id)":\s*"([^"]+)"/g,

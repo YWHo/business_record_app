@@ -17,7 +17,7 @@ const protectedPaths = [
   '/api/businesses/private/documents',
 ];
 afterEach(() => vi.unstubAllGlobals());
-describe.each(['demo', 'production'] as const)(
+describe.each(['demo', 'staging', 'production'] as const)(
   '%s private API boundary',
   (environment) => {
     it.each(protectedPaths)(

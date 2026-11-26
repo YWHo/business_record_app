@@ -45,7 +45,12 @@ export default defineConfig(({ mode }) => ({
     }),
     cloudflare({
       persistState: {
-        path: mode === 'e2e' ? '.wrangler/state/e2e' : '.wrangler/state',
+        path:
+          mode === 'e2e'
+            ? '.wrangler/state/e2e'
+            : mode === 'staging'
+              ? '.wrangler/state/staging'
+              : '.wrangler/state',
       },
     }),
   ],

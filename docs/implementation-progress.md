@@ -2036,3 +2036,40 @@ the user's review and commit; no later feature phase or deployment is started.
 - Phase 2 is complete and uncommitted for review. Phase 3 staging configuration
   and guarded provisioning are next; no remote resources, credentials,
   deployment or database reset were changed in this phase.
+
+## Staging redesign Phase 3: configuration and guarded provisioning
+
+- Added typed `APP_ENV=staging`, a staging build selector and separately named
+  Worker/D1/private R2 bindings with rate-limit namespaces 4001–4003. Staging D1
+  intentionally retains an unconfigured placeholder; apply operations reject it.
+  Simulated staging state has its own `.wrangler/state/staging` path. Legacy demo
+  and production bindings are unchanged. Repository binding review is recorded;
+  no live inventory or resource conversion was performed.
+- Staging follows deployed origin/session/authorization protections and requires
+  Turnstile even when its variable is false. It cannot use loopback shortcuts or
+  owner bootstrap, including accidentally copied production bootstrap secrets.
+  Production owner bootstrap/passwordless flows retain their existing behaviour.
+- Added plan-only-by-default staging inspection/provision/reset tools. Remote
+  apply requires the staging confirmation and exact configured D1 UUID, rejects
+  cross-environment resource aliases, pins Wrangler's source configuration and
+  verifies the remote database name/UUID before migrations. No command creates
+  resources, deploys code or mutates R2, and failures are not automatically retried.
+- Provision seeds only an empty disposable database; recognized fixtures retain
+  edits, disabled memberships and Auditor expiry/scopes. Explicit reset requires
+  the staging marker. SQL preconditions also reject existing attachments, avoiding
+  evidence orphaning; separate R2 cleanup remains an explicit operator task.
+  The fixture has synthetic Owner/Accountant account memberships and a scoped,
+  30-day Auditor, without sessions, tokens, passwords or verifier material.
+- Large fixture queries use a guarded stdin preload and D1 query execution,
+  avoiding the remote file importer and native Windows command-line limits.
+  Tests verify intact child-process input, resource/confirmation guards, failure
+  handling, idempotent provisioning, SQLite integrity and reset preconditions.
+- All 754 tests across 78 files, TypeScript, lint, formatting and staging and
+  production builds pass. Six Chromium scenarios pass, including private/demo
+  switching under both staging and production configuration. The compiled staging
+  Worker configuration was checked against the new target and placeholder ID.
+  No UI changes were needed; existing Storybook entry/navigation coverage
+  typechecks, but its build still hits the existing esbuild access-denied error.
+- Phase 3 is uncommitted for review. New resources and credentials remain
+  unconfigured; Phase 4 secret-backed credential provisioning/login is next.
+  No remote administration, deployment, database reset or git commit was run.
