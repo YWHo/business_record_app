@@ -37,6 +37,14 @@ import { dashboard } from '../worker/routes/dashboard';
 import { readStaticDemoReport } from '../src/features/demo/staticDemoReports';
 import { readStaticDemoDashboard } from '../src/features/demo/staticDemoDashboard';
 import { seedStaticDemoEvidence } from './static-demo-evidence-fixture.mjs';
+import { staticDemoRequest } from '../src/features/demo/staticDemoApi';
+import {
+  listBusinessRecords,
+  listBusinessExpenses,
+} from '../worker/routes/businesses';
+import { listWorkSessions } from '../worker/routes/workSessions';
+import { listIncomeRecords } from '../worker/routes/incomeRecords';
+import { listFuelRecords } from '../worker/routes/fuelRecords';
 import {
   resetDemoData,
   recordDemoMutation,
@@ -82,6 +90,64 @@ afterAll(() => db.close());
 beforeEach(() => resetDemoData());
 
 const request = new Request('https://demo.invalid/api/test');
+
+it('matches all Worker business directory counts through the integrated adapter', async () => {
+  const native = await (await listBusinessRecords(request, env)).json();
+  const result = await staticDemoRequest('/api/businesses', undefined, 'OWNER');
+  expect(result.businesses).toHaveLength(native.businesses.length);
+  for (const business of native.businesses) {
+    expect(
+      result.businesses.find((row) => row.id === business.id),
+    ).toMatchObject(business);
+  }
+});
+
+it.each([
+  'business-demo-activity-delivery',
+  'business-demo-activity-rideshare',
+  'business-demo-activity-contracting',
+  'business-demo-activity-saas',
+])(
+  'matches Worker collection projections and mileage summary for %s',
+  async (businessId) => {
+    for (const [collection, property, handler] of [
+      ['expenses', 'expenses', listBusinessExpenses],
+      ['income', 'incomeRecords', listIncomeRecords],
+      ['work-sessions', 'sessions', listWorkSessions],
+    ]) {
+      const native = await (await handler(request, env, { businessId })).json();
+      const result = await staticDemoRequest(
+        `/api/businesses/${businessId}/${collection}`,
+        undefined,
+        'OWNER',
+      );
+      expect(result[property]).toHaveLength(native[property].length);
+      for (const row of native[property]) {
+        expect(
+          result[property].find((entry) => entry.id === row.id),
+        ).toMatchObject(row);
+      }
+      if (collection === 'work-sessions') {
+        expect(result.summary).toEqual(native.summary);
+      }
+    }
+  },
+);
+
+it('matches Worker fuel-picker metadata through the static dispatcher', async () => {
+  const native = await (await listFuelRecords(request, env)).json();
+  const result = await staticDemoRequest(
+    '/api/fuel-records',
+    undefined,
+    'OWNER',
+  );
+  expect(result.fuelRecords).toHaveLength(native.fuelRecords.length);
+  for (const row of native.fuelRecords) {
+    expect(
+      result.fuelRecords.find((entry) => entry.id === row.id),
+    ).toMatchObject(row);
+  }
+});
 
 it.each([
   ['activities', listActivities],

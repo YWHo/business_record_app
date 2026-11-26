@@ -1,8 +1,8 @@
 # Static demo data foundation
 
 The staging/static-demo redesign plan is maintained outside this repository.
-These adapters are being implemented within its data phase; the live public
-demo application's read path has not been switched over yet.
+Phase 1 connects these adapters to the public demo application's request path.
+Public/private routing and staging configuration remain later phases.
 
 ## Dataset
 
@@ -46,25 +46,39 @@ changing the baseline incompatibly; schema upgrades within one version retain
 the existing overlay migration support. Lightweight version metadata is separate
 from the records so ordinary application imports do not bundle the full dataset.
 
-## Remaining data-phase work
+## Application integration
 
-The current application's AuthContext still uses the existing server-backed
-read path. The new core client is not yet the complete application API adapter.
-Final API integration/parity checks remain before changing that live read path.
-Complete those within Phase 1;
-do not advance to the `/demo` routing or staging configuration phases yet.
+`AuthContext.apiRequest` dispatches demo requests to the lazy-loaded
+`staticDemoApi.ts` adapter. It explicitly maps the application's business,
+financial record, mileage, fuel-picker, document, reference, history, report and
+governance routes to the static readers. Unsupported endpoints fail closed;
+there is no network fallback. Mutations use the browser overlay and return the
+record envelopes expected by the forms. Simulated role permissions restrict
+mutations; Auditor requests cannot write or reset browser state.
 
-Current browser tests prove the core client can read, edit, persist through a
-reload, and reset with all `/api` requests blocked. They also preserve the
-existing simulated Owner/Accountant/Auditor flows. Storybook includes a static
-baseline directory story at desktop and phone sizes.
+`pnpm build:demo` selects the existing Vite `demo` mode and supplies a local,
+public presentation configuration without calling `/api/auth/config` or
+`/api/auth/me`. No server authentication or session is created. Other build modes
+retain server configuration discovery for private/local use; during the current
+transition, a discovered `environment=demo` also selects the static adapter.
+Private response payloads never pass through the demo overlay. Tests verify
+that a persisted demo role cannot replace a production session or its data.
+
+The existing `/login` and `/app` layout is retained for this phase. Phase 2 will
+introduce explicit `/demo` routing alongside `/app` and remove the legacy demo
+server principal. No staging bindings, credentials or remote resources change
+in Phase 1. Browser tests abort all data API calls and exercise Owner editing,
+Accountant review and Auditor inspection against the real bundled dataset.
+They permit only configuration discovery for compatibility with local e2e
+builds; demo builds do not need that request. Storybook includes an integrated
+adapter-backed directory alongside the detail and evidence examples.
 
 `staticDemoDetails.ts` now reads scoped expense and income detail records,
 including fuel/parking fields, insurance premium and allocation, platform,
 contract and subscription details, and reconciliation evidence. It applies the
 overlay before locating the record, so browser-created records can be opened
 and reset records disappear. Valid IDs requested under another business fail
-closed. These detail functions are not yet connected to AuthContext.
+closed. The application adapter uses these functions for collections and details.
 
 Work-session details also recompute distance, duration, revenue rates and fuel
 metrics after applying browser edits, using the Worker's pure calculators.
@@ -83,7 +97,8 @@ review state and receipt presence. Summary counts describe the returned page,
 matching the existing Worker contract. Transaction dates retain the Worker's
 current date projection, including UTC date extraction for expense timestamps.
 SQLite integration tests compare static responses directly against the Worker
-for the supported filter cases. This reader is not yet wired into AuthContext.
+for the supported filter cases. The application adapter uses this reader for
+both transaction and receipt routes.
 
 `staticDemoReports.ts` adds source-total reports and financial totals with
 FULL, MONTH and TAX_YEAR periods using the fictional baseline's fiscal settings.
@@ -110,7 +125,7 @@ The current Auckland tax-year default follows those settings.
 Integration tests compare complete dashboard responses with the SQLite-backed
 Worker for all four businesses, account/activity scopes and an empty period.
 Browser-created invoices, records, receipts and trash affect the derived results.
-This adapter is still not connected to the live AuthContext read path.
+The application adapter uses this response for live demo dashboards.
 
 ## References and history
 

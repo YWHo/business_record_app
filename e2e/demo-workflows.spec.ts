@@ -1,116 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const dashboard = {
-  period: {
-    taxYear: '2027',
-    from: '2026-04-01',
-    to: '2027-03-31',
-    activityId: null,
-  },
-  financialTotals: [],
-  spending: [],
-  outstandingInvoices: [],
-  review: {
-    totalRecords: 0,
-    unreviewedCount: 0,
-    missingInformationCount: 0,
-    readyForReviewCount: 0,
-  },
-  attention: {
-    missingReceiptCount: 0,
-    itemsToReviewCount: 0,
-    outstandingInvoiceCount: 0,
-  },
-  recentTransactions: [],
-  platformActivities: [],
-};
-
-const inspectionExpense = {
-  id: 'demo-inspection-expense',
-  businessId: 'business-demo-activity-delivery',
-  legalEntityId: 'business-entity-primary',
-  expenseType: 'GENERAL',
-  expenseCategoryId: 'demo-office-category',
-  categoryName: 'Office expenses',
-  merchantName: 'Fictional office supplier',
-  purchaseDatetime: '2026-09-08T00:00:00.000Z',
-  totalAmountMinor: 13900,
-  currency: 'NZD',
-  description: 'Synthetic supporting record',
-  status: 'READY_FOR_REVIEW',
-  createdAt: '2026-09-08T00:00:00.000Z',
-  updatedAt: '2026-09-08T00:00:00.000Z',
-};
-
-function inspectionPayload(path: string) {
-  if (path.endsWith('/expenses/demo-inspection-expense')) {
-    return { expense: inspectionExpense };
-  }
-  if (path.endsWith('/expenses')) {
-    return { expenses: [inspectionExpense] };
-  }
-  if (path.endsWith('/transactions')) {
-    return {
-      transactions: [
-        {
-          ...inspectionExpense,
-          recordType: 'EXPENSE',
-          subtype: 'GENERAL',
-          transactionDate: inspectionExpense.purchaseDatetime,
-          counterparty: inspectionExpense.merchantName,
-          attachmentCount: 0,
-        },
-      ],
-      summary: {
-        resultCount: 1,
-        missingAttachmentCount: 1,
-        unreviewedCount: 1,
-      },
-      page: { number: 1, size: 50, hasNext: false },
-    };
-  }
-  if (path.endsWith('/income')) {
-    return { incomeRecords: [] };
-  }
-  if (path.endsWith('/documents')) {
-    return { documents: [] };
-  }
-  if (path === '/api/attachments') {
-    return { attachments: [] };
-  }
-  if (path === '/api/comments') {
-    return {
-      comments: [
-        {
-          id: 'existing-review',
-          message: 'Evidence checked by the demo accountant.',
-          authorEmail: 'accountant@demo.invalid',
-          authorRole: 'ACCOUNTANT',
-          createdAt: '2026-09-09T00:00:00Z',
-        },
-      ],
-    };
-  }
-  if (path === '/api/reports/summary') {
-    return {
-      rows: [
-        {
-          family: 'EXPENSE',
-          subtype: 'GENERAL',
-          currency: 'NZD',
-          record_count: 1,
-          recorded_total_minor: 13900,
-        },
-      ],
-      note: 'Source totals, not accounting profit.',
-    };
-  }
-  if (path === '/api/audit-log') {
-    return { auditEvents: [], page: { number: 1, hasNext: false } };
-  }
-  return {};
-}
-
 async function mockImmutableDemo(
   page: Page,
   unsafeRequests: string[],
@@ -118,77 +7,69 @@ async function mockImmutableDemo(
 ) {
   await page.route('**/api/**', async (route) => {
     const request = route.request();
-    if (!['GET', 'HEAD'].includes(request.method())) {
-      unsafeRequests.push(`${request.method()} ${request.url()}`);
-    }
     const path = new URL(request.url()).pathname;
-    reads.push(path);
-    const payload =
-      path === '/api/auth/config'
-        ? {
-            environment: 'demo',
-            localHelper: false,
-            demoHelper: true,
-            turnstileRequired: false,
-            turnstileSiteKey: null,
-          }
-        : path.endsWith('/dashboard')
-          ? dashboard
-          : path === '/api/businesses'
-            ? {
-                businesses: [
-                  {
-                    id: 'business-demo-activity-delivery',
-                    name: 'DoorDash',
-                    description: 'Food delivery',
-                    businessType: 'PLATFORM_SERVICES',
-                    defaultCurrency: 'NZD',
-                    status: 'ACTIVE',
-                    legacyBusinessActivityId: 'demo-activity-delivery',
-                    currentLegalEntity: {
-                      id: 'business-entity-primary',
-                      entityType: 'SOLE_TRADER',
-                      legalName: 'Brian Ho',
-                      tradingName: null,
-                      status: 'ACTIVE',
-                      attributionReviewRequired: false,
-                    },
-                    recordCount: 128,
-                    lastRecordUpdatedAt: '2026-09-08T00:00:00.000Z',
-                  },
-                  {
-                    id: 'business-demo-activity-rideshare',
-                    name: 'Uber',
-                    description: 'Uber rides and Uber Eats deliveries',
-                    businessType: 'PLATFORM_SERVICES',
-                    defaultCurrency: 'NZD',
-                    status: 'ACTIVE',
-                    legacyBusinessActivityId: 'demo-activity-rideshare',
-                    currentLegalEntity: {
-                      id: 'demo-entity-taxi-limited',
-                      entityType: 'LIMITED_COMPANY',
-                      legalName: 'Taxi Limited',
-                      tradingName: null,
-                      status: 'ACTIVE',
-                      attributionReviewRequired: false,
-                    },
-                    recordCount: 96,
-                    lastRecordUpdatedAt: '2026-09-09T00:00:00.000Z',
-                  },
-                ],
-              }
-            : path === '/api/business-activities'
-              ? { activities: [] }
-              : path === '/api/vehicles'
-                ? { vehicles: [] }
-                : path === '/api/expense-categories'
-                  ? { categories: [] }
-                  : path === '/api/clients'
-                    ? { clients: [] }
-                    : inspectionPayload(path);
-    await route.fulfill({ json: payload });
+    // Compatibility discovery for local/e2e builds. Demo builds need no request.
+    if (path === '/api/auth/config' && request.method() === 'GET') {
+      reads.push(path);
+      await route.fulfill({
+        json: {
+          environment: 'demo',
+          localHelper: false,
+          demoHelper: true,
+          turnstileRequired: false,
+          turnstileSiteKey: null,
+        },
+      });
+      return;
+    }
+    unsafeRequests.push(`${request.method()} ${request.url()}`);
+    await route.abort();
   });
 }
+
+test('demo accountant reviews records, previews evidence and reloads browser-only comments', async ({
+  page,
+}) => {
+  const apiRequests: string[] = [];
+  await mockImmutableDemo(page, apiRequests);
+  await page.goto('/login');
+  await page
+    .getByRole('button', { name: 'Continue as Demo Accountant' })
+    .click();
+  await page.getByRole('link', { name: 'Open DoorDash' }).click();
+  const base = '/app/businesses/business-demo-activity-delivery';
+  await page.goto(`${base}/transactions`);
+  const row = page
+    .locator('tr')
+    .filter({ has: page.locator(`a[href="${base}/expenses/demo-fuel-1"]`) });
+  await row.getByRole('button', { name: 'Review and comments' }).click();
+  await row.getByLabel('Add comment').fill('Browser-only accountant review');
+  await row.getByRole('button', { name: 'Add comment', exact: true }).click();
+  await expect(row.getByText('Browser-only accountant review')).toBeVisible();
+  await row.getByRole('combobox').selectOption('MISSING_INFORMATION');
+  await row.getByRole('button', { name: 'Update status' }).click();
+  await expect(row.locator('.status-badge')).toHaveText(/missing information/i);
+  await page.reload();
+  await row.getByRole('button', { name: 'Review and comments' }).click();
+  await expect(row.getByText('Browser-only accountant review')).toBeVisible();
+  await page.goto(`${base}/mileage/demo-session-1`);
+  await expect(
+    page.getByRole('heading', { name: /KORU24.*88 km/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Edit session' })).toHaveCount(0);
+  await page.goto(`${base}/documents`);
+  await page
+    .getByRole('button', { name: 'Preview fuel-fictional-demo.pdf' })
+    .click();
+  await expect(
+    page.getByTitle('Preview of fuel-fictional-demo.pdf'),
+  ).toHaveAttribute(
+    'src',
+    '/demo-evidence/2026-11-platforms-v1/fuel-fictional-demo.pdf',
+  );
+  expect(apiRequests).toEqual([]);
+});
 
 test('demo edits are browser-local, persistent, isolated, and resettable', async ({
   browser,
@@ -400,9 +281,9 @@ test('demo auditor inspects records without sessions or browser-local mutations 
     await page.getByRole('link', { name: 'Open DoorDash' }).click();
     const base = '/app/businesses/business-demo-activity-delivery';
     await page.goto(`${base}/expenses`);
-    await page.getByRole('link', { name: 'Fictional office supplier' }).click();
+    await page.locator(`a[href="${base}/expenses/demo-fuel-1"]`).click();
     await expect(
-      page.getByRole('heading', { name: 'Fictional office supplier' }),
+      page.getByRole('heading', { name: 'Kauri Fuel Point' }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Edit expense' })).toHaveCount(
       0,
@@ -412,9 +293,15 @@ test('demo auditor inspects records without sessions or browser-local mutations 
     );
 
     await page.goto(`${base}/transactions`);
-    await page.getByRole('button', { name: 'View comments' }).click();
+    await page.getByLabel('Search').fill('DoorDash');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await page
+      .locator('tr')
+      .filter({ has: page.locator(`a[href="${base}/income/demo-platform-1"]`) })
+      .getByRole('button', { name: 'View comments' })
+      .click();
     await expect(
-      page.getByText('Evidence checked by the demo accountant.'),
+      page.getByText('Deposit agrees to the weekly statement.'),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Update status' }),
@@ -451,7 +338,7 @@ test('demo auditor inspects records without sessions or browser-local mutations 
       const results = [];
       for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
         try { await apiRequest('/api/comments', { method, body: '{}' }); results.push('allowed'); }
-        catch (error) { results.push(String(error.status)); }
+        catch (error) { results.push(error.status ? String(error.status) : String(error.message)); }
       }
       return results;
     })()`);

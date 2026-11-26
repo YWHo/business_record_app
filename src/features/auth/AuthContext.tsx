@@ -9,12 +9,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  applyDemoOverlay,
-  recordDemoMutation,
-  resetDemoData,
-} from '../demo/demoStore';
+import { resetDemoData } from '../demo/demoStore';
 import { fetchWithRateLimitRetry } from '../../lib/rateLimitRetry';
+import { ApiError } from '../../lib/apiError';
+import { staticDemoConfiguration } from '../demo/demoConfiguration';
+export { ApiError } from '../../lib/apiError';
 import type { AuditorAccessDetails } from '../../lib/accessPresentation';
 
 export interface AuthUser {
@@ -77,28 +76,18 @@ function auditorAccessHasEnded(user: AuthUser | null): boolean {
   return !Number.isFinite(expiry) || Date.now() >= expiry;
 }
 
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly body: Record<string, unknown> | null,
-  ) {
-    super(
-      typeof body?.error === 'string'
-        ? body.error
-        : 'The request could not be completed.',
-    );
-  }
-}
-
 export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const method = (init?.method ?? 'GET').toUpperCase();
-  if (publicDemo && method !== 'GET' && method !== 'HEAD') {
-    assertDemoEditing();
-    return (await recordDemoMutation(path, init ?? {})) as T;
+  if (publicDemo) {
+    const { staticDemoRequest } = await import('../demo/staticDemoApi');
+    return (await staticDemoRequest(path, init, publicDemoRole)) as T;
   }
+  return remoteRequest<T>(path, init);
+}
+
+async function remoteRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetchWithRateLimitRetry(path, {
     ...init,
     headers: {
@@ -118,7 +107,7 @@ export async function apiRequest<T>(
   }
 
   const payload = (await response.json()) as T;
-  return publicDemo ? applyDemoOverlay(payload, path) : payload;
+  return payload;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -200,8 +189,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     const version = sessionVersion.current;
-    void apiRequest<AuthConfiguration>('/api/auth/config')
+    const configRequest =
+      import.meta.env.MODE === 'demo'
+        ? Promise.resolve(staticDemoConfiguration)
+        : remoteRequest<AuthConfiguration>('/api/auth/config');
+    void configRequest
       .then(async (config) => {
+        if (!active || version !== sessionVersion.current) {
+          return;
+        }
         publicDemo = config.environment === 'demo';
         const role = publicDemo ? storedDemoRole() : null;
         publicDemoRole = role;

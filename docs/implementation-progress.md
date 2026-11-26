@@ -1967,3 +1967,35 @@ the user's review and commit; no later feature phase or deployment is started.
 - No live AuthContext read-path switch, routing/authentication change, database
   reset, deployment or git commit was performed. Final API integration/parity
   remains within Phase 1 before Phase 2 routing.
+
+## Static demo Phase 1: application integration checkpoint
+
+- Connected demo `apiRequest` calls to a lazy-loaded static dispatcher covering
+  business lists/details, financial records, mileage and fuel options, documents,
+  transactions/receipts, references, reports, comments, audit and governance.
+  Unsupported operations fail closed without a network fallback. Simulated role
+  permissions guard browser writes, and accounting adjustments remain
+  accountant-only. No browser role grants private Worker authority.
+- Demo builds now load public presentation configuration locally and do not call
+  authentication/configuration APIs. Other build modes retain server discovery;
+  a legacy demo configuration selects the static dispatcher during transition.
+  Private response payloads no longer pass through the demo overlay, and tests
+  verify that a persisted demo role cannot replace production sessions or data.
+- Normalized create/edit response envelopes for application forms, supplied
+  contract outstanding amounts after browser edits and corrected directory
+  review counts, record counts and timestamps. Mileage collection summaries
+  share the Worker's existing pure calculation, with no backend behaviour change.
+- Added dispatcher and session tests, plus SQLite-backed Worker comparisons for
+  directory counts, all four businesses' collection projections/mileage summaries
+  and fuel-picker metadata. Replaced browser fixture responses with actual static
+  data; all data API requests are aborted. Four Chromium scenarios cover Owner
+  storage migration/editing/reset/isolation, Accountant comments/review/PDF
+  preview, Auditor inspection/denials and the API-blocked adapter harness.
+- All 682 tests across 73 files pass. TypeScript, lint, formatting and demo and
+  production builds pass. Added an adapter-backed Storybook directory example;
+  Storybook build remains blocked by the existing esbuild filesystem
+  access-denied error, while the story typechecks.
+- Phase 1 data integration is complete. Phase 2 explicit public/private routing
+  and removal of the legacy demo server principal remain next. No staging
+  resource changes, credentials, database resets, deployments or git commits
+  were performed. Changes are left for user review.

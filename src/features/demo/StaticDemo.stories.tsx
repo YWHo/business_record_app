@@ -9,6 +9,8 @@ import { readStaticDemoReferences } from './staticDemoReferences';
 import { readStaticDemoAudit } from './staticDemoHistory';
 import { readStaticDemoDocuments } from './staticDemoEvidence';
 import { EvidencePreview } from '../attachments/EvidencePreview';
+import { staticDemoRequest } from './staticDemoApi';
+import type { BusinessSummary } from '../business/BusinessDirectoryContext';
 
 const meta = {
   title: 'Demo/Static business baseline',
@@ -24,6 +26,26 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const AllBusinesses: Story = {};
+
+export const IntegratedDirectory: Story = {
+  loaders: [
+    async () => ({
+      directory: await staticDemoRequest('/api/businesses', undefined, 'OWNER'),
+    }),
+  ],
+  render: (_, { loaded }) => {
+    const { businesses } = loaded.directory as {
+      businesses: BusinessSummary[];
+    };
+    return (
+      <div className="business-grid">
+        {businesses.map((business) => (
+          <BusinessCard key={business.id} business={business} />
+        ))}
+      </div>
+    );
+  },
+};
 
 export const FictionalEvidence: Story = {
   loaders: [

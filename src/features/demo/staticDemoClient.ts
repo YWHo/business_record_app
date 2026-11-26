@@ -1,4 +1,4 @@
-import { applyDemoOverlay } from './demoStore';
+import { applyDemoOverlay, demoStorageSnapshot } from './demoStore';
 import { readStaticDemoDetailCollection } from './staticDemoDetails';
 import { staticDemoEvidenceCounts } from './staticDemoEvidence';
 import {
@@ -17,15 +17,56 @@ const recordCollections = {
 } as const;
 
 export async function readStaticDemoBusinesses() {
+  const operations = (await demoStorageSnapshot()).operations;
+  const baselineRecords = (
+    ['expenses', 'income_records', 'work_sessions'] as const
+  ).flatMap((table) => readStaticDemoTable(table));
   const result = await applyDemoOverlay(
     { businesses: staticDemoBusinesses() },
     '/api/businesses',
   );
   for (const business of result.businesses) {
-    const [expenses, counts] = await Promise.all([
+    const [expenses, income, counts] = await Promise.all([
       readStaticDemoDetailCollection(business.id, 'expenses'),
+      readStaticDemoDetailCollection(business.id, 'income'),
       staticDemoEvidenceCounts(business.id),
     ]);
+    business.awaitingReviewCount = [...expenses, ...income].filter(
+      (row) =>
+        !['REVIEWED', 'PROCESSED', 'VOIDED'].includes(String(row.status)),
+    ).length;
+    const source = baselineRecords.filter(
+      (row) => row.business_id === business.id && !row.purged_at,
+    );
+    const recordIds = new Set(source.map((row) => String(row.id)));
+    const timestamps = source.map((row) => String(row.updated_at));
+    for (const operation of operations) {
+      if (
+        operation.businessId !== business.id ||
+        ![
+          'expenses',
+          'income-records',
+          'work-sessions',
+          'record-status',
+          'trash',
+          'trash/restore',
+          'work-sessions/fuel-workflow',
+        ].includes(operation.resource)
+      ) {
+        continue;
+      }
+      if (
+        operation.method === 'POST' &&
+        ['expenses', 'income-records', 'work-sessions'].includes(
+          operation.resource,
+        )
+      ) {
+        recordIds.add(operation.recordId ?? operation.id);
+      }
+      timestamps.push(operation.createdAt);
+    }
+    business.recordCount = recordIds.size;
+    business.lastRecordUpdatedAt = timestamps.sort().at(-1) ?? null;
     business.missingReceiptCount = expenses.filter(
       (expense) =>
         expense.status !== 'VOIDED' &&

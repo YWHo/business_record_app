@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { useState } from 'react';
 import { AuthProvider, apiRequest, useAuth } from './AuthContext';
 import { recordDemoMutation, resetDemoData } from '../demo/demoStore';
@@ -99,7 +105,9 @@ describe('browser-local demo sessions', () => {
     const fetcher = openDemo();
     await screen.findByText('AUDITOR');
     fireEvent.click(screen.getByRole('button', { name: 'Write' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('read-only');
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('read-only'),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
     await act(async () => {
       await Promise.resolve();
@@ -117,7 +125,7 @@ describe('browser-local demo sessions', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Write' }));
       await Promise.resolve();
     });
-    expect(recordDemoMutation).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(recordDemoMutation).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'Auditor' }));
     await screen.findByText('AUDITOR');
     expect(sessionStorage.getItem('business-records-demo-role')).toBe(
@@ -137,7 +145,7 @@ describe('browser-local demo sessions', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Write' }));
       await Promise.resolve();
     });
-    expect(recordDemoMutation).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(recordDemoMutation).toHaveBeenCalledTimes(2));
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
@@ -146,7 +154,11 @@ describe('browser-local demo sessions', () => {
     const fetcher = openDemo();
     await screen.findByText('Signed out');
     fireEvent.click(screen.getByRole('button', { name: 'Write' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('read-only');
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Choose a demo role',
+      ),
+    );
     expect(recordDemoMutation).not.toHaveBeenCalled();
     expect(fetcher).toHaveBeenCalledTimes(1);
   });

@@ -238,3 +238,61 @@ export function calculateRetentionDate(
   const taxYearEndYear = localDate <= yearEnd ? localYear : localYear + 1;
   return `${taxYearEndYear + taxYears}-${String(yearEndMonth).padStart(2, '0')}-${String(yearEndDay).padStart(2, '0')}`;
 }
+
+export function summarizeWorkSessions(
+  rows: {
+    started_at: string;
+    ended_at: string;
+    distance_km: number;
+    gross_revenue_minor: number | null;
+    currency: string;
+  }[],
+) {
+  let totalMinutes = 0;
+  let totalDistanceKm = 0;
+  let totalRevenueMinor = 0;
+  let sessionsWithRevenue = 0;
+  for (const row of rows) {
+    const metrics = calculateWorkSessionMetrics(
+      row.started_at,
+      row.ended_at,
+      row.distance_km,
+      row.gross_revenue_minor,
+    );
+    totalMinutes += metrics.durationMinutes;
+    totalDistanceKm += metrics.distanceKm;
+    if (row.gross_revenue_minor !== null) {
+      totalRevenueMinor += row.gross_revenue_minor;
+      sessionsWithRevenue += 1;
+    }
+  }
+  totalDistanceKm = Math.round(totalDistanceKm * 1000) / 1000;
+  const revenueCurrencies = new Set(
+    rows
+      .filter((row) => row.gross_revenue_minor !== null)
+      .map((row) => row.currency),
+  );
+  const oneCurrency = revenueCurrencies.size <= 1;
+  const completeRevenueData =
+    rows.length > 0 && sessionsWithRevenue === rows.length;
+  const aggregateCurrency = oneCurrency
+    ? (revenueCurrencies.values().next().value ?? null)
+    : null;
+  return {
+    sessionCount: rows.length,
+    totalDurationHours: Math.round((totalMinutes / 60) * 100) / 100,
+    totalDistanceKm,
+    totalRevenueMinor:
+      sessionsWithRevenue && oneCurrency ? totalRevenueMinor : null,
+    revenuePerHourMinor:
+      completeRevenueData && oneCurrency && totalMinutes > 0
+        ? Math.round((totalRevenueMinor * 60) / totalMinutes)
+        : null,
+    revenuePerKmMinor:
+      completeRevenueData && oneCurrency && totalDistanceKm > 0
+        ? Math.round(totalRevenueMinor / totalDistanceKm)
+        : null,
+    currency: aggregateCurrency,
+    completeRevenueData,
+  };
+}

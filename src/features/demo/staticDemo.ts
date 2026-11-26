@@ -171,8 +171,10 @@ export function staticDemoBusinesses(): BusinessSummary[] {
           }
         : null,
       recordCount: owned.length,
-      awaitingReviewCount: owned.filter((row) =>
-        ['NEW', 'READY_FOR_REVIEW'].includes(String(row.status)),
+      awaitingReviewCount: owned.filter(
+        (row) =>
+          !('odometer_start_km' in row) &&
+          !['REVIEWED', 'PROCESSED', 'VOIDED'].includes(String(row.status)),
       ).length,
       missingReceiptCount: owned.filter(
         (row) =>

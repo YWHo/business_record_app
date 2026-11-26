@@ -224,10 +224,32 @@ export async function readStaticDemoDetailCollection(
     { [property]: rows },
     `/api/businesses/${encodeURIComponent(businessId)}/${collection}`,
   );
-  return payload[property].filter(
-    (record) =>
-      record.businessId === businessId && !record.deletedAt && !record.purgedAt,
-  );
+  return payload[property]
+    .filter(
+      (record) =>
+        record.businessId === businessId &&
+        !record.deletedAt &&
+        !record.purgedAt,
+    )
+    .map((record) => {
+      if (
+        collection === 'income' &&
+        record.incomeType === 'CONTRACT' &&
+        record.details
+      ) {
+        const details = record.details as Record<string, unknown>;
+        return {
+          ...record,
+          details: {
+            ...details,
+            outstandingAmountMinor:
+              Number(details.totalMinor ?? 0) -
+              Number(details.amountReceivedMinor ?? 0),
+          },
+        };
+      }
+      return record;
+    });
 }
 
 export async function readStaticDemoDetail(
