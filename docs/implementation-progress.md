@@ -1842,3 +1842,26 @@ the user's review and commit; no later feature phase or deployment is started.
   reports, history/references, fictional evidence and final integration remain
   within Phase 1. No new environment, authentication path, database reset,
   remote action or git commit is included.
+
+## Static demo Phase 1: transaction reads checkpoint
+
+- Added static account-wide and business-scoped transaction projections combining
+  expense and income details with activity, category, vehicle, reviewer and
+  browser evidence metadata. Refactored shared scoped detail collection reads
+  so transactions apply creates, edits and trash/restore before filtering.
+- Added bounded pagination using the same Worker helper and filters for dates,
+  tax year, entity/activity, direction/subtype, category, status, vehicle, amounts,
+  counterparty, review state and receipt presence. Summary counts match the
+  existing per-page Worker response. Current Worker transaction-date semantics
+  are preserved rather than silently changing private accounting projections.
+- Added 17 integration checks, including direct SQLite-backed Worker response
+  comparisons at account/business scope, invalid query bounds, browser creates,
+  receipt counts, isolation and trash/restore. All 556 tests across 66 files,
+  changed-source lint, TypeScript and application build pass. The API-blocked
+  Chromium scenario also verifies browser-created transaction results.
+- Added a Storybook transaction example. Phase 1 still requires dashboards,
+  reports, history/reference/evidence reads and final live read-path integration.
+  No routing, deployment, environment, authentication or database changes, and
+  no git commit, are included in this checkpoint.
+- Storybook build was attempted; the existing esbuild filesystem access-denied
+  error still blocks it. The transaction story passes TypeScript checks.

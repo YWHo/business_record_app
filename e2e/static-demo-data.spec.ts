@@ -26,6 +26,9 @@ test('static demo reads and overlay changes need no backend requests', async ({
       method: 'POST', body: JSON.stringify({ expenseType: 'GENERAL', merchantName: 'Offline browser example', purchaseDatetime: '2026-09-20T00:00:00Z', totalAmount: '12.34' }),
     });
     const { readStaticDemoDetail } = await import('/src/features/demo/staticDemoDetails.ts');
+    const { readStaticDemoTransactions } = await import('/src/features/demo/staticDemoTransactions.ts');
+    const transactionPage = await readStaticDemoTransactions(businessId, new URLSearchParams('q=Offline browser example&pageSize=1'));
+    if (transactionPage.transactions.length !== 1 || transactionPage.transactions[0].totalAmountMinor !== 1234) throw new Error('Static transaction overlay incorrect');
     const fuel = await readStaticDemoDetail('business-demo-activity-delivery', 'expenses', 'demo-fuel-1');
     const session = await readStaticDemoDetail('business-demo-activity-delivery', 'work-sessions', 'demo-session-1');
     if (session.distanceKm !== 88 || session.revenuePerHourMinor !== 5720 || session.fuelCalculationStatus !== 'UNAVAILABLE') throw new Error('Static session metrics incorrect');

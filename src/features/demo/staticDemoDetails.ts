@@ -171,11 +171,10 @@ function incomeDetail(row: DemoRow): Record<string, unknown> {
 // Apply the overlay to the complete scoped collection before selecting a record.
 // This handles browser creates, deletes, restore and nested review adjustments
 // with exactly the same overlay machinery as collection reads, without a fetch.
-export async function readStaticDemoDetail(
+export async function readStaticDemoDetailCollection(
   businessId: string,
   collection: DetailCollection,
-  recordId: string,
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, unknown>[]> {
   if (
     !readStaticDemoTable('businesses').some(
       (business) => business.id === businessId,
@@ -225,13 +224,20 @@ export async function readStaticDemoDetail(
     { [property]: rows },
     `/api/businesses/${encodeURIComponent(businessId)}/${collection}`,
   );
-  const record = payload[property].find(
+  return payload[property].filter(
     (record) =>
-      record.id === recordId &&
-      record.businessId === businessId &&
-      !record.deletedAt &&
-      !record.purgedAt,
+      record.businessId === businessId && !record.deletedAt && !record.purgedAt,
   );
+}
+
+export async function readStaticDemoDetail(
+  businessId: string,
+  collection: DetailCollection,
+  recordId: string,
+): Promise<Record<string, unknown>> {
+  const record = (
+    await readStaticDemoDetailCollection(businessId, collection)
+  ).find((record) => record.id === recordId);
   if (!record) {
     throw new Error('Demo record not found.');
   }

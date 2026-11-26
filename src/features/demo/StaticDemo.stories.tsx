@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { BusinessCard } from '../../components/BusinessCard';
 import { staticDemoBusinesses } from './staticDemo';
 import { readStaticDemoDetail } from './staticDemoDetails';
+import { readStaticDemoTransactions } from './staticDemoTransactions';
 
 const meta = {
   title: 'Demo/Static business baseline',
@@ -16,6 +17,44 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const AllBusinesses: Story = {};
+export const Transactions: Story = {
+  loaders: [
+    async () => ({
+      transactionPage: await readStaticDemoTransactions(
+        'business-demo-activity-rideshare',
+        new URLSearchParams('pageSize=5'),
+      ),
+    }),
+  ],
+  render: (_, { loaded }) => {
+    const result = loaded.transactionPage as Awaited<
+      ReturnType<typeof readStaticDemoTransactions>
+    >;
+    return (
+      <section className="panel">
+        <h2>Static Uber transactions</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Source</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.transactions.map((row) => (
+              <tr key={`${row.recordType}-${row.id}`}>
+                <td>{row.transactionDate}</td>
+                <td>{row.counterparty}</td>
+                <td>{row.subtype}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    );
+  },
+};
 export const Phone: Story = {
   globals: { viewport: { value: 'phonePortrait', isRotated: false } },
 };

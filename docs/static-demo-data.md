@@ -45,7 +45,7 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Cross-record transactions, dashboard/report calculations,
+Dashboard/report calculations,
 audit/history/reference projections and fictional evidence must be converted
 and verified before changing that live read path. Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
@@ -70,3 +70,13 @@ litres and matching currency supplies cost metrics. Exact calculations require
 all three driving/full-tank confirmations. Missing evidence remains unavailable
 even if the browser overlay claims an exact result. This is fictional demo
 presentation; private server validation and authorization remain unchanged.
+
+`staticDemoTransactions.ts` provides account-wide or business-scoped income and
+expense transactions. Browser edits, evidence additions and trash/restore apply
+before filtering, stable sorting and bounded pagination. Filters include dates,
+tax year, direction/type, activity/entity, category, vehicle, amount, counterparty,
+review state and receipt presence. Summary counts describe the returned page,
+matching the existing Worker contract. Transaction dates retain the Worker's
+current date projection, including UTC date extraction for expense timestamps.
+SQLite integration tests compare static responses directly against the Worker
+for the supported filter cases. This reader is not yet wired into AuthContext.
