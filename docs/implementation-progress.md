@@ -1865,3 +1865,25 @@ the user's review and commit; no later feature phase or deployment is started.
   no git commit, are included in this checkpoint.
 - Storybook build was attempted; the existing esbuild filesystem access-denied
   error still blocks it. The transaction story passes TypeScript checks.
+
+## Static demo Phase 1: report and financial-total checkpoint
+
+- Added read-only source-total reports and financial totals over scoped static
+  detail collections after browser overlays. Reports preserve full insurance
+  premiums, separate currencies, exclude voided/deleted records and fail closed
+  for unsafe integer totals. Fiscal settings are those of the fixed fictional
+  baseline; no private account settings or storage are read.
+- Reused the Worker period parser and financial-total helper, retaining recorded
+  income versus received cash for invoices. Added month/tax-year/business/entity
+  filters with Auckland expense-date boundaries and calendar income dates.
+- Added 13 tests covering direct Worker report comparisons, dashboard financial
+  total comparisons, browser edits, mixed currencies, voided records, invalid
+  periods, date boundaries and overflow. All 569 tests across 67 files, changed-
+  source lint, TypeScript and application build pass. The API-blocked browser
+  scenario confirms browser changes appear in both report and financial totals.
+- Added a Storybook report example; its build remains blocked by the existing
+  esbuild filesystem access-denied error. The story passes TypeScript checks.
+- Full dashboard operating/review/attention/invoice/recent-record projections,
+  history/reference/evidence reads and final live read-path integration remain
+  within Phase 1. No remote operation, deployment, migration, routing/auth change
+  or git commit is included in this checkpoint.

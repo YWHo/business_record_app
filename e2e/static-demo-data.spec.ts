@@ -27,6 +27,11 @@ test('static demo reads and overlay changes need no backend requests', async ({
     });
     const { readStaticDemoDetail } = await import('/src/features/demo/staticDemoDetails.ts');
     const { readStaticDemoTransactions } = await import('/src/features/demo/staticDemoTransactions.ts');
+    const { readStaticDemoReport, readStaticDemoFinancialTotals } = await import('/src/features/demo/staticDemoReports.ts');
+    const reportQuery = new URLSearchParams({ businessId, scope: 'MONTH', month: '2026-09' });
+    const report = await readStaticDemoReport(reportQuery);
+    const finance = await readStaticDemoFinancialTotals(reportQuery);
+    if (!report.rows.some((row) => row.family === 'EXPENSE' && row.subtype === 'GENERAL' && row.recorded_total_minor === 1234) || !finance.financialTotals.length) throw new Error('Static financial report missing browser changes');
     const transactionPage = await readStaticDemoTransactions(businessId, new URLSearchParams('q=Offline browser example&pageSize=1'));
     if (transactionPage.transactions.length !== 1 || transactionPage.transactions[0].totalAmountMinor !== 1234) throw new Error('Static transaction overlay incorrect');
     const fuel = await readStaticDemoDetail('business-demo-activity-delivery', 'expenses', 'demo-fuel-1');

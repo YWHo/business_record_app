@@ -3,6 +3,7 @@ import { BusinessCard } from '../../components/BusinessCard';
 import { staticDemoBusinesses } from './staticDemo';
 import { readStaticDemoDetail } from './staticDemoDetails';
 import { readStaticDemoTransactions } from './staticDemoTransactions';
+import { readStaticDemoReport } from './staticDemoReports';
 
 const meta = {
   title: 'Demo/Static business baseline',
@@ -17,6 +18,46 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const AllBusinesses: Story = {};
+export const FinancialReport: Story = {
+  loaders: [
+    async () => ({
+      report: await readStaticDemoReport(
+        new URLSearchParams({ businessId: 'business-demo-activity-rideshare' }),
+      ),
+    }),
+  ],
+  render: (_, { loaded }) => {
+    const report = loaded.report as Awaited<
+      ReturnType<typeof readStaticDemoReport>
+    >;
+    return (
+      <section className="panel">
+        <h2>Static Uber source totals</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Family</th>
+              <th>Type</th>
+              <th>Currency</th>
+              <th>Recorded amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {report.rows.map((row) => (
+              <tr key={`${row.family}-${row.subtype}-${row.currency}`}>
+                <td>{row.family}</td>
+                <td>{row.subtype}</td>
+                <td>{row.currency}</td>
+                <td>{(row.recorded_total_minor / 100).toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>{report.note}</p>
+      </section>
+    );
+  },
+};
 export const Transactions: Story = {
   loaders: [
     async () => ({

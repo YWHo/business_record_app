@@ -45,7 +45,7 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Dashboard/report calculations,
+Full dashboard projections,
 audit/history/reference projections and fictional evidence must be converted
 and verified before changing that live read path. Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
@@ -80,3 +80,17 @@ matching the existing Worker contract. Transaction dates retain the Worker's
 current date projection, including UTC date extraction for expense timestamps.
 SQLite integration tests compare static responses directly against the Worker
 for the supported filter cases. This reader is not yet wired into AuthContext.
+
+`staticDemoReports.ts` adds source-total reports and financial totals with
+FULL, MONTH and TAX_YEAR periods using the fixed fictional March year end.
+Reports group by family, subtype and currency; insurance remains the full
+premium. Financial totals distinguish recorded income from cash received for
+contract invoices, using the Worker's pure combination helper. Browser edits,
+voiding, business/entity filters and Auckland expense dates apply before
+aggregation. Income dates remain calendar dates. Unsafe integer totals fail
+closed, and currencies are never added together. These functions do not export
+archives or provide download/authentication endpoints.
+
+The financial-total helper is not the full dashboard response: operating
+metrics, review/attention counts, recent transactions and outstanding-invoice
+projections still need conversion and comparison before dashboard integration.
