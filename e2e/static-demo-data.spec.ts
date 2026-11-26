@@ -28,6 +28,11 @@ test('static demo reads and overlay changes need no backend requests', async ({
     const { readStaticDemoDetail } = await import('/src/features/demo/staticDemoDetails.ts');
     const { readStaticDemoTransactions } = await import('/src/features/demo/staticDemoTransactions.ts');
     const { readStaticDemoReport, readStaticDemoFinancialTotals } = await import('/src/features/demo/staticDemoReports.ts');
+    const { readStaticDemoDashboard } = await import('/src/features/demo/staticDemoDashboard.ts');
+    const dashboard = await readStaticDemoDashboard(businessId, new URLSearchParams('taxYear=2027'));
+    const { readStaticDemoTable } = await import('/src/features/demo/staticDemo.ts');
+    const baselineExpense = readStaticDemoTable('expenses').filter((row) => row.business_id === businessId && !row.deleted_at && !row.purged_at && row.status !== 'VOIDED').reduce((sum, row) => sum + row.total_amount_minor, 0);
+    if (dashboard.recentTransactions.length !== 6 || dashboard.financialTotals[0].recordedExpensesMinor !== baselineExpense + 1234 || dashboard.platformActivities[0].revenueComplete !== false) throw new Error('Static dashboard does not reflect the current demo data');
     const reportQuery = new URLSearchParams({ businessId, scope: 'MONTH', month: '2026-09' });
     const report = await readStaticDemoReport(reportQuery);
     const finance = await readStaticDemoFinancialTotals(reportQuery);

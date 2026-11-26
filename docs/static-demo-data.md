@@ -45,8 +45,7 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 The current application's AuthContext still uses the existing server-backed
 read path. The new core client is not yet the complete application API adapter.
-Full dashboard projections,
-audit/history/reference projections and fictional evidence must be converted
+Audit/history/reference projections and fictional evidence must be converted
 and verified before changing that live read path. Complete those within Phase 1;
 do not advance to the `/demo` routing or staging configuration phases yet.
 
@@ -91,6 +90,17 @@ aggregation. Income dates remain calendar dates. Unsafe integer totals fail
 closed, and currencies are never added together. These functions do not export
 archives or provide download/authentication endpoints.
 
-The financial-total helper is not the full dashboard response: operating
-metrics, review/attention counts, recent transactions and outstanding-invoice
-projections still need conversion and comparison before dashboard integration.
+The financial-total helper remains separate from the full dashboard response.
+`staticDemoDashboard.ts` now supplies that complete response: operating metrics,
+review/attention counts, recent transactions, outstanding invoices, spending,
+platform income and allocated insurance. It reuses the Worker's pure platform
+and financial calculators, recomputes from current browser edits and preserves
+the dashboard's existing UTC substring date semantics. Missing session revenue
+stays unavailable, currencies remain separate, and unsafe money totals fail
+closed. Account-wide, business and activity scopes are supported. The fixed
+fictional March year end and the same current Auckland tax-year default are used.
+
+Integration tests compare complete dashboard responses with the SQLite-backed
+Worker for all four businesses, account/activity scopes and an empty period.
+Browser-created invoices, records, receipts and trash affect the derived results.
+This adapter is still not connected to the live AuthContext read path.

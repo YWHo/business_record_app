@@ -1887,3 +1887,28 @@ the user's review and commit; no later feature phase or deployment is started.
   history/reference/evidence reads and final live read-path integration remain
   within Phase 1. No remote operation, deployment, migration, routing/auth change
   or git commit is included in this checkpoint.
+
+## Static demo Phase 1: complete dashboard projection checkpoint
+
+- Added the full static dashboard response: financial totals, spending, platform
+  operating metrics, allocated insurance, outstanding invoices, review/attention
+  counts and six recent transactions. Reused the Worker's pure calculators and
+  preserved UTC substring period semantics and the Auckland tax-year default.
+- All calculations use the current browser overlay before scope/period filtering.
+  Missing session revenue remains unavailable, currencies stay separate, and
+  unsafe monetary totals fail closed. Browser invoice clients are resolved from
+  the same scoped fictional references, with recorded income and received cash
+  kept separate.
+- Added 16 integration cases including complete SQLite-backed Worker response
+  comparisons for all four businesses, account/activity scopes, an empty year,
+  ignored activity filters under business routes, browser expenses, receipts,
+  trash, partially paid invoices, missing revenue, currencies and overflow.
+  All 585 tests across 68 files, changed-source lint, TypeScript and application
+  build pass. The API-blocked browser scenario verifies recomputed expense totals,
+  incomplete revenue and bounded recent transactions.
+- Added a Storybook dashboard example. Storybook build was attempted and remains
+  blocked by the existing esbuild filesystem access-denied error; the story is
+  typechecked. No live read-path switch, routing/authentication change, database
+  reset, remote action or git commit is included.
+- Phase 1 now requires reference/history/evidence projections and final API
+  integration/parity checks before advancing to Phase 2 routing.

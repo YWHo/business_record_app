@@ -4,6 +4,7 @@ import { staticDemoBusinesses } from './staticDemo';
 import { readStaticDemoDetail } from './staticDemoDetails';
 import { readStaticDemoTransactions } from './staticDemoTransactions';
 import { readStaticDemoReport } from './staticDemoReports';
+import { readStaticDemoDashboard } from './staticDemoDashboard';
 
 const meta = {
   title: 'Demo/Static business baseline',
@@ -18,6 +19,42 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const AllBusinesses: Story = {};
+export const Dashboard: Story = {
+  loaders: [
+    async () => ({
+      dashboard: await readStaticDemoDashboard(
+        'business-demo-activity-rideshare',
+        new URLSearchParams('taxYear=2027'),
+      ),
+    }),
+  ],
+  render: (_, { loaded }) => {
+    const dashboard = loaded.dashboard as Awaited<
+      ReturnType<typeof readStaticDemoDashboard>
+    >;
+    return (
+      <section className="panel">
+        <h2>Static Uber dashboard</h2>
+        <dl>
+          <dt>Records</dt>
+          <dd>{dashboard.review.totalRecords}</dd>
+          <dt>Items to review</dt>
+          <dd>{dashboard.attention.itemsToReviewCount}</dd>
+          <dt>Missing receipts</dt>
+          <dd>{dashboard.attention.missingReceiptCount}</dd>
+        </dl>
+        <h3>Recent transactions</h3>
+        <ul>
+          {dashboard.recentTransactions.map((row) => (
+            <li key={`${row.recordType}-${row.id}`}>
+              {row.transactionDate}: {row.counterparty}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  },
+};
 export const FinancialReport: Story = {
   loaders: [
     async () => ({
