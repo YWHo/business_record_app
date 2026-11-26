@@ -132,9 +132,7 @@ import {
   updateBusinessExpense,
 } from './routes/businesses';
 import type { Env } from './types';
-import { prepareDemoCache } from './services/demoCacheService';
 import {
-  enforceRateLimit,
   requireSameOrigin,
   secureApiResponse,
 } from './services/securityService';
@@ -715,10 +713,7 @@ async function authorizeRoute(
   env: Env,
   route: Route,
 ): Promise<Env> {
-  if (
-    env.APP_ENV === 'demo' ||
-    publicRoutes.has(`${route.method} ${route.pathname}`)
-  ) {
+  if (publicRoutes.has(`${route.method} ${route.pathname}`)) {
     return env;
   }
 
@@ -777,11 +772,7 @@ async function authorizeRoute(
   };
 }
 
-async function handleRequest(
-  request: Request,
-  env: Env,
-  context?: ExecutionContext,
-): Promise<Response> {
+async function handleRequest(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
 
   if (env.APP_ENV === 'demo' && pathname.startsWith('/api/')) {
@@ -791,13 +782,9 @@ async function handleRequest(
         'The public demo backend is read-only. Changes stay in this browser.',
       );
     }
-    const sustainedLimiter = env.DEMO_READ_RATE_LIMITER;
-    const burstLimiter = env.DEMO_BURST_RATE_LIMITER;
-    if (!sustainedLimiter || !burstLimiter) {
-      throw new HttpError(503, 'Demo protection is temporarily unavailable.');
+    if (pathname !== '/api/auth/config') {
+      throw new HttpError(401, 'Authentication required.');
     }
-    await enforceRateLimit(request, sustainedLimiter, 'demo-read');
-    await enforceRateLimit(request, burstLimiter, 'demo-burst', '', 10);
   }
 
   const matchingPath = routes.flatMap((route) => {
@@ -809,12 +796,6 @@ async function handleRequest(
   );
 
   if (match) {
-    const cache = await prepareDemoCache(request, env);
-
-    if (cache?.response) {
-      return cache.response;
-    }
-
     const authorizedEnv = await authorizeRoute(request, env, match.route);
 
     const response = await match.route.handler(
@@ -823,15 +804,6 @@ async function handleRequest(
       match.params,
     );
 
-    if (cache) {
-      const cacheWrite = cache.store(response.clone());
-      if (context) {
-        context.waitUntil(cacheWrite);
-      } else {
-        await cacheWrite;
-      }
-      return cache.miss(response);
-    }
     return response;
   }
 
@@ -843,11 +815,7 @@ async function handleRequest(
 }
 
 export default {
-  async fetch(
-    request: Request,
-    env: Env,
-    context?: ExecutionContext,
-  ): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const requestId = crypto.randomUUID();
     let response: Response;
     try {
@@ -860,7 +828,7 @@ export default {
         });
       } else {
         requireSameOrigin(request, env);
-        response = await handleRequest(request, env, context);
+        response = await handleRequest(request, env);
       }
     } catch (error) {
       if (error instanceof HttpError) {

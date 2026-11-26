@@ -28,19 +28,22 @@ function environment(overrides: Partial<Env> = {}): Env {
 
 describe('demo authentication boundary', () => {
   it.each(['OWNER', 'ACCOUNTANT', 'AUDITOR'])(
-    'ignores the browser %s role claim when reading shared demo data',
+    'rejects the browser %s role claim without database access',
     async (role) => {
-      const user = await requireUser(
-        new Request('https://demo.example.invalid/api/businesses', {
-          headers: { 'x-demo-role': role, cookie: `br_session=forged-${role}` },
-        }),
-        environment(),
-      );
-      expect(user.role).toBe('ACCOUNTANT');
-      expect(user.id).toBe('demo-readonly-principal');
+      await expect(
+        requireUser(
+          new Request('https://demo.example.invalid/api/businesses', {
+            headers: {
+              'x-demo-role': role,
+              cookie: `br_session=forged-${role}`,
+            },
+          }),
+          environment(),
+        ),
+      ).rejects.toMatchObject({ status: 401 });
     },
   );
-  it('advertises role switching only for the demo environment', async () => {
+  it('never advertises a server-authorized demo identity', async () => {
     const request = new Request('https://demo.example.invalid/api/auth/config');
     const demo = await authConfiguration(request, environment()).json<{
       demoHelper: boolean;
@@ -50,7 +53,7 @@ describe('demo authentication boundary', () => {
       environment({ APP_ENV: 'production' }),
     ).json<{ demoHelper: boolean }>();
 
-    expect(demo.demoHelper).toBe(true);
+    expect(demo.demoHelper).toBe(false);
     expect(production.demoHelper).toBe(false);
   });
 

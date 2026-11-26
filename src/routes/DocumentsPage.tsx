@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { Link, useParams } from '../lib/workspaceRouting';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { hasPermission } from '../lib/permissions';
 import { EvidencePreview } from '../features/attachments/EvidencePreview';
 
@@ -52,6 +52,7 @@ function recordPath(
 }
 
 export function DocumentsPage() {
+  const apiRequest = useApiRequest();
   const { user } = useAuth();
   const { businessId = '' } = useParams();
   const [view, setView] = useState<'FILES' | 'MISSING'>('FILES');
@@ -80,7 +81,7 @@ export function DocumentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [businessId]);
+  }, [businessId, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

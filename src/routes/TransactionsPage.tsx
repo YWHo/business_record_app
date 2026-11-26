@@ -6,9 +6,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from '../lib/workspaceRouting';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import { hasPermission } from '../lib/permissions';
 
@@ -130,6 +130,7 @@ function ReviewPanel({
   role: 'OWNER' | 'ACCOUNTANT' | 'AUDITOR';
   onChanged: () => Promise<void>;
 }) {
+  const apiRequest = useApiRequest();
   const [open, setOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [message, setMessage] = useState('');
@@ -141,7 +142,7 @@ function ReviewPanel({
       `/api/comments?recordType=${record.recordType}&recordId=${encodeURIComponent(record.id)}`,
     );
     setComments(result.comments);
-  }, [record.id, record.recordType]);
+  }, [record.id, record.recordType, apiRequest]);
 
   const toggle = async () => {
     const next = !open;
@@ -293,6 +294,7 @@ function ReviewPanel({
 }
 
 export function TransactionsPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const location = useLocation();
   const { businesses } = useBusinessDirectory();
@@ -363,7 +365,7 @@ export function TransactionsPage() {
       );
       setSaved(result.savedFilters);
     },
-    [canSaveFilters],
+    [canSaveFilters, apiRequest],
   );
 
   const search = useCallback(
@@ -411,7 +413,7 @@ export function TransactionsPage() {
         }
       }
     },
-    [businessId],
+    [businessId, apiRequest],
   );
   useEffect(() => {
     const load = async () => {
@@ -459,7 +461,7 @@ export function TransactionsPage() {
           : 'Unable to load transactions.',
       ),
     );
-  }, [businessId, loadSaved, location.search, search]);
+  }, [businessId, loadSaved, location.search, search, apiRequest]);
 
   const changeMode = async (next: typeof mode) => {
     const scopedEmpty = {
@@ -1119,11 +1121,12 @@ export function TransactionsPage() {
                 ) : null}
                 {mode === 'RECEIPTS' ? (
                   <AttachmentPanel
+                    request={apiRequest}
                     recordType={record.recordType}
                     recordId={record.id}
                     canManage={user?.role === 'OWNER'}
                     canDownload={hasPermission(user, 'ATTACHMENT_DOWNLOAD')}
-                    localOnly={configuration?.environment === 'demo'}
+                    localOnly={configuration?.demoHelper === true}
                   />
                 ) : null}
               </article>

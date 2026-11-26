@@ -1,8 +1,8 @@
 import { confirmationWarnings } from '../lib/confirmationWarnings';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from '../lib/workspaceRouting';
 import { FormError } from '../components/FormError';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   IncomeForm,
@@ -14,6 +14,7 @@ import {
 } from './IncomePage';
 
 export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const apiRequest = useApiRequest();
   const { businessId = '', incomeId = '' } = useParams();
   const navigate = useNavigate();
   const { businesses } = useBusinessDirectory();
@@ -50,7 +51,7 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
     } finally {
       setLoading(false);
     }
-  }, [businessId, incomeId, mode]);
+  }, [businessId, incomeId, mode, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -74,7 +75,7 @@ export function IncomeFormPage({ mode }: { mode: 'create' | 'edit' }) {
         },
       );
       setPending(null);
-      if (mode === 'edit' || configuration?.environment === 'demo') {
+      if (mode === 'edit' || configuration?.demoHelper === true) {
         void navigate(`/app/businesses/${businessId}/income`);
       } else {
         void navigate(

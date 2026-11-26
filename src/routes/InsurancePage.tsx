@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { AllocationAdjustmentForm } from '../features/expenses/AllocationAdjustmentForm';
 import { canAdjustInsuranceAllocation } from '../lib/permissions';
@@ -471,6 +471,7 @@ function AdjustmentForm({
 }
 
 export function InsurancePage() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth();
   const isOwner = user?.role === 'OWNER';
   const [records, setRecords] = useState<InsuranceRecord[]>([]);
@@ -507,7 +508,7 @@ export function InsurancePage() {
         active: item.active,
       })),
     );
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -731,10 +732,11 @@ export function InsurancePage() {
                   </>
                 )}
                 <AttachmentPanel
+                  request={apiRequest}
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={isOwner}
-                  localOnly={configuration?.environment === 'demo'}
+                  localOnly={configuration?.demoHelper === true}
                 />
               </article>
             ))}

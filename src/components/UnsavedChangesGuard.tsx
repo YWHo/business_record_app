@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useEffect, useRef } from 'react';
-import { useBeforeUnload, useBlocker } from 'react-router-dom';
+import { useBeforeUnload, useBlocker } from '../lib/workspaceRouting';
 
 export function UnsavedChangesGuard({ when }: { when: boolean }) {
   const blocker = useBlocker(when);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../../lib/workspaceRouting';
 import type { AuditorInvitation, AuditorMember } from '../../lib/auditorAccess';
-import { apiRequest } from '../auth/AuthContext';
+import { useApiRequest } from '../auth/AuthContext';
 import { AuditorAccessSummary } from './AuditorAccessSummary';
 import type { AccessOption } from './AuditorAccessForm';
 import { FormError } from '../../components/FormError';
@@ -14,6 +14,7 @@ interface Directory {
   hasMoreInvitations: boolean;
 }
 export function AuditorAccessPanel() {
+  const apiRequest = useApiRequest();
   const [data, setData] = useState<Directory>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -38,7 +39,7 @@ export function AuditorAccessPanel() {
         name: entity.legalName ?? entity.tradingName ?? 'Unnamed legal entity',
       })),
     );
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Synchronize the owner directory with the server.

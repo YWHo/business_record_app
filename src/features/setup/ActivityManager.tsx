@@ -1,5 +1,5 @@
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '../auth/AuthContext';
+import { useApiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
 export interface BusinessActivity {
@@ -38,6 +38,7 @@ function draftFrom(activity: BusinessActivity): ActivityDraft {
 }
 
 export function ActivityManager({ canManage }: { canManage: boolean }) {
+  const apiRequest = useApiRequest();
   const [activities, setActivities] = useState<BusinessActivity[]>([]);
   const [createDraft, setCreateDraft] = useState(emptyDraft);
   const [editId, setEditId] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export function ActivityManager({ canManage }: { canManage: boolean }) {
       '/api/business-activities',
     );
     setActivities(result.activities);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

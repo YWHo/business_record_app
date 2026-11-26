@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { Link, useParams, useSearchParams } from '../lib/workspaceRouting';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   incomeDate,
@@ -14,6 +14,7 @@ import type { IncomeRecord, IncomeType } from './IncomePage';
 const types = Object.keys(incomeTypeLabels) as IncomeType[];
 
 export function IncomeListPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { businesses } = useBusinessDirectory();
@@ -41,7 +42,7 @@ export function IncomeListPage() {
     } finally {
       setLoading(false);
     }
-  }, [businessId]);
+  }, [businessId, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

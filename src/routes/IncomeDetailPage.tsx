@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { Link, useParams } from '../lib/workspaceRouting';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import {
   incomeDate,
@@ -13,7 +13,6 @@ import { ReconcileForm, type IncomeRecord } from './IncomePage';
 import { hasPermission } from '../lib/permissions';
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
-
   if (value === null || value === undefined || value === '') {
     return null;
   }
@@ -27,6 +26,7 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function IncomeDetailPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '', incomeId = '' } = useParams();
   const { configuration, user } = useAuth();
   const [record, setRecord] = useState<IncomeRecord | null>(null);
@@ -42,7 +42,7 @@ export function IncomeDetailPage() {
         caught instanceof Error ? caught.message : 'Unable to load income.',
       );
     }
-  }, [businessId, incomeId]);
+  }, [businessId, incomeId, apiRequest]);
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -134,11 +134,12 @@ export function IncomeDetailPage() {
         </section>
       )}
       <AttachmentPanel
+        request={apiRequest}
         recordType="INCOME"
         recordId={record.id}
         canManage={user?.role === 'OWNER'}
         canDownload={user?.role === 'OWNER' || user?.role === 'ACCOUNTANT'}
-        localOnly={configuration?.environment === 'demo'}
+        localOnly={configuration?.demoHelper === true}
       />
     </section>
   );

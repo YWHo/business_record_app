@@ -1,3 +1,4 @@
+import { staticDemoTestActor } from './static-demo-evidence-fixture.mjs';
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -51,7 +52,11 @@ beforeEach(() => resetDemoData());
 it.each(manifest.documents)(
   'matches Worker attachment and directory metadata for $recordId',
   async (seed) => {
-    const env = { APP_ENV: 'demo', DB: { prepare: statement } };
+    const env = {
+      APP_ENV: 'demo',
+      REQUEST_USER: staticDemoTestActor,
+      DB: { prepare: statement },
+    };
     const response = await listAttachments(
       new Request(
         `https://demo.invalid/api/attachments?recordType=${seed.recordType}&recordId=${seed.recordId}`,

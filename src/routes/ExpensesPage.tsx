@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from '../lib/workspaceRouting';
 import {
   ExpenseFilterBar,
   ExpenseTable,
 } from '../components/WorkspacePatterns';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   type BusinessExpense,
@@ -15,6 +15,7 @@ import {
 const expenseTypes = Object.keys(expenseTypeLabels) as ExpenseType[];
 
 export function ExpensesPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { businesses } = useBusinessDirectory();
@@ -45,7 +46,7 @@ export function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, [businessId]);
+  }, [businessId, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

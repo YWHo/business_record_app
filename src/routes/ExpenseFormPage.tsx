@@ -5,9 +5,9 @@ import {
   useNavigate,
   useParams,
   useSearchParams,
-} from 'react-router-dom';
+} from '../lib/workspaceRouting';
 import { FormError } from '../components/FormError';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 import {
   type BusinessExpense,
@@ -87,6 +87,7 @@ function parkingDraftFrom(expense: BusinessExpense): ParkingDraft {
 }
 
 export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const apiRequest = useApiRequest();
   const { businessId = '', expenseId = '' } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -174,7 +175,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
     } finally {
       setLoading(false);
     }
-  }, [businessId, expenseId, mode]);
+  }, [businessId, expenseId, mode, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -186,6 +187,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setError('');
     try {
       const created = await saveExpense({
+        request: apiRequest,
         mode,
         businessId,
         expenseId,
@@ -196,7 +198,7 @@ export function ExpenseFormPage({ mode }: { mode: 'create' | 'edit' }) {
       setPending(null);
       if (
         mode === 'edit' ||
-        configuration?.environment === 'demo' ||
+        configuration?.demoHelper === true ||
         !created?.id
       ) {
         void navigate(`/app/businesses/${businessId}/expenses`);

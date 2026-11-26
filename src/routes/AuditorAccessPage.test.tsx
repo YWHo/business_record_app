@@ -6,6 +6,7 @@ import { apiRequest, useAuth } from '../features/auth/AuthContext';
 vi.mock('../features/auth/AuthContext', () => ({
   useAuth: vi.fn(),
   apiRequest: vi.fn(),
+  useApiRequest: () => apiRequest,
 }));
 function open() {
   return render(

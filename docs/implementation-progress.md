@@ -1999,3 +1999,40 @@ the user's review and commit; no later feature phase or deployment is started.
   and removal of the legacy demo server principal remain next. No staging
   resource changes, credentials, database resets, deployments or git commits
   were performed. Changes are left for user review.
+
+## Staging redesign Phase 2: separate public and private workspaces
+
+- Added an explicit `/demo` role chooser and `/demo/...` workspace in every
+  build, alongside private `/login` and `/app`. Entry/exit links cross that
+  boundary deliberately; internal links, redirects, business switching and
+  imperative navigation retain the active workspace prefix. The existing demo
+  build target redirects its root landing page to `/demo`.
+- Replaced the global demo request flag with workspace-bound `useApiRequest`
+  clients. Workspace state remounts when crossing the boundary; stale clients
+  and late private responses are rejected. Form/upload helpers and attachment
+  panels require an explicit client. StrictMode reconnection is covered so a
+  restored demo role can reload safely without weakening stale-client guards.
+- Demo reads, writes, role selection and sign-out make no API calls. Entering,
+  leaving and signing out of demo preserve private cookies; returning privately
+  reloads authorization. Private sign-out retains browser demo edits. Demo reset
+  remains limited to the versioned demo store. Service-worker precache output
+  contains static shell/demo assets only, with no private API cache entries;
+  private fetches also force `no-store` to avoid older browser-cached API reads.
+- Removed the Worker's anonymous demo principal, authorization bypass and shared
+  JSON API cache. Private record endpoints require authentication. Legacy demo
+  record reads fail before D1/R2/cache access, and browser role headers never
+  manufacture authority. Direct-handler parity tests now supply explicit test
+  actors rather than relying on anonymous backend access. Existing remote
+  bindings and administrative utilities remain pending inspected conversion.
+- All 707 tests across 75 files pass, including anonymous API/cache boundaries,
+  stale-client and late-response isolation, prefix navigation and private
+  authentication regression coverage. Five Chromium scenarios pass on the
+  frontend validation server: three demo roles, API-blocked data operations and
+  private/demo switching with cookie preservation and independent sign-out.
+  TypeScript, lint, formatting and demo/production builds pass.
+- Added Storybook examples for public entry, private sign-in and leaving demo.
+  They typecheck; Storybook build still fails at the existing esbuild filesystem
+  access-denied error. Updated architecture and public-demo documentation.
+- Phase 2 is complete and uncommitted for review. Phase 3 staging configuration
+  and guarded provisioning are next; no remote resources, credentials,
+  deployment or database reset were changed in this phase.

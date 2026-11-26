@@ -7,6 +7,7 @@ import { AccountantAccessNotice } from '../features/auth/AccountantAccessNotice'
 
 vi.mock('../features/auth/AuthContext', () => ({
   apiRequest: vi.fn(),
+  useApiRequest: () => apiRequest,
   useAuth: vi.fn(),
 }));
 

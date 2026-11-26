@@ -7,7 +7,11 @@ import { LoginPage } from './LoginPage';
 vi.mock('../features/auth/AuthContext', async (importOriginal) => {
   const original =
     await importOriginal<typeof import('../features/auth/AuthContext')>();
-  return { ...original, useAuth: vi.fn() };
+  return {
+    ...original,
+    useAuth: vi.fn(),
+    useApiRequest: () => useAuth().request,
+  };
 });
 
 describe('LoginPage local identities', () => {
@@ -15,6 +19,7 @@ describe('LoginPage local identities', () => {
   beforeEach(() => {
     localLogin.mockReset().mockResolvedValue();
     mockedUseAuth.mockReturnValue({
+      request: vi.fn(),
       configuration: {
         environment: 'local',
         localHelper: true,
@@ -118,6 +123,7 @@ describe('LoginPage demo roles', () => {
     demoLogin.mockReset();
     demoLogin.mockResolvedValue();
     mockedUseAuth.mockReturnValue({
+      request: vi.fn(),
       configuration: {
         environment: 'demo',
         localHelper: false,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from '../lib/workspaceRouting';
 import { DashboardMetricCard } from '../components/DashboardMetricCard';
-import { apiRequest } from '../features/auth/AuthContext';
+import { useApiRequest } from '../features/auth/AuthContext';
 import {
   type BusinessSummary,
   useBusinessDirectory,
@@ -78,6 +78,7 @@ function statusLabel(value: string): string {
 }
 
 export function DashboardPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const { businesses } = useBusinessDirectory();
   const business = businesses.find((candidate) => candidate.id === businessId);
@@ -118,7 +119,7 @@ export function DashboardPage() {
         }
       }
     },
-    [businessId],
+    [businessId, apiRequest],
   );
 
   useEffect(() => {

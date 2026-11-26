@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from '../lib/workspaceRouting';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { InsuranceAllocationPanel } from '../features/expenses/InsuranceAllocationPanel';
 import {
   type BusinessExpense,
@@ -12,6 +12,7 @@ import {
 } from '../features/expenses/businessExpense';
 
 export function ExpenseDetailPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '', expenseId = '' } = useParams();
   const { configuration, user } = useAuth();
   const [expense, setExpense] = useState<BusinessExpense | null>(null);
@@ -29,7 +30,7 @@ export function ExpenseDetailPage() {
         caught instanceof Error ? caught.message : 'Unable to load expense.',
       );
     }
-  }, [businessId, expenseId]);
+  }, [businessId, expenseId, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -175,11 +176,12 @@ export function ExpenseDetailPage() {
         />
       )}
       <AttachmentPanel
+        request={apiRequest}
         recordType="EXPENSE"
         recordId={expense.id}
         canManage={user?.role === 'OWNER'}
         canDownload={user?.role === 'OWNER' || user?.role === 'ACCOUNTANT'}
-        localOnly={configuration?.environment === 'demo'}
+        localOnly={configuration?.demoHelper === true}
       />
     </section>
   );

@@ -5,6 +5,7 @@ import { AuditTrailPage } from './AuditTrailPage';
 import { apiRequest, useAuth } from '../features/auth/AuthContext';
 vi.mock('../features/auth/AuthContext', () => ({
   apiRequest: vi.fn(),
+  useApiRequest: () => apiRequest,
   useAuth: vi.fn(),
 }));
 function open(element: React.ReactElement, path: string) {

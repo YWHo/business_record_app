@@ -61,7 +61,24 @@ function fakeEnv(
       return Promise.all(statements.map((statement) => statement.run()));
     },
   } as unknown as D1Database;
-  return { env: { APP_ENV: appEnv, DB: db } as Env, queries };
+  return {
+    env: {
+      APP_ENV: appEnv,
+      DB: db,
+      ...(appEnv === 'demo'
+        ? {
+            REQUEST_USER: {
+              id: 'test-reader',
+              email: 'reader@example.invalid',
+              role: 'ACCOUNTANT',
+              status: 'ACTIVE',
+              businessAccountId: 'business-account-primary',
+            },
+          }
+        : {}),
+    } as Env,
+    queries,
+  };
 }
 
 const businessRow = {

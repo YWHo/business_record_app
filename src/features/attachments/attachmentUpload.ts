@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from '../auth/AuthContext';
+import { ApiError, type apiRequest } from '../auth/AuthContext';
 
 export interface AttachmentUpload {
   recordType: 'EXPENSE' | 'INCOME' | 'WORK_SESSION';
@@ -23,14 +23,17 @@ export function attachmentUploadError(
 }
 
 // A confirmation response keeps the selected file in the component for retry.
-export async function uploadAttachment({
-  recordType,
-  recordId,
-  file,
-  rotation,
-  replaceAttachmentId,
-  confirmDuplicate,
-}: AttachmentUpload): Promise<string[] | null> {
+export async function uploadAttachment(
+  {
+    recordType,
+    recordId,
+    file,
+    rotation,
+    replaceAttachmentId,
+    confirmDuplicate,
+  }: AttachmentUpload,
+  request: typeof apiRequest,
+): Promise<string[] | null> {
   const form = new FormData();
   form.set('recordType', recordType);
   form.set('recordId', recordId);
@@ -43,7 +46,7 @@ export async function uploadAttachment({
     form.set('confirmDuplicate', 'true');
   }
   try {
-    await apiRequest('/api/attachments', { method: 'POST', body: form });
+    await request('/api/attachments', { method: 'POST', body: form });
     return null;
   } catch (error) {
     if (

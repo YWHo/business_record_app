@@ -1,7 +1,7 @@
 import { type SubmitEvent, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from '../lib/workspaceRouting';
 import { FormError } from '../components/FormError';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 
@@ -49,6 +49,7 @@ function formatDate(value: string) {
 }
 
 export function LegalEntityChangePage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const { user } = useAuth();
   const { reload } = useBusinessDirectory();
@@ -94,7 +95,7 @@ export function LegalEntityChangePage() {
     return () => {
       active = false;
     };
-  }, [businessId]);
+  }, [businessId, apiRequest]);
 
   const availableEntities = useMemo(
     () =>

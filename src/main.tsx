@@ -2,8 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
-import { App } from './App';
-import { AuthProvider } from './features/auth/AuthContext';
+import { WorkspaceApplication } from './WorkspaceApplication';
 import './styles.css';
 
 function publishPwaStatus(
@@ -42,11 +41,7 @@ if (!root) {
 const router = createBrowserRouter([
   {
     path: '*',
-    element: (
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    ),
+    element: <WorkspaceApplication />,
   },
 ]);
 

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from '../lib/workspaceRouting';
 import type { BusinessSummary } from '../features/business/BusinessDirectoryContext';
 
 const entityTypeLabels: Record<

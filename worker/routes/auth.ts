@@ -82,7 +82,7 @@ export function authConfiguration(request: Request, env: Env): Response {
   return json({
     environment: env.APP_ENV,
     localHelper,
-    demoHelper: env.APP_ENV === 'demo',
+    demoHelper: false,
     turnstileRequired,
     turnstileSiteKey: turnstileRequired ? env.TURNSTILE_SITE_KEY : null,
   });

@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { WorkSessionForm } from '../features/mileage/WorkSessionForm';
 import {
@@ -113,6 +113,7 @@ export function workSessionRequestBody(draft: WorkSessionDraft) {
 }
 
 export function MileagePage() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [sessions, setSessions] = useState<WorkSession[]>([]);
@@ -160,7 +161,7 @@ export function MileagePage() {
       })),
     );
     setFuelRecords(fuelResult.fuelRecords);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -526,10 +527,11 @@ export function MileagePage() {
                   </>
                 )}
                 <AttachmentPanel
+                  request={apiRequest}
                   recordType="WORK_SESSION"
                   recordId={session.id}
                   canManage={canManage}
-                  localOnly={configuration?.environment === 'demo'}
+                  localOnly={configuration?.demoHelper === true}
                 />
               </article>
             ))}

@@ -5,6 +5,7 @@ import { apiRequest } from '../features/auth/AuthContext';
 
 vi.mock('../features/auth/AuthContext', () => ({
   apiRequest: vi.fn(),
+  useApiRequest: () => apiRequest,
   useAuth: () => ({
     user: { role: 'ACCOUNTANT' },
     configuration: { environment: 'local' },

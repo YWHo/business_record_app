@@ -4,10 +4,11 @@ import {
   useLocation,
   useNavigate,
   useSearchParams,
-} from 'react-router-dom';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+} from '../lib/workspaceRouting';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 
 export function VerifyLoginPage() {
+  const apiRequest = useApiRequest();
   const [params] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export function VerifyLoginPage() {
           error instanceof Error ? error.message : 'Unable to sign in.',
         ),
       );
-  }, [refresh, token]);
+  }, [refresh, token, apiRequest]);
 
   return (
     <main className="auth-page">

@@ -3,7 +3,8 @@ import {
   useLocation,
   useNavigate,
   useParams,
-} from 'react-router-dom';
+  isDemoPath,
+} from '../lib/workspaceRouting';
 import { AppShell, type ShellNavigationItem } from './AppShell';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useAuth } from '../features/auth/AuthContext';
@@ -89,7 +90,7 @@ export function BusinessShell() {
     return <Navigate to="/app/businesses" replace />;
   }
 
-  const base = `/app/businesses/${business.id}`;
+  const base = `${isDemoPath(location.pathname) ? '/demo' : '/app'}/businesses/${business.id}`;
   const navigation: ShellNavigationItem[] = [
     { to: base, label: 'Dashboard', icon: '⌂', end: true },
     { to: `${base}/transactions`, label: 'Transactions', icon: '▤' },

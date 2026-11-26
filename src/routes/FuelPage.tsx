@@ -2,7 +2,7 @@ import { confirmationWarnings } from '../lib/confirmationWarnings';
 /* eslint-disable react-refresh/only-export-components */
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 
 export interface FuelOption {
@@ -346,6 +346,7 @@ export function FuelForm({
 }
 
 export function FuelPage() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth();
   const canManage = user?.role === 'OWNER';
   const [records, setRecords] = useState<FuelRecord[]>([]);
@@ -384,7 +385,7 @@ export function FuelPage() {
         active: item.active,
       })),
     );
-  }, []);
+  }, [apiRequest]);
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -583,10 +584,11 @@ export function FuelPage() {
                   </>
                 )}
                 <AttachmentPanel
+                  request={apiRequest}
                   recordType="EXPENSE"
                   recordId={record.id}
                   canManage={canManage}
-                  localOnly={configuration?.environment === 'demo'}
+                  localOnly={configuration?.demoHelper === true}
                 />
               </article>
             ))}

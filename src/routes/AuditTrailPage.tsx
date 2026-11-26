@@ -5,8 +5,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useParams } from 'react-router-dom';
-import { apiRequest } from '../features/auth/AuthContext';
+import { useParams } from '../lib/workspaceRouting';
+import { useApiRequest } from '../features/auth/AuthContext';
 import { FormError } from '../components/FormError';
 interface AuditEvent {
   id: string;
@@ -25,6 +25,7 @@ export function AuditTrailPage() {
   return <AuditTrailView key={businessId ?? 'account'} />;
 }
 function AuditTrailView() {
+  const apiRequest = useApiRequest();
   const { businessId } = useParams();
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -73,7 +74,7 @@ function AuditTrailView() {
         }
       }
     },
-    [businessId],
+    [businessId, apiRequest],
   );
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '../auth/AuthContext';
+import type { apiRequest as RequestClient } from '../auth/AuthContext';
 import { EvidencePreview } from './EvidencePreview';
 import { attachmentUploadError, uploadAttachment } from './attachmentUpload';
 
@@ -28,6 +28,7 @@ export function AttachmentPanel({
   uploadsEnabled = true,
   localOnly = false,
   canDownload = true,
+  request,
 }: {
   recordType: RecordType;
   recordId: string;
@@ -35,7 +36,9 @@ export function AttachmentPanel({
   uploadsEnabled?: boolean;
   localOnly?: boolean;
   canDownload?: boolean;
+  request: typeof RequestClient;
 }) {
+  const apiRequest = request;
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -50,7 +53,7 @@ export function AttachmentPanel({
       `/api/attachments?recordType=${recordType}&recordId=${encodeURIComponent(recordId)}`,
     );
     setAttachments(result.attachments ?? []);
-  }, [recordId, recordType]);
+  }, [recordId, recordType, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -98,14 +101,17 @@ export function AttachmentPanel({
     setError('');
     setUploadFailed(false);
     try {
-      const duplicateWarnings = await uploadAttachment({
-        recordType,
-        recordId,
-        file,
-        rotation,
-        replaceAttachmentId: replace?.id,
-        confirmDuplicate,
-      });
+      const duplicateWarnings = await uploadAttachment(
+        {
+          recordType,
+          recordId,
+          file,
+          rotation,
+          replaceAttachmentId: replace?.id,
+          confirmDuplicate,
+        },
+        apiRequest,
+      );
       if (duplicateWarnings !== null) {
         setWarnings(duplicateWarnings);
         return;

@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from '../lib/workspaceRouting';
 import { AccountantEntityCard } from '../components/WorkspacePatterns';
 import {
   type BusinessSummary,

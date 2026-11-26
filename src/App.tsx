@@ -1,4 +1,10 @@
-import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
+import {
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useParams,
+} from './lib/workspaceRouting';
 import { AccountShell, BusinessShell } from './components/ShellLayouts';
 import { PwaStatus } from './features/pwa/PwaStatus';
 import { CopyrightFooter } from './components/CopyrightFooter';
@@ -71,20 +77,23 @@ function LegacyExpenseFilterRedirect({ type }: { type: string }) {
   );
 }
 
-export function App() {
+export function App({ demo = false }: { demo?: boolean }) {
+  const workspaceRoot = demo ? '/demo' : '/app';
   return (
     <>
       <PwaStatus />
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path={demo ? '/demo' : '/login'} element={<LoginPage />} />
         <Route path="/verify-login" element={<VerifyLoginPage />} />
         <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
 
         <Route element={<WorkspaceGate />}>
           <Route element={<AuditorRouteGate />}>
             <Route element={<DirectoryLayout />}>
-              <Route path="/app" element={<AccountShell />}>
-                <Route index element={<Navigate to="businesses" replace />} />
+              <Route path={workspaceRoot} element={<AccountShell />}>
+                {!demo && (
+                  <Route index element={<Navigate to="businesses" replace />} />
+                )}
                 <Route path="businesses" element={<BusinessesPage />} />
                 <Route path="accountant" element={<AccountantPage />} />
                 <Route path="transactions" element={<TransactionsPage />} />
@@ -107,7 +116,7 @@ export function App() {
               </Route>
 
               <Route
-                path="/app/businesses/:businessId"
+                path={`${workspaceRoot}/businesses/:businessId`}
                 element={<BusinessShell />}
               >
                 <Route index element={<DashboardPage />} />

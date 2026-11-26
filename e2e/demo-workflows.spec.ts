@@ -8,20 +8,7 @@ async function mockImmutableDemo(
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    // Compatibility discovery for local/e2e builds. Demo builds need no request.
-    if (path === '/api/auth/config' && request.method() === 'GET') {
-      reads.push(path);
-      await route.fulfill({
-        json: {
-          environment: 'demo',
-          localHelper: false,
-          demoHelper: true,
-          turnstileRequired: false,
-          turnstileSiteKey: null,
-        },
-      });
-      return;
-    }
+    reads.push(path);
     unsafeRequests.push(`${request.method()} ${request.url()}`);
     await route.abort();
   });
@@ -32,12 +19,12 @@ test('demo accountant reviews records, previews evidence and reloads browser-onl
 }) => {
   const apiRequests: string[] = [];
   await mockImmutableDemo(page, apiRequests);
-  await page.goto('/login');
+  await page.goto('/demo');
   await page
     .getByRole('button', { name: 'Continue as Demo Accountant' })
     .click();
   await page.getByRole('link', { name: 'Open DoorDash' }).click();
-  const base = '/app/businesses/business-demo-activity-delivery';
+  const base = '/demo/businesses/business-demo-activity-delivery';
   await page.goto(`${base}/transactions`);
   const row = page
     .locator('tr')
@@ -79,7 +66,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   const firstUnsafe: string[] = [];
   await mockImmutableDemo(firstPage, firstUnsafe);
 
-  await firstPage.goto('/login');
+  await firstPage.goto('/demo');
   await expect(
     firstPage.getByRole('button', { name: 'Continue as Demo Owner' }),
   ).toBeVisible();
@@ -202,7 +189,7 @@ test('demo edits are browser-local, persistent, isolated, and resettable', async
   const secondPage = await secondContext.newPage();
   const secondUnsafe: string[] = [];
   await mockImmutableDemo(secondPage, secondUnsafe);
-  await secondPage.goto('/login');
+  await secondPage.goto('/demo');
   await expect(
     secondPage.getByRole('button', { name: 'Continue as Demo Owner' }),
   ).toBeVisible();
@@ -262,7 +249,7 @@ test('demo auditor inspects records without sessions or browser-local mutations 
   const reads: string[] = [];
   await mockImmutableDemo(page, unsafeRequests, reads);
   try {
-    await page.goto('/login');
+    await page.goto('/demo');
     await page
       .getByRole('button', { name: 'Continue as Demo Auditor' })
       .click();
@@ -279,7 +266,7 @@ test('demo auditor inspects records without sessions or browser-local mutations 
       page.getByRole('link', { name: 'Accountant view', exact: true }),
     ).toHaveCount(0);
     await page.getByRole('link', { name: 'Open DoorDash' }).click();
-    const base = '/app/businesses/business-demo-activity-delivery';
+    const base = '/demo/businesses/business-demo-activity-delivery';
     await page.goto(`${base}/expenses`);
     await page.locator(`a[href="${base}/expenses/demo-fuel-1"]`).click();
     await expect(
@@ -326,18 +313,18 @@ test('demo auditor inspects records without sessions or browser-local mutations 
 
     await page.goto(`${base}/expenses/new`);
     await expect(page).toHaveURL(new RegExp(`${base}/expenses$`));
-    await page.goto('/app/settings/account');
-    await expect(page).toHaveURL(/\/app\/businesses$/);
+    await page.goto('/demo/settings/account');
+    await expect(page).toHaveURL(/\/demo\/businesses$/);
     await page.reload();
     await expect(page.getByLabel('Auditor access')).toContainText(
       'Demo Auditor',
     );
     await page.evaluate("window.dispatchEvent(new Event('focus'))");
     const rejected = await page.evaluate<string[]>(`(async () => {
-      const { apiRequest } = await import('/src/features/auth/AuthContext.tsx');
+      const { staticDemoRequest } = await import('/src/features/demo/staticDemoApi.ts');
       const results = [];
       for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
-        try { await apiRequest('/api/comments', { method, body: '{}' }); results.push('allowed'); }
+        try { await staticDemoRequest('/api/comments', { method, body: '{}' }, 'AUDITOR'); results.push('allowed'); }
         catch (error) { results.push(error.status ? String(error.status) : String(error.message)); }
       }
       return results;

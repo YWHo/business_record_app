@@ -1,8 +1,8 @@
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from '../lib/workspaceRouting';
 import { AuditorAccessPanel } from '../features/members/AuditorAccessPanel';
 import {
-  apiRequest,
+  useApiRequest,
   type AuthUser,
   useAuth,
 } from '../features/auth/AuthContext';
@@ -18,6 +18,7 @@ type ManagedUser = Omit<AuthUser, 'status'> & {
 };
 
 export function UserManagementPage() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -32,7 +33,7 @@ export function UserManagementPage() {
     ]);
     setUsers(userResult.users);
     setInvitations(invitationResult.invitations);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     if (user?.role === 'OWNER' && !configuration?.demoHelper) {

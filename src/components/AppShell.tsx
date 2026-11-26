@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { WorkspaceEntryLink } from './WorkspaceEntryLink';
+import { Link, NavLink, Outlet } from '../lib/workspaceRouting';
 import { useAuth } from '../features/auth/AuthContext';
 import { AuditorAccessNotice } from '../features/auth/AuditorAccessNotice';
 import { AccountantAccessNotice } from '../features/auth/AccountantAccessNotice';
@@ -157,8 +158,14 @@ export function AppShellPresentation({
               {auditor
                 ? 'Read-only inspection of fictional data'
                 : 'Changes are saved only in this browser'}
+              {' · '}
+              <WorkspaceEntryLink demo workspace />
             </p>
-          ) : null}
+          ) : (
+            <p>
+              <WorkspaceEntryLink demo={false} workspace />
+            </p>
+          )}
           <div className="page-content">{children ?? <Outlet />}</div>
         </main>
       </div>
@@ -174,7 +181,7 @@ export function AppShell(props: AppShellProps) {
   return (
     <AppShellPresentation
       {...props}
-      isDemo={configuration?.environment === 'demo'}
+      isDemo={configuration?.demoHelper === true}
       onLogout={() => void logout()}
       onResetDemo={() => void resetDemo()}
       userEmail={user?.email ?? ''}

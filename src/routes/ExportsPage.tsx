@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackupReminder } from '../features/exports/BackupReminder';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { hasPermission } from '../lib/permissions';
 import { ExportDownloadLink } from '../features/exports/ExportDownloadLink';
-import { useParams } from 'react-router-dom';
+import { useParams } from '../lib/workspaceRouting';
 import { ReadOnlyReportsPage } from './ReadOnlyReportsPage';
 
 interface ExportHistory {
@@ -29,11 +29,12 @@ export function ExportsPage() {
 }
 
 function ExportWorkspace() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth();
   const archive = hasPermission(user, 'ARCHIVE_EXPORT');
   const viewHistory = hasPermission(user, 'ARCHIVE_HISTORY_VIEW');
   const { businessId } = useParams();
-  const isDemo = configuration?.environment === 'demo';
+  const isDemo = configuration?.demoHelper === true;
   const now = new Date();
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const initialTaxYear = String(
@@ -51,7 +52,7 @@ function ExportWorkspace() {
     }
     const result = await apiRequest<ExportStatus>('/api/exports/status');
     setHistory(result.exports);
-  }, [viewHistory]);
+  }, [viewHistory, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

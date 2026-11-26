@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { AttachmentPanel } from './AttachmentPanel';
+import { apiRequest } from '../auth/AuthContext';
 
 function successResponse() {
   return Promise.resolve(
@@ -15,6 +16,7 @@ const meta = {
   title: 'Workflows/Supporting documents',
   component: AttachmentPanel,
   args: {
+    request: apiRequest,
     recordType: 'EXPENSE',
     recordId: 'storybook-expense',
     canManage: true,

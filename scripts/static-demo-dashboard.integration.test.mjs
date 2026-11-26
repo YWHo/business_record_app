@@ -1,3 +1,4 @@
+import { staticDemoTestActor } from './static-demo-evidence-fixture.mjs';
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -55,7 +56,11 @@ it.each([
   async (businessId, query) => {
     const response = await dashboard(
       new Request(`https://demo.invalid/api/dashboard?${query}`),
-      { APP_ENV: 'demo', DB: { prepare: statement } },
+      {
+        APP_ENV: 'demo',
+        REQUEST_USER: staticDemoTestActor,
+        DB: { prepare: statement },
+      },
       businessId ? { businessId } : {},
     );
     expect(

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { apiRequest } from '../auth/AuthContext';
+import { Link, useParams } from '../../lib/workspaceRouting';
+import { useApiRequest } from '../auth/AuthContext';
 
 export interface BackupStatus {
   reminderDays: number;
@@ -9,12 +9,13 @@ export interface BackupStatus {
 }
 
 export function BackupReminder() {
+  const apiRequest = useApiRequest();
   const [backup, setBackup] = useState<BackupStatus | null>(null);
   useEffect(() => {
     void apiRequest<{ backup: BackupStatus }>('/api/exports/status')
       .then((result) => setBackup(result.backup))
       .catch(() => setBackup(null));
-  }, []);
+  }, [apiRequest]);
   if (!backup) {
     return null;
   }

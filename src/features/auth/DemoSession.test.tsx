@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { useState } from 'react';
-import { AuthProvider, apiRequest, useAuth } from './AuthContext';
+import { AuthProvider, useApiRequest, useAuth } from './AuthContext';
 import { recordDemoMutation, resetDemoData } from '../demo/demoStore';
 
 vi.mock('../demo/demoStore', () => ({
@@ -16,6 +16,7 @@ vi.mock('../demo/demoStore', () => ({
 }));
 
 function DemoSession() {
+  const apiRequest = useApiRequest();
   const { user, loading, demoLogin, logout, refresh, resetDemo } = useAuth();
   const [outcome, setOutcome] = useState('');
   const attempt = async (operation: () => Promise<unknown>) => {
@@ -66,7 +67,7 @@ function openDemo(environment = 'demo') {
   );
   vi.stubGlobal('fetch', fetcher);
   render(
-    <AuthProvider>
+    <AuthProvider mode={environment === 'demo' ? 'demo' : 'private'}>
       <DemoSession />
     </AuthProvider>,
   );
@@ -95,8 +96,7 @@ describe('browser-local demo sessions', () => {
         await Promise.resolve();
       });
       expect(screen.getByText(role)).toBeVisible();
-      expect(fetcher).toHaveBeenCalledTimes(1);
-      expect(fetcher.mock.calls[0][0]).toBe('/api/auth/config');
+      expect(fetcher).not.toHaveBeenCalled();
     },
   );
 
@@ -114,7 +114,7 @@ describe('browser-local demo sessions', () => {
     });
     expect(recordDemoMutation).not.toHaveBeenCalled();
     expect(resetDemoData).not.toHaveBeenCalled();
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('can switch from owner editing to auditor inspection, sign out, and edit again as owner', async () => {
@@ -146,7 +146,7 @@ describe('browser-local demo sessions', () => {
       await Promise.resolve();
     });
     await waitFor(() => expect(recordDemoMutation).toHaveBeenCalledTimes(2));
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('fails closed for an unknown persisted demo role', async () => {
@@ -160,7 +160,7 @@ describe('browser-local demo sessions', () => {
       ),
     );
     expect(recordDemoMutation).not.toHaveBeenCalled();
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('cannot turn a private session into a demo identity', async () => {

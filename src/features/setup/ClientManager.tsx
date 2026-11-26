@@ -1,5 +1,5 @@
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '../auth/AuthContext';
+import { useApiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
 interface Client {
@@ -10,6 +10,7 @@ interface Client {
 }
 
 export function ClientManager({ canManage }: { canManage: boolean }) {
+  const apiRequest = useApiRequest();
   const [clients, setClients] = useState<Client[]>([]);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -20,7 +21,7 @@ export function ClientManager({ canManage }: { canManage: boolean }) {
   const load = useCallback(async () => {
     const result = await apiRequest<{ clients: Client[] }>('/api/clients');
     setClients(result.clients);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

@@ -1,5 +1,5 @@
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '../auth/AuthContext';
+import { useApiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
 export interface Vehicle {
@@ -42,6 +42,7 @@ function draftFrom(vehicle: Vehicle): VehicleDraft {
 }
 
 export function VehicleManager({ canManage }: { canManage: boolean }) {
+  const apiRequest = useApiRequest();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [createDraft, setCreateDraft] = useState(emptyDraft);
   const [editId, setEditId] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export function VehicleManager({ canManage }: { canManage: boolean }) {
   const load = useCallback(async () => {
     const result = await apiRequest<{ vehicles: Vehicle[] }>('/api/vehicles');
     setVehicles(result.vehicles);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

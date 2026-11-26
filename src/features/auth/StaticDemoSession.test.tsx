@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useState } from 'react';
-import { AuthProvider, apiRequest, useAuth } from './AuthContext';
+import { AuthProvider, useApiRequest, useAuth } from './AuthContext';
 
 function Probe() {
+  const apiRequest = useApiRequest();
   const { user, loading, demoLogin, logout, refresh } = useAuth();
   const [result, setResult] = useState('');
   const load = async () => {
@@ -36,7 +37,7 @@ it('boots a demo build, selects roles, reads records and signs out with no API r
   });
   vi.stubGlobal('fetch', fetcher);
   render(
-    <AuthProvider>
+    <AuthProvider mode="demo">
       <Probe />
     </AuthProvider>,
   );

@@ -1,4 +1,4 @@
-import { apiRequest } from '../auth/AuthContext';
+import type { apiRequest } from '../auth/AuthContext';
 import type { ExpenseType } from './businessExpense';
 
 export async function saveExpense({
@@ -8,6 +8,7 @@ export async function saveExpense({
   expenseType,
   body,
   confirmedWarnings,
+  request,
 }: {
   mode: 'create' | 'edit';
   businessId: string;
@@ -15,9 +16,10 @@ export async function saveExpense({
   expenseType: ExpenseType;
   body: object;
   confirmedWarnings: string[];
+  request: typeof apiRequest;
 }): Promise<{ id?: string } | undefined> {
   const collection = `/api/businesses/${businessId}/expenses`;
-  const result = await apiRequest<Record<string, unknown>>(
+  const result = await request<Record<string, unknown>>(
     mode === 'edit' ? `${collection}/${expenseId}` : collection,
     {
       method: mode === 'edit' ? 'PATCH' : 'POST',

@@ -290,95 +290,29 @@ connection or operational subscriber database is implied.
 
 ## Public demo setup
 
-The demo is a separate named Cloudflare environment for portfolio visitors. It
-uses only fictional records, its own Worker, D1 database, variables, and
-rate-limit namespace, and never reads production bindings. It has no R2 binding.
-Visitors choose **Continue as Demo Owner**, **Continue as Demo Accountant**, or
-**Continue as Demo Auditor**;
-that selection exists only in the current browser tab and creates no server
-session or cookie. Email login and the loopback development helper are not
-exposed in demo mode.
+Open `/demo` in local development or either hosted environment to explore the
+same bundled fictional records as Owner, Accountant or Auditor. `/login` and
+`/app` belong to the private workspace. Entering or leaving the demo preserves a
+private session; signing out of the demo clears only the simulated tab role.
 
-Demo Auditor opens a read-only workspace for all fictional businesses and record
-dates, including edits already stored in that browser. It has no private
-membership or access expiry. Editing, comments, review updates, uploads, downloads,
-exports and resetting browser data are unavailable in this role. Signing out and
-choosing Demo Owner or Demo Accountant preserves their existing browser-local
-editing workflow. Browser role selection never changes the server's read-only
-principal or creates a real auditor grant.
+Demo reads and simulated changes use static assets and the versioned browser
+IndexedDB overlay. They do not call authentication, record, email, D1 or R2
+APIs. Reset clears only demo changes. Bundled fictional PDFs provide preview
+examples; selected visitor files retain metadata only. The public demo creates
+no private session or membership. Private record APIs require authentication.
 
-Keep the demo on the Workers Free plan initially. Quota exhaustion may
-temporarily make the demo unavailable; do not bypass protections or
-automatically upgrade it to paid execution. Before read route work, the Worker
-applies both a 30-request-per-10-second burst limit and a 120-request-per-minute
-sustained limit, then caches successful JSON GET responses at the edge for ten
-minutes. Rejected requests include `Retry-After`; the browser retries safe reads
-at most twice with bounded exponential delay and jitter. Demo writes are
-rejected before any limiter or storage work. Cache failures fall through to the
-normal read path. A missing demo limiter fails closed. If the account later
-becomes pay-as-you-go, configure low account-level budget alerts, remembering
-that alerts notify rather than cap spend. Re-check current Cloudflare pricing
-and limits before changing plans or R2 storage class; no price or free-tier
-quota belongs in application logic.
+`pnpm demo:generate` regenerates the fictional dataset and PDF examples from
+repository-owned synthetic inputs in memory. It never opens a local or remote
+database. `pnpm build:demo` retains the existing demo build target and opens
+`/demo` by default. Public demonstration no longer requires database seeding.
 
-The demo backend is strictly read-only: every non-GET API request is rejected
-before D1 work. The UI keeps edits, comments, statuses, new records,
-business/legal-entity periods, and deletion tombstones in a versioned,
-business-scoped IndexedDB overlay. Reloading preserves that browser's changes;
-another browser context starts clean. Compatible older browser data is migrated
-automatically, while ambiguous old record operations are discarded rather than
-assigned to the wrong business. **Reset demo data** clears only the current
-browser overlay and restores its synthetic operating periods. Demo document
-selection and preview never send visitor files to the Worker. Dynamic ZIP
-generation, permanent deletion, outbound email, invitations, bootstrap, and
-destructive administration remain unavailable.
-
-Provision the remote demo resources once:
-
-```bash
-pnpm exec wrangler d1 create business-records-demo
-```
-
-Replace the demo D1 placeholder ID and `APP_ORIGIN` in `wrangler.jsonc` with the
-created resource ID and final demo Worker URL. Do not copy production
-identifiers or secrets into the demo environment. Apply migrations, load the
-synthetic dataset, and deploy:
-
-```bash
-pnpm test:demo-data
-pnpm build:demo
-pnpm exec wrangler deploy --env demo --dry-run \
-  --outdir .wrangler/deploy-preview/demo
-pnpm db:reset:demo
-pnpm db:verify:demo
-pnpm deploy:demo
-```
-
-The reset command always targets remote D1 with `--env demo --remote`. Because
-it deletes all demo rows and sessions before reseeding, it requires typing
-`business-records-demo`. For a deliberately authorized scheduled CI reset,
-provide the same confirmation non-interactively:
-
-```bash
-pnpm db:reset:demo -- --confirm business-records-demo
-```
-
-`pnpm db:seed:demo` replaces records without applying migrations first and has
-the same confirmation guard. The seed provides a synthetic account, four
-businesses with legal-entity operating periods, two users, two vehicles,
-fictional clients and transactions, work sessions, platform payments, IT invoices, SaaS
-summaries, expenses, allocations, reconciliations, comments, audit history,
-saved filters, and mixed review statuses.
-
-The commands above are for initial demo provisioning. Later code-only, schema,
-configuration, and synthetic-data releases have different ordering and should
-not all reset D1. Follow the matching
-[subsequent-release runbook](docs/deployment-guide.md#6-subsequent-releases).
-
-The SQL seed intentionally contains no attachment metadata. Browser-selected
-demo files remain local, and the demo Worker cannot access R2. Production
-documents continue to use a private R2 bucket with the Standard storage class
-unless a later ADR records a reviewed reason to change it.
+The legacy `demo` deployment configuration remains during the staged conversion
+to a disposable staging workspace. Its anonymous record API and shared JSON
+cache have been removed. Existing remote bindings and administrative seed/reset
+utilities are retained for an explicit, inspected migration; they are not part
+of visitor demo operation. Staging provisioning and credentials arrive in later
+phases. See [static demo architecture](docs/static-demo-data.md) for the current
+routing and storage boundaries. No remote conversion is performed by a build.
 
 ## Production authentication setup
 

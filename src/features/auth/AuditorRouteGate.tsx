@@ -1,9 +1,11 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from '../../lib/workspaceRouting';
 import { useAuth } from './AuthContext';
 export function AuditorRouteGate() {
   const { user } = useAuth();
   const { pathname: rawPathname } = useLocation();
-  let pathname = rawPathname.replace(/\/+$/, '');
+  let pathname = rawPathname
+    .replace(/^\/demo(?=\/|$)/i, '/app')
+    .replace(/\/+$/, '');
   try {
     pathname = decodeURIComponent(pathname);
   } catch {

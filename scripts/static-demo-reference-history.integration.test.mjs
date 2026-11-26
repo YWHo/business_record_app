@@ -1,3 +1,4 @@
+import { staticDemoTestActor } from './static-demo-evidence-fixture.mjs';
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -71,7 +72,11 @@ function statement(sql, values = []) {
   };
 }
 
-const env = { APP_ENV: 'demo', DB: { prepare: statement } };
+const env = {
+  APP_ENV: 'demo',
+  REQUEST_USER: staticDemoTestActor,
+  DB: { prepare: statement },
+};
 
 beforeAll(() => {
   db = new DatabaseSync(':memory:');

@@ -43,7 +43,7 @@ describe('Worker security middleware', () => {
     });
   });
 
-  it('fails closed when a demo rate-limit binding is unavailable', async () => {
+  it('rejects retired demo API reads without requiring a limiter binding', async () => {
     const response = await worker.fetch(
       incoming(new Request('https://demo.example.invalid/api/not-present')),
       {
@@ -53,13 +53,13 @@ describe('Worker security middleware', () => {
       },
     );
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({
-      error: 'Demo protection is temporarily unavailable.',
+      error: 'Authentication required.',
     });
   });
 
-  it('rejects an excessive demo action before route handling', async () => {
+  it('rejects retired demo API reads even when a limiter would deny them', async () => {
     const allow = { limit: () => Promise.resolve({ success: true }) };
     const response = await worker.fetch(
       incoming(
@@ -78,8 +78,8 @@ describe('Worker security middleware', () => {
       },
     );
 
-    expect(response.status).toBe(429);
-    expect(response.headers.get('retry-after')).toBe('10');
+    expect(response.status).toBe(401);
+    expect(response.headers.get('retry-after')).toBeNull();
   });
 
   it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
@@ -114,7 +114,7 @@ describe('Worker security middleware', () => {
     },
   );
 
-  it('reports exhausted demo storage capacity without internal details', async () => {
+  it('never probes retired demo storage from public health requests', async () => {
     const allow = { limit: () => Promise.resolve({ success: true }) };
     const response = await worker.fetch(
       incoming(new Request('https://demo.example.invalid/api/health')),
@@ -132,10 +132,9 @@ describe('Worker security middleware', () => {
       },
     );
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({
-      error:
-        'The public demo is temporarily at capacity. Please try again later.',
+      error: 'Authentication required.',
     });
   });
 });

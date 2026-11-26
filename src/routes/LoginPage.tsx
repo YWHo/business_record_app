@@ -1,17 +1,19 @@
 import { type SubmitEvent, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from '../lib/workspaceRouting';
 import {
   useAuth,
-  apiRequest,
+  useApiRequest,
   ApiError,
   type DemoRole,
 } from '../features/auth/AuthContext';
 import { DemoRoleChooser } from '../features/auth/DemoRoleChooser';
 import { LocalRoleChooser } from '../features/auth/LocalRoleChooser';
 import { AccessEndedNotice } from '../features/auth/AccessEndedNotice';
+import { WorkspaceEntryLink } from '../components/WorkspaceEntryLink';
 import { TurnstileWidget } from '../features/auth/TurnstileWidget';
 
 export function LoginPage() {
+  const apiRequest = useApiRequest();
   const {
     configuration,
     configurationError,
@@ -77,8 +79,14 @@ export function LoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="login-heading">
-        <span className="eyebrow">Invitation only</span>
-        <h1 id="login-heading">Sign in</h1>
+        <span className="eyebrow">
+          {configuration?.demoHelper
+            ? 'Public demonstration'
+            : 'Invitation only'}
+        </span>
+        <h1 id="login-heading">
+          {configuration?.demoHelper ? 'Explore the demo' : 'Sign in'}
+        </h1>
         {accessEnded && <AccessEndedNotice />}
         <p>
           {configuration?.demoHelper
@@ -90,6 +98,9 @@ export function LoginPage() {
             {configurationError} Refresh this page to try again.
           </p>
         ) : null}
+        <p>
+          <WorkspaceEntryLink demo={configuration?.demoHelper === true} />
+        </p>
         {configuration && !configuration.demoHelper ? (
           <form onSubmit={(event) => void submit(event)} className="stack-form">
             <label htmlFor="login-email">Email address</label>

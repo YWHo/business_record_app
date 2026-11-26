@@ -2,7 +2,8 @@
 
 The staging/static-demo redesign plan is maintained outside this repository.
 Phase 1 connects these adapters to the public demo application's request path.
-Public/private routing and staging configuration remain later phases.
+Phase 2 separates `/demo` from `/login` and `/app`. Staging configuration and
+credentials remain later phases.
 
 ## Dataset
 
@@ -48,7 +49,8 @@ from the records so ordinary application imports do not bundle the full dataset.
 
 ## Application integration
 
-`AuthContext.apiRequest` dispatches demo requests to the lazy-loaded
+`useApiRequest()` supplies a client bound to the mounted workspace and selected
+role. In demo mode it dispatches requests to the lazy-loaded
 `staticDemoApi.ts` adapter. It explicitly maps the application's business,
 financial record, mileage, fuel-picker, document, reference, history, report and
 governance routes to the static readers. Unsupported endpoints fail closed;
@@ -56,22 +58,38 @@ there is no network fallback. Mutations use the browser overlay and return the
 record envelopes expected by the forms. Simulated role permissions restrict
 mutations; Auditor requests cannot write or reset browser state.
 
-`pnpm build:demo` selects the existing Vite `demo` mode and supplies a local,
-public presentation configuration without calling `/api/auth/config` or
-`/api/auth/me`. No server authentication or session is created. Other build modes
-retain server configuration discovery for private/local use; during the current
-transition, a discovered `environment=demo` also selects the static adapter.
-Private response payloads never pass through the demo overlay. Tests verify
-that a persisted demo role cannot replace a production session or its data.
+`/demo` supplies public presentation configuration locally, in every build mode,
+without calling `/api/auth/config` or `/api/auth/me`. No server authentication or
+session is created. `/login` and `/app` always use server configuration and real
+authorization, even when a demo tab role exists. The existing `build:demo` mode
+only changes the root landing redirect to `/demo`; it grants no server authority.
 
-The existing `/login` and `/app` layout is retained for this phase. Phase 2 will
-introduce explicit `/demo` routing alongside `/app` and remove the legacy demo
-server principal. No staging bindings, credentials or remote resources change
-in Phase 1. Browser tests abort all data API calls and exercise Owner editing,
-Accountant review and Auditor inspection against the real bundled dataset.
-They permit only configuration discovery for compatibility with local e2e
-builds; demo builds do not need that request. Storybook includes an integrated
-adapter-backed directory alongside the detail and evidence examples.
+`WorkspaceApplication` remounts the authentication provider when crossing the
+public/private boundary. Screens use `useApiRequest()` and receive new state
+containers; form/upload helpers require an explicitly supplied client. Stale
+clients and late responses are rejected after leaving their workspace. Private
+responses never pass through the demo overlay. `workspaceRouting.tsx` keeps
+existing screen links, redirects and imperative navigation under the selected
+workspace prefix. Explicit entry/exit links deliberately cross the boundary.
+
+Entering/leaving or signing out of the demo does not log out the private
+session. Returning to `/app` reloads private authorization. Signing out privately
+does not reset demo edits. The simulated tab role and versioned IndexedDB remain
+independent of private cookies. The service worker caches static assets only;
+API/private document responses have no runtime cache and no navigation fallback.
+Private fetches force `cache: no-store`, avoiding reuse of older cached API reads.
+
+The Worker's anonymous demo principal and shared JSON API cache are removed.
+Private record handlers require authenticated sessions. The retained legacy
+`APP_ENV=demo` deployment rejects record API reads before D1/R2/cache work;
+only public configuration discovery remains available there. Its old bindings
+and reset utilities await an explicit staging conversion in later phases.
+
+Browser tests abort every API call while exercising demo Owner editing,
+Accountant review and Auditor inspection. A separate switching scenario mocks
+private server responses to verify cookie preservation, independent sign-out,
+browser edit persistence and private/demo record isolation. Storybook includes
+entry/exit links and an adapter-backed directory alongside the detail examples.
 
 `staticDemoDetails.ts` now reads scoped expense and income detail records,
 including fuel/parking fields, insurance premium and allocation, platform,

@@ -1,3 +1,4 @@
+import { staticDemoTestActor } from './static-demo-evidence-fixture.mjs';
 // @vitest-environment node
 import { DatabaseSync } from 'node:sqlite';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -100,7 +101,11 @@ it.each([
   'vehicleId=demo-vehicle-koru',
   'legalEntityId=business-entity-primary&status=PROCESSED',
 ])('matches the authoritative transaction response for %s', async (query) => {
-  const env = { APP_ENV: 'demo', DB: { prepare: statement } };
+  const env = {
+    APP_ENV: 'demo',
+    REQUEST_USER: staticDemoTestActor,
+    DB: { prepare: statement },
+  };
   for (const scope of [undefined, businessId]) {
     const response = await listTransactions(
       new Request(`https://demo.invalid/api/transactions?${query}`),

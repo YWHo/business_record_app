@@ -1,4 +1,12 @@
 import { readFileSync } from 'node:fs';
+// Explicit test context for direct handler parity comparisons, never HTTP auth.
+export const staticDemoTestActor = {
+  id: 'demo-accountant',
+  email: 'demo-accountant@example.invalid',
+  role: 'ACCOUNTANT',
+  status: 'ACTIVE',
+  businessAccountId: 'business-account-primary',
+};
 
 // Test-only D1 metadata for the bundled public PDFs. No R2 or disk database.
 export function seedStaticDemoEvidence(db) {

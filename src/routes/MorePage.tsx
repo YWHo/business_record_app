@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from '../lib/workspaceRouting';
 import { useAuth } from '../features/auth/AuthContext';
 
 interface MoreLink {

@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import { IncomeReconciliationForm } from '../features/income/IncomeReconciliationForm';
 import { hasPermission } from '../lib/permissions';
@@ -692,6 +692,7 @@ export function ReconcileForm({
   record: IncomeRecord;
   onSaved: () => Promise<void>;
 }) {
+  const apiRequest = useApiRequest();
   const { user } = useAuth();
   if (!hasPermission(user, 'ACCOUNTING_ADJUST')) {
     return null;
@@ -716,6 +717,7 @@ export function ReconcileForm({
 }
 
 export function IncomePage() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth(),
     canManage = user?.role === 'OWNER';
   const [records, setRecords] = useState<IncomeRecord[]>([]);
@@ -743,7 +745,7 @@ export function IncomePage() {
     setSummary(income.summary.totalsByCurrency);
     setActivities(activityResult.activities);
     setClients(clientResult.clients);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -947,10 +949,11 @@ export function IncomePage() {
                 </>
               )}
               <AttachmentPanel
+                request={apiRequest}
                 recordType="INCOME"
                 recordId={record.id}
                 canManage={canManage}
-                localOnly={configuration?.environment === 'demo'}
+                localOnly={configuration?.demoHelper === true}
               />
             </article>
           ))}

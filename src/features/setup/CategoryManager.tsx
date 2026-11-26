@@ -1,5 +1,5 @@
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '../auth/AuthContext';
+import { useApiRequest } from '../auth/AuthContext';
 import { StatusBadge } from '../../components/StatusBadge';
 
 interface Category {
@@ -10,6 +10,7 @@ interface Category {
 }
 
 export function CategoryManager({ canManage }: { canManage: boolean }) {
+  const apiRequest = useApiRequest();
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState('');
   const [edit, setEdit] = useState<Category | null>(null);
@@ -21,7 +22,7 @@ export function CategoryManager({ canManage }: { canManage: boolean }) {
       '/api/expense-categories',
     );
     setCategories(result.categories);
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

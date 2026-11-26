@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { Link, Navigate, useParams } from '../lib/workspaceRouting';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import {
   AuditorAccessForm,
   type AccessOption,
@@ -10,6 +10,7 @@ import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { FormError } from '../components/FormError';
 
 export function AuditorAccessPage() {
+  const apiRequest = useApiRequest();
   const { user, configuration } = useAuth();
   const { userId } = useParams();
   const allowed = user?.role === 'OWNER' && !configuration?.demoHelper;
@@ -66,7 +67,7 @@ export function AuditorAccessPage() {
     return () => {
       active = false;
     };
-  }, [allowed, userId]);
+  }, [allowed, userId, apiRequest]);
 
   if (!allowed) {
     return <Navigate to="/app/businesses" replace />;

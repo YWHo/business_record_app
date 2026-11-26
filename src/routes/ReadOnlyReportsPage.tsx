@@ -5,8 +5,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useParams } from 'react-router-dom';
-import { apiRequest } from '../features/auth/AuthContext';
+import { useParams } from '../lib/workspaceRouting';
+import { useApiRequest } from '../features/auth/AuthContext';
 import { FormError } from '../components/FormError';
 interface Summary {
   rows: {
@@ -23,6 +23,7 @@ export function ReadOnlyReportsPage() {
   return <ReportView key={businessId ?? 'account'} />;
 }
 function ReportView() {
+  const apiRequest = useApiRequest();
   const { businessId } = useParams();
   const [scope, setScope] = useState('FULL');
   const [month, setMonth] = useState('');
@@ -59,7 +60,7 @@ function ReportView() {
         }
       }
     },
-    [businessId],
+    [businessId, apiRequest],
   );
   useEffect(() => {
     // Synchronize the visible report with the selected business.

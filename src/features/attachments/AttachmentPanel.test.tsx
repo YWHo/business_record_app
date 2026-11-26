@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AttachmentPanel } from './AttachmentPanel';
+import { apiRequest } from '../auth/AuthContext';
 
 function jsonResponse(body: unknown, status = 200) {
   return Promise.resolve(
@@ -27,7 +28,12 @@ describe('AttachmentPanel mobile capture', () => {
 
   it('offers camera and file pickers with preview rotation', async () => {
     render(
-      <AttachmentPanel recordType="EXPENSE" recordId="expense-1" canManage />,
+      <AttachmentPanel
+        request={apiRequest}
+        recordType="EXPENSE"
+        recordId="expense-1"
+        canManage
+      />,
     );
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
@@ -62,6 +68,7 @@ describe('AttachmentPanel mobile capture', () => {
   it('explains the public demo restriction without rendering a file picker', async () => {
     render(
       <AttachmentPanel
+        request={apiRequest}
         recordType="EXPENSE"
         recordId="expense-1"
         canManage
@@ -97,7 +104,12 @@ describe('AttachmentPanel mobile capture', () => {
       }),
     );
     render(
-      <AttachmentPanel recordType="EXPENSE" recordId="expense-1" canManage />,
+      <AttachmentPanel
+        request={apiRequest}
+        recordType="EXPENSE"
+        recordId="expense-1"
+        canManage
+      />,
     );
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
     const file = new File(['image data'], 'receipt.jpg', {
@@ -149,7 +161,12 @@ describe('AttachmentPanel mobile capture', () => {
       }),
     );
     render(
-      <AttachmentPanel recordType="EXPENSE" recordId="expense-1" canManage />,
+      <AttachmentPanel
+        request={apiRequest}
+        recordType="EXPENSE"
+        recordId="expense-1"
+        canManage
+      />,
     );
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
     const file = new File(['%PDF-1.7'], 'receipt.pdf', {

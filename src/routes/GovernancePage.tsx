@@ -1,5 +1,5 @@
 import { type SubmitEvent, useCallback, useEffect, useState } from 'react';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 
 interface TrashItem {
   id: string;
@@ -54,8 +54,9 @@ const emptyAuditFilters = {
 };
 
 export function GovernancePage() {
+  const apiRequest = useApiRequest();
   const { configuration, user } = useAuth();
-  const isDemo = configuration?.environment === 'demo';
+  const isDemo = configuration?.demoHelper === true;
   const [trash, setTrash] = useState<TrashItem[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [savedFilters, setSavedFilters] = useState<SavedAuditFilter[]>([]);
@@ -90,7 +91,7 @@ export function GovernancePage() {
         },
       );
     },
-    [],
+    [apiRequest],
   );
   const load = useCallback(
     async (criteria: typeof emptyAuditFilters) => {
@@ -108,7 +109,7 @@ export function GovernancePage() {
       setSettings(settingsResult.retentionSettings);
       setSavedFilters(savedResult.savedFilters);
     },
-    [loadAudit],
+    [loadAudit, apiRequest],
   );
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.

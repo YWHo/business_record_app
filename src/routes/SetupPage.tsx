@@ -11,7 +11,7 @@ import {
   Outlet,
   useLocation,
   useParams,
-} from 'react-router-dom';
+} from '../lib/workspaceRouting';
 import { FormError } from '../components/FormError';
 import { UnsavedChangesGuard } from '../components/UnsavedChangesGuard';
 import { OperatingPeriodsTable } from '../components/WorkspacePatterns';
@@ -19,7 +19,7 @@ import { ActivityManager } from '../features/setup/ActivityManager';
 import { VehicleManager } from '../features/setup/VehicleManager';
 import { CategoryManager } from '../features/setup/CategoryManager';
 import { ClientManager } from '../features/setup/ClientManager';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { useBusinessDirectory } from '../features/business/BusinessDirectoryContext';
 
 interface BusinessDetailsRecord {
@@ -113,6 +113,7 @@ export function BusinessSettingsLayout() {
 }
 
 export function BusinessDetailsSettingsPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const canManage = useSettingsPermission();
   const { reload } = useBusinessDirectory();
@@ -149,7 +150,7 @@ export function BusinessDetailsSettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [businessId]);
+  }, [businessId, apiRequest]);
 
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
@@ -258,6 +259,7 @@ function entityName(entity: LegalEntityRecord | null) {
 }
 
 export function LegalEntitySettingsPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '' } = useParams();
   const location = useLocation();
   const canManage = useSettingsPermission();
@@ -292,7 +294,7 @@ export function LegalEntitySettingsPage() {
     return () => {
       active = false;
     };
-  }, [businessId]);
+  }, [businessId, apiRequest]);
 
   return (
     <section

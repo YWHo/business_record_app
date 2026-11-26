@@ -8,8 +8,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Outlet } from 'react-router-dom';
-import { apiRequest } from '../auth/AuthContext';
+import { Outlet } from '../../lib/workspaceRouting';
+import { useApiRequest } from '../auth/AuthContext';
 
 export interface BusinessSummary {
   id: string;
@@ -50,6 +50,7 @@ export function BusinessDirectoryProvider({
 }: {
   children?: ReactNode;
 }) {
+  const apiRequest = useApiRequest();
   const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -70,7 +71,7 @@ export function BusinessDirectoryProvider({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // Loading the remote directory is the synchronization performed by this effect.

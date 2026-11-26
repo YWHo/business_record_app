@@ -36,13 +36,7 @@ export async function requireUser(
   }
 
   if (env.APP_ENV === 'demo') {
-    return {
-      id: 'demo-readonly-principal',
-      email: 'readonly@demo.invalid',
-      role: 'ACCOUNTANT',
-      status: 'ACTIVE',
-      businessAccountId: 'business-account-primary',
-    };
+    throw new HttpError(401, 'Authentication required.');
   }
 
   const token = getCookie(request, sessionCookieName);

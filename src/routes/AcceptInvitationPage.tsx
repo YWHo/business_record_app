@@ -4,10 +4,11 @@ import {
   useLocation,
   useNavigate,
   useSearchParams,
-} from 'react-router-dom';
-import { apiRequest } from '../features/auth/AuthContext';
+} from '../lib/workspaceRouting';
+import { useApiRequest } from '../features/auth/AuthContext';
 
 export function AcceptInvitationPage() {
+  const apiRequest = useApiRequest();
   const [params] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();

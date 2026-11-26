@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { apiRequest, useAuth } from '../features/auth/AuthContext';
+import { Link, useNavigate, useParams } from '../lib/workspaceRouting';
+import { useApiRequest, useAuth } from '../features/auth/AuthContext';
 import { AttachmentPanel } from '../features/attachments/AttachmentPanel';
 import {
   sessionDate,
@@ -23,6 +23,7 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function WorkSessionDetailPage() {
+  const apiRequest = useApiRequest();
   const { businessId = '', sessionId = '' } = useParams();
   const navigate = useNavigate();
   const { configuration, user } = useAuth();
@@ -51,7 +52,7 @@ export function WorkSessionDetailPage() {
           : 'Unable to load work session.',
       );
     }
-  }, [businessId, sessionId]);
+  }, [businessId, sessionId, apiRequest]);
   useEffect(() => {
     // Loading remote state is the synchronization performed by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -227,11 +228,12 @@ export function WorkSessionDetailPage() {
         </section>
       ) : null}
       <AttachmentPanel
+        request={apiRequest}
         recordType="WORK_SESSION"
         recordId={session.id}
         canManage={user?.role === 'OWNER'}
         canDownload={user?.role === 'OWNER' || user?.role === 'ACCOUNTANT'}
-        localOnly={configuration?.environment === 'demo'}
+        localOnly={configuration?.demoHelper === true}
       />
     </section>
   );

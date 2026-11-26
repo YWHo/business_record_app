@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -36,6 +37,7 @@ export interface AuthConfiguration {
 export type DemoRole = AuthUser['role'];
 
 interface AuthContextValue {
+  request: typeof apiRequest;
   configuration: AuthConfiguration | null;
   configurationError?: string;
   accessEnded?: boolean;
@@ -49,8 +51,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-let publicDemo = false;
-let publicDemoRole: DemoRole | null = null;
 const demoRoleKey = 'business-records-demo-role';
 
 function storedDemoRole(): DemoRole | null {
@@ -58,14 +58,6 @@ function storedDemoRole(): DemoRole | null {
   return role === 'OWNER' || role === 'ACCOUNTANT' || role === 'AUDITOR'
     ? role
     : null;
-}
-
-function assertDemoEditing() {
-  if (publicDemoRole !== 'OWNER' && publicDemoRole !== 'ACCOUNTANT') {
-    throw new ApiError(403, {
-      error: 'This demo role is read-only. Changes are unavailable.',
-    });
-  }
 }
 
 function auditorAccessHasEnded(user: AuthUser | null): boolean {
@@ -80,16 +72,13 @@ export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  if (publicDemo) {
-    const { staticDemoRequest } = await import('../demo/staticDemoApi');
-    return (await staticDemoRequest(path, init, publicDemoRole)) as T;
-  }
   return remoteRequest<T>(path, init);
 }
 
 async function remoteRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetchWithRateLimitRetry(path, {
     ...init,
+    cache: 'no-store',
     headers: {
       ...(typeof init?.body === 'string'
         ? { 'content-type': 'application/json' }
@@ -110,27 +99,75 @@ async function remoteRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return payload;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+  mode = 'private',
+}: {
+  children: ReactNode;
+  mode?: 'demo' | 'private';
+}) {
   const [configuration, setConfiguration] = useState<AuthConfiguration | null>(
-    null,
+    mode === 'demo' ? staticDemoConfiguration : null,
   );
   const [configurationError, setConfigurationError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(mode !== 'demo');
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const role = mode === 'demo' ? storedDemoRole() : null;
+    return role ? demoUser(role) : null;
+  });
   const [accessEnded, setAccessEnded] = useState(false);
   const sessionVersion = useRef(0);
   const refreshSequence = useRef(0);
+  const lifetime = useRef({ active: true, role: user?.role ?? null });
+  useLayoutEffect(() => {
+    const scope = lifetime.current;
+    scope.active = true;
+    return () => {
+      scope.active = false;
+      sessionVersion.current += 1;
+    };
+  }, []);
+  useLayoutEffect(() => {
+    lifetime.current.role = user?.role ?? null;
+  }, [user?.role]);
+  const request = useMemo<typeof apiRequest>(() => {
+    const role = user?.role ?? null;
+    return async <T,>(path: string, init?: RequestInit): Promise<T> => {
+      const assertCurrent = () => {
+        if (!lifetime.current.active || lifetime.current.role !== role) {
+          throw new ApiError(409, {
+            error: 'This workspace has changed. Please try again.',
+          });
+        }
+      };
+      assertCurrent();
+      if (mode === 'private') {
+        const result = await remoteRequest<T>(path, init);
+        assertCurrent();
+        return result;
+      }
+      const { staticDemoRequest } = await import('../demo/staticDemoApi');
+      assertCurrent();
+      const result = (await staticDemoRequest(path, init, role)) as T;
+      assertCurrent();
+      return result;
+    };
+  }, [mode, user?.role]);
 
   const refresh = useCallback(async () => {
+    if (!lifetime.current.active) {
+      return;
+    }
     const version = sessionVersion.current;
     const sequence = ++refreshSequence.current;
-    if (publicDemo) {
-      setUser(publicDemoRole ? demoUser(publicDemoRole) : null);
+    if (mode === 'demo') {
+      const role = storedDemoRole();
+      setUser(role ? demoUser(role) : null);
       setAccessEnded(false);
       return;
     }
     try {
-      const result = await apiRequest<{ user: AuthUser }>('/api/auth/me');
+      const result = await request<{ user: AuthUser }>('/api/auth/me');
       if (
         version !== sessionVersion.current ||
         sequence !== refreshSequence.current
@@ -156,10 +193,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setAccessEnded(true);
     }
-  }, []);
+  }, [mode, request]);
 
   useEffect(() => {
-    if (user?.role !== 'AUDITOR' || configuration?.environment === 'demo') {
+    if (user?.role !== 'AUDITOR' || mode === 'demo') {
       return;
     }
     const expiry = user.access?.accessExpiresAt;
@@ -184,36 +221,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', check);
       window.clearTimeout(timer);
     };
-  }, [configuration?.environment, refresh, user?.role, user?.access]);
+  }, [mode, refresh, user?.role, user?.access]);
 
   useEffect(() => {
+    if (mode === 'demo') {
+      return;
+    }
     let active = true;
     const version = sessionVersion.current;
-    const configRequest =
-      import.meta.env.MODE === 'demo'
-        ? Promise.resolve(staticDemoConfiguration)
-        : remoteRequest<AuthConfiguration>('/api/auth/config');
+    const configRequest = remoteRequest<AuthConfiguration>('/api/auth/config');
     void configRequest
       .then(async (config) => {
         if (!active || version !== sessionVersion.current) {
           return;
         }
-        publicDemo = config.environment === 'demo';
-        const role = publicDemo ? storedDemoRole() : null;
-        publicDemoRole = role;
-        const current = publicDemo
-          ? role
-            ? { user: demoUser(role) }
-            : null
-          : await apiRequest<{ user: AuthUser }>('/api/auth/me').catch(
-              () => null,
-            );
+        const current = await apiRequest<{ user: AuthUser }>(
+          '/api/auth/me',
+        ).catch(() => null);
         if (!active || version !== sessionVersion.current) {
           return;
         }
-        setConfiguration(config);
-        const ended =
-          !publicDemo && auditorAccessHasEnded(current?.user ?? null);
+        setConfiguration({ ...config, demoHelper: false });
+        const ended = auditorAccessHasEnded(current?.user ?? null);
         setUser(ended ? null : (current?.user ?? null));
         setAccessEnded(ended);
       })
@@ -233,10 +262,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       sessionVersion.current += 1;
     };
-  }, []);
+  }, [mode]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
+      request,
       configuration,
       configurationError,
       accessEnded,
@@ -244,14 +274,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       refresh,
       localLogin: async (email) => {
+        if (mode !== 'private' || !lifetime.current.active) {
+          throw new Error('Local sign-in is unavailable.');
+        }
         const version = ++sessionVersion.current;
-        const result = await apiRequest<{ user: AuthUser }>(
+        const result = await request<{ user: AuthUser }>(
           '/api/dev/auth/login',
           { method: 'POST', body: JSON.stringify({ email }) },
         );
         const current =
           result.user.role === 'AUDITOR'
-            ? await apiRequest<{ user: AuthUser }>('/api/auth/me')
+            ? await request<{ user: AuthUser }>('/api/auth/me')
             : result;
         if (version !== sessionVersion.current) {
           return;
@@ -264,8 +297,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       demoLogin: (role) => {
         if (
-          configuration?.environment !== 'demo' ||
-          !configuration.demoHelper ||
+          mode !== 'demo' ||
+          !lifetime.current.active ||
           !['OWNER', 'ACCOUNTANT', 'AUDITOR'].includes(role)
         ) {
           return Promise.reject(
@@ -274,16 +307,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         sessionStorage.setItem(demoRoleKey, role);
         sessionVersion.current += 1;
-        publicDemoRole = role;
         setUser(demoUser(role));
         setAccessEnded(false);
         return Promise.resolve();
       },
       logout: async () => {
         const version = ++sessionVersion.current;
-        if (publicDemo) {
+        if (!lifetime.current.active) {
+          return;
+        }
+        if (mode === 'demo') {
           sessionStorage.removeItem(demoRoleKey);
-          publicDemoRole = null;
         } else {
           await apiRequest('/api/auth/logout', { method: 'POST' });
         }
@@ -295,15 +329,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessEnded(false);
       },
       resetDemo: async () => {
-        if (!publicDemo) {
+        if (mode !== 'demo' || !lifetime.current.active) {
           throw new Error('Demo reset is unavailable.');
         }
-        assertDemoEditing();
+        if (
+          lifetime.current.role !== 'OWNER' &&
+          lifetime.current.role !== 'ACCOUNTANT'
+        ) {
+          throw new ApiError(403, {
+            error: 'This demo role is read-only. Changes are unavailable.',
+          });
+        }
         await resetDemoData();
         window.location.reload();
       },
     }),
-    [configuration, configurationError, accessEnded, loading, refresh, user],
+    [
+      configuration,
+      configurationError,
+      accessEnded,
+      loading,
+      refresh,
+      user,
+      request,
+      mode,
+      lifetime,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -327,4 +378,8 @@ export function useAuth(): AuthContextValue {
   }
 
   return context;
+}
+
+export function useApiRequest(): typeof apiRequest {
+  return useAuth().request;
 }
