@@ -74,7 +74,9 @@ workspace prefix. Explicit entry/exit links deliberately cross the boundary.
 
 Entering/leaving or signing out of the demo does not log out the private
 session. Returning to `/app` reloads private authorization. Signing out privately
-does not reset demo edits. The simulated tab role and versioned IndexedDB remain
+does not reset demo edits. “Leave demo” clears the simulated tab role, so entering
+the demo again shows the role chooser; versioned browser edits remain available.
+The simulated tab role and versioned IndexedDB remain
 independent of private cookies. The service worker caches static assets only;
 API/private document responses have no runtime cache and no navigation fallback.
 Private fetches force `cache: no-store`, avoiding reuse of older cached API reads.

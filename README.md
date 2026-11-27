@@ -75,6 +75,11 @@ using Cloudflare's local Workers runtime. Miniflare stores both simulated D1 and
 R2 data under `.wrangler/state/`; nothing is sent to demo or production
 resources. Restarting `pnpm dev` preserves that state.
 
+After pulling changes that add migrations, run `pnpm db:migrate:local` before
+starting the updated app. This applies pending schema changes and preserves
+records; reseeding or resetting is unnecessary. Phase 4 adds migration 0011,
+which is required for local sign-in as well as staging sessions.
+
 To inspect local D1 metadata from the terminal:
 
 ```bash
@@ -310,15 +315,18 @@ The legacy `demo` deployment configuration remains during the staged conversion
 to a disposable staging workspace. Its anonymous record API and shared JSON
 cache have been removed. Existing remote bindings and administrative seed/reset
 utilities are retained for an explicit, inspected migration; they are not part
-of visitor demo operation. Staging provisioning and credentials arrive in later
-phases. See [static demo architecture](docs/static-demo-data.md) for the current
+of visitor demo operation. Staging provisioning and credentials are implemented;
+remote setup remains a separate operator action. See [static demo architecture](docs/static-demo-data.md) for the current
 routing and storage boundaries. No remote conversion is performed by a build.
 
 ## Staging configuration
 
 Staging configuration and guarded provisioning are documented separately in
 [Staging configuration](docs/staging-configuration.md). Staging resources remain
-unconfigured until explicitly created; its credential login is a later phase.
+unconfigured until explicitly created. [Staging authentication](docs/staging-authentication.md)
+documents secret-backed password login, guarded identity sync, rotation and the
+paid Workers plan review required before deployment. Production keeps its
+invitation-only passwordless flow; `/demo` remains browser-only on both targets.
 
 ## Production authentication setup
 

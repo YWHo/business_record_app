@@ -1,5 +1,6 @@
 import { HttpError, json, methodNotAllowed } from './lib/http';
 import { requireUser } from './auth/authorization';
+import { loginToStaging } from './routes/stagingAuth';
 import {
   assertPermission,
   loadAuthorizationContext,
@@ -150,6 +151,11 @@ interface Route {
 }
 
 const routes: Route[] = [
+  {
+    method: 'POST',
+    pathname: '/api/auth/staging-login',
+    handler: loginToStaging,
+  },
   {
     method: 'GET',
     pathname: '/api/auditor-access',
@@ -697,6 +703,7 @@ const handlerPermissions = new Map<RouteHandler, Permission>(
   ),
 );
 const publicRoutes = new Set([
+  'POST /api/auth/staging-login',
   'GET /api/health',
   'GET /api/auth/config',
   'POST /api/auth/login',

@@ -1,6 +1,7 @@
 import { HttpError } from '../lib/http';
 import type { AuthenticatedUser, Env, UserRole } from '../types';
 import { loadAuthorizationContext } from '../services/accessControlService';
+import { assertStagingSession } from './stagingCredentials';
 
 const sessionCookieName = 'br_session';
 
@@ -49,7 +50,8 @@ export async function requireUser(
   const user = await env.DB.prepare(
     `SELECT users.id, users.email, business_account_members.role,
             business_account_members.status,
-            sessions.business_account_id AS businessAccountId
+            sessions.business_account_id AS businessAccountId,
+            sessions.staging_credential_version AS stagingCredentialVersion
        FROM sessions
        JOIN users ON users.id = sessions.user_id
        JOIN business_account_members
@@ -65,7 +67,7 @@ export async function requireUser(
         AND business_accounts.status = 'ACTIVE'`,
   )
     .bind(tokenHash, new Date().toISOString())
-    .first<AuthenticatedUser>();
+    .first<AuthenticatedUser & { stagingCredentialVersion?: string | null }>();
 
   if (
     !user ||
@@ -78,6 +80,12 @@ export async function requireUser(
   if (user.role === 'AUDITOR') {
     user.authorization = await loadAuthorizationContext(env.DB, user);
   }
+  if (env.APP_ENV === 'staging') {
+    await assertStagingSession(env, user, user.stagingCredentialVersion);
+  } else if (user.stagingCredentialVersion != null) {
+    throw new HttpError(401, 'Authentication required.');
+  }
+  delete user.stagingCredentialVersion;
   return user;
 }
 

@@ -44,9 +44,11 @@ function loadTurnstile(): Promise<void> {
 export function TurnstileWidget({
   siteKey,
   onToken,
+  onError,
 }: {
   siteKey: string;
   onToken: (token: string) => void;
+  onError?: () => void;
 }) {
   const reactId = useId();
   const elementId = `turnstile-${reactId.replaceAll(':', '')}`;
@@ -54,17 +56,24 @@ export function TurnstileWidget({
     let widgetId: string | undefined;
     let active = true;
 
-    void loadTurnstile().then(() => {
-      if (!active || !window.turnstile) {
-        return;
-      }
-      widgetId = window.turnstile.render(`#${elementId}`, {
-        sitekey: siteKey,
-        action: 'login',
-        callback: onToken,
-        'expired-callback': () => onToken(''),
+    void loadTurnstile()
+      .then(() => {
+        if (!active || !window.turnstile) {
+          return;
+        }
+        widgetId = window.turnstile.render(`#${elementId}`, {
+          sitekey: siteKey,
+          action: 'login',
+          callback: onToken,
+          'expired-callback': () => onToken(''),
+        });
+      })
+      .catch(() => {
+        if (active) {
+          onToken('');
+          onError?.();
+        }
       });
-    });
 
     return () => {
       active = false;
@@ -72,7 +81,7 @@ export function TurnstileWidget({
         window.turnstile.remove(widgetId);
       }
     };
-  }, [elementId, onToken, siteKey]);
+  }, [elementId, onToken, siteKey, onError]);
 
   return <div id={elementId} aria-label="Security challenge" />;
 }

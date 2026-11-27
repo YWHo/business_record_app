@@ -92,7 +92,7 @@ export async function requestLogin(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (env.APP_ENV === 'demo') {
+  if (env.APP_ENV === 'demo' || env.APP_ENV === 'staging') {
     throw new HttpError(404, 'Not found.');
   }
   const body = await readJsonObject(request);
@@ -114,7 +114,7 @@ export async function verifyLogin(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  if (env.APP_ENV === 'demo') {
+  if (env.APP_ENV === 'demo' || env.APP_ENV === 'staging') {
     throw new HttpError(404, 'Not found.');
   }
   const body = await readJsonObject(request);

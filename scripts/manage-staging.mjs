@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { stagingIdentitySyncSql } from './staging-identities.mjs';
 import {
   readDeploymentConfig,
   stagingBindings,
@@ -14,8 +16,8 @@ import {
 
 export function stagingArguments(args) {
   const [action = 'inspect', ...rest] = args;
-  if (!['inspect', 'provision', 'reset'].includes(action)) {
-    throw new Error('Use inspect, provision or reset.');
+  if (!['inspect', 'provision', 'reset', 'sync'].includes(action)) {
+    throw new Error('Use inspect, provision, reset or sync.');
   }
   const options = { action, apply: false, confirmation: '', databaseId: '' };
   const seen = new Set();
@@ -51,6 +53,8 @@ export function stagingArguments(args) {
 }
 
 function runWrangler(args, sql) {
+  const childEnv = { ...process.env, WRANGLER_SEND_METRICS: 'false' };
+  delete childEnv.STAGING_AUTH_CREDENTIALS;
   const cli = fileURLToPath(
     new URL('../node_modules/wrangler/wrangler-dist/cli.js', import.meta.url),
   );
@@ -70,7 +74,7 @@ function runWrangler(args, sql) {
       encoding: 'utf8',
       maxBuffer: 2 * 1024 * 1024,
       windowsHide: true,
-      env: { ...process.env, WRANGLER_SEND_METRICS: 'false' },
+      env: childEnv,
     },
   );
   if (result.error || result.status !== 0) {
@@ -106,6 +110,8 @@ export function manageStaging(
     config = readDeploymentConfig(),
     run = runWrangler,
     log = console.log,
+    credentials = () =>
+      process.env.STAGING_AUTH_CREDENTIALS ?? readFileSync(0, 'utf8'),
   } = {},
 ) {
   const bindings = stagingBindings(config, { applying: options.apply });
@@ -132,10 +138,19 @@ export function manageStaging(
   if (
     options.confirmation !== stagingTarget ||
     options.databaseId.toLowerCase() !== bindings.databaseId.toLowerCase() ||
-    !['provision', 'reset'].includes(options.action)
+    !['provision', 'reset', 'sync'].includes(options.action)
   ) {
     throw new Error('Staging confirmation or database ID does not match.');
   }
+  if (options.action === 'sync') {
+    return stagingIdentitySyncSql(credentials()).then((identitySql) =>
+      applyStaging(options, bindings, plan, run, log, identitySql),
+    );
+  }
+  return applyStaging(options, bindings, plan, run, log, null);
+}
+
+function applyStaging(options, bindings, plan, run, log, identitySql) {
   assertRemoteStagingDatabase(
     run(['d1', 'info', 'DB', '--env', 'staging', '--json']),
     bindings,
@@ -158,6 +173,25 @@ export function manageStaging(
   const [state] = queryRows(run(command, inspectSql));
   if (!state || !Number.isInteger(state.attachments)) {
     throw new Error('Staging inspection failed closed.');
+  }
+  if (options.action === 'sync') {
+    if (state.profile !== stagingFixtureVersion) {
+      throw new Error(
+        'Provision the recognized staging fixture before syncing identities.',
+      );
+    }
+    const result = run(command, identitySql);
+    if (
+      !Array.isArray(result) ||
+      !result.length ||
+      result.some((entry) => entry.success !== true)
+    ) {
+      throw new Error('Staging identity sync did not report success.');
+    }
+    log(
+      'Three staging identity bindings synced; status, scopes and expiry were preserved. Old credential sessions were revoked.',
+    );
+    return plan;
   }
   if (
     state.profile === stagingFixtureVersion &&
@@ -190,7 +224,7 @@ export function manageStaging(
     throw new Error('Staging fixture query did not report success.');
   }
   log(
-    `Staging ${options.action} completed for ${bindings.databaseName}. No R2 objects or credentials were changed.`,
+    `Staging ${options.action} completed for ${bindings.databaseName}. R2 and backend secrets are unchanged. Run staging:sync before signing in.`,
   );
   return plan;
 }
@@ -199,5 +233,5 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  manageStaging(stagingArguments(process.argv.slice(2)));
+  await manageStaging(stagingArguments(process.argv.slice(2)));
 }

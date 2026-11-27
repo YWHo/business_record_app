@@ -2073,3 +2073,63 @@ the user's review and commit; no later feature phase or deployment is started.
 - Phase 3 is uncommitted for review. New resources and credentials remain
   unconfigured; Phase 4 secret-backed credential provisioning/login is next.
   No remote administration, deployment, database reset or git commit was run.
+
+## Staging redesign Phase 4: secret-backed password authentication
+
+- Added a staging-only password endpoint and challenge-gated login form. Local,
+  legacy demo and production reject that endpoint before credential work, even
+  with forged roles or accidentally copied secrets. Staging cannot bypass it
+  through passwordless email login or local shortcuts. Production invitation,
+  bootstrap and passwordless flows retain their existing behaviour.
+- Backend secrets hold exactly three distinct email/salted-verifier entries for
+  the fixed staging identities. Native scrypt uses N=32768, r=8, p=3 with random
+  16-byte salts and timing-safe comparison. Local workerd verification measured
+  143–164 ms wall time; staging has a 1000 ms CPU budget and one concurrent hash
+  per isolate. Deployment requires explicit paid Workers plan and hosted resource
+  review; no plan was changed. Benchmarking is reproducible without remote calls.
+- Login enforces origin, actual input-byte bounds, strict fields, mandatory
+  Turnstile, entry IP limits and separate IP/hashed-email password throttling.
+  Unknown identities perform the same bounded derivation as incorrect passwords.
+  Temporary throttling never disables memberships. The form clears passwords and
+  consumes the challenge after each attempt, with duplicate submission blocked.
+- Additive migration 0011 stores session credential versions and administrative
+  identity fingerprints, never password verifiers. Login requires existing real
+  roles and current access; expiry, disabled/revoked access and removed scopes
+  remain authoritative. Rotation invalidates old sessions immediately, guarded
+  sync removes their rows, and unchanged identities retain valid sessions.
+- Added stdin-based credential generation and plan-only-by-default identity sync.
+  Apply retains the explicit staging UUID/confirmation/resource checks and remote
+  identity verification. Sync never creates users, changes roles or renews access;
+  reset clears bindings and requires sync again. Existing private evidence and
+  R2 remain untouched. Credential lifecycle and hashing tradeoffs are documented
+  in `docs/staging-authentication.md`.
+- All 796 tests across 81 files pass. Real scrypt/SQLite integration tests cover
+  all roles, defenses, rotation, sync, concurrency, expiry/revocation and logout.
+  Nine Chromium scenarios pass using the frontend validation server, including
+  password entry/session refresh for all roles and public/private isolation.
+  Browser API/challenge fixtures complement the real backend integration tests.
+  Lint, TypeScript, formatting, staging/production builds and deterministic demo
+  regeneration pass; no backend credential material appears in the client build.
+- Added ready, challenge-pending, rejected and phone form stories. Storybook still
+  cannot build because of the existing esbuild filesystem access-denied error.
+  The standalone migration regression command needs the unavailable `sqlite3`
+  executable; in-process SQLite tests do apply and validate all migrations.
+- Phase 4 is uncommitted for review. Phase 5 deployment/operations preparation is
+  next. No real credentials, remote resources, deployment, database reset or git
+  commit were created or changed by this phase.
+
+### Phase 4 review fix: leaving demo and local sign-in
+
+- “Leave demo” now clears the simulated role when navigation actually exits the
+  demo workspace. It preserves browser edits and existing private sessions.
+  Deferred cleanup avoids a competing demo-login redirect and retains the role
+  if an unsaved-changes prompt cancels navigation. Re-entering demo shows its
+  role chooser. Updated the entry-link story description and isolation checks.
+- Diagnosed the local sign-in error as missing migration 0011's session column.
+  Applied that pending migration to local simulated D1, preserving records with
+  no reset or reseed. Documented the existing-checkout upgrade requirement.
+- All 800 tests across 82 files pass, including exit for all three demo roles
+  and cancelled/confirmed unsaved navigation. Browser regressions verify actual
+  local Worker owner sign-in after leaving the demo, plus production/staging
+  cookie and edit isolation. The demo and staging-login browser scenarios pass.
+  Lint and TypeScript pass. No remote resource or git commit was changed.

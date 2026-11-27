@@ -45,7 +45,10 @@
     "db:verify:demo": "wrangler d1 execute DB --remote --env demo --file ./scripts/verify-demo.sql",
     "staging:plan": "node ./scripts/manage-staging.mjs inspect",
     "staging:provision": "node ./scripts/manage-staging.mjs provision",
-    "staging:reset": "node ./scripts/manage-staging.mjs reset"
+    "staging:reset": "node ./scripts/manage-staging.mjs reset",
+    "staging:sync": "node ./scripts/manage-staging.mjs sync",
+    "staging:credentials": "node ./scripts/create-staging-credentials.mjs",
+    "staging:benchmark": "node ./scripts/benchmark-staging-password.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

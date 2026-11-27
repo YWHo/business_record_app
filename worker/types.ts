@@ -21,6 +21,8 @@ export interface Env {
   EMAIL_FROM: string;
   BOOTSTRAP_OWNER_EMAIL?: string;
   BOOTSTRAP_ADMIN_KEY?: string;
+  STAGING_AUTH_CREDENTIALS?: string;
+  STAGING_PASSWORD_RATE_LIMITER?: RateLimiter;
   AUTH_RATE_LIMITER: RateLimiter;
   INVITE_RATE_LIMITER: RateLimiter;
   EXPENSIVE_RATE_LIMITER: RateLimiter;

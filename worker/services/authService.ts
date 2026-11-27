@@ -12,7 +12,11 @@ export async function createSession(
   env: Env,
   userId: string,
   businessAccountId?: string,
+  stagingCredentialVersion?: string,
 ): Promise<string> {
+  if (env.APP_ENV === 'staging' && !stagingCredentialVersion) {
+    throw new HttpError(401, 'Unable to sign in with those details.');
+  }
   const currentTime = new Date().toISOString();
   const membership = await env.DB.prepare(
     `SELECT business_account_members.business_account_id,business_account_members.role
@@ -60,8 +64,8 @@ export async function createSession(
 
   await env.DB.prepare(
     `INSERT INTO sessions
-      (token_hash, user_id, business_account_id, expires_at, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
+      (token_hash, user_id, business_account_id, expires_at, created_at, staging_credential_version)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       await hashToken(token),
@@ -69,6 +73,7 @@ export async function createSession(
       membership.business_account_id,
       expiresAt,
       now.toISOString(),
+      stagingCredentialVersion ?? null,
     )
     .run();
 

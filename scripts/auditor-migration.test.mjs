@@ -329,6 +329,9 @@ describe('auditor schema populated upgrade', () => {
 
   it('allows repeated local/demo seeding without stale scopes or broken references', () => {
     applyUpgrade();
+    for (const name of migrations.filter((name) => name >= '0010')) {
+      db.exec(read('../migrations/' + name));
+    }
     for (const name of [
       './seed-local.sql',
       './seed-demo.sql',
@@ -351,12 +354,14 @@ describe('auditor schema populated upgrade', () => {
 
   it('keeps persisted auditors out of sessions, login links, and accountant acceptance', async () => {
     applyUpgrade();
-    db.exec(read('../migrations/0010_auditor_access_lifecycle.sql'));
+    for (const name of migrations.filter((name) => name >= '0010')) {
+      db.exec(read('../migrations/' + name));
+    }
     insertAuditor();
     insertMembership();
     const hash = (value) => createHash('sha256').update(value).digest('hex');
     db.prepare(
-      `INSERT INTO sessions VALUES (?,'auditor','2099-01-01','2026-01-01','business-account-primary')`,
+      `INSERT INTO sessions (token_hash,user_id,expires_at,created_at,business_account_id) VALUES (?,'auditor','2099-01-01','2026-01-01','business-account-primary')`,
     ).run(hash('staged-session'));
     db.prepare(
       `INSERT INTO invitations (id,email,role,token_hash,invited_by,expires_at,created_at,access_expires_at)

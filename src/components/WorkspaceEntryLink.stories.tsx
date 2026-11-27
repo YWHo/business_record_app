@@ -9,7 +9,9 @@ const meta = {
     <section className="panel">
       <p>
         {args.demo
-          ? 'Explore fictional records without changing your private workspace.'
+          ? args.workspace
+            ? 'Leave the demo role and return to your workspace. Demo edits and private sign-in are preserved.'
+            : 'Explore fictional records without changing your private workspace.'
           : 'Sign in for your own records, or explore the fictional demonstration.'}
       </p>
       <WorkspaceEntryLink {...args} />

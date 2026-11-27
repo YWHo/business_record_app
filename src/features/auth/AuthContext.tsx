@@ -47,6 +47,7 @@ interface AuthContextValue {
   localLogin: (email: string) => Promise<void>;
   demoLogin: (role: DemoRole) => Promise<void>;
   logout: () => Promise<void>;
+  leaveDemo: () => void;
   resetDemo: () => Promise<void>;
 }
 
@@ -119,14 +120,18 @@ export function AuthProvider({
   const sessionVersion = useRef(0);
   const refreshSequence = useRef(0);
   const lifetime = useRef({ active: true, role: user?.role ?? null });
+  const clearDemoOnExit = useRef(false);
   useLayoutEffect(() => {
     const scope = lifetime.current;
     scope.active = true;
     return () => {
       scope.active = false;
       sessionVersion.current += 1;
+      if (mode === 'demo' && clearDemoOnExit.current) {
+        sessionStorage.removeItem(demoRoleKey);
+      }
     };
-  }, []);
+  }, [mode]);
   useLayoutEffect(() => {
     lifetime.current.role = user?.role ?? null;
   }, [user?.role]);
@@ -310,6 +315,15 @@ export function AuthProvider({
         setUser(demoUser(role));
         setAccessEnded(false);
         return Promise.resolve();
+      },
+      leaveDemo: () => {
+        if (mode !== 'demo' || !lifetime.current.active) {
+          return;
+        }
+        // Commit the sign-out only when the exit actually unmounts this workspace.
+        // An unsaved-changes guard may cancel navigation. Updating user here would
+        // also race the exit with the demo gate's signed-out redirect.
+        clearDemoOnExit.current = true;
       },
       logout: async () => {
         const version = ++sessionVersion.current;

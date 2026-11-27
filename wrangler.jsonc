@@ -3,6 +3,7 @@
   "name": "business-records-local",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-09-07",
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],
@@ -130,7 +131,10 @@
     // D1 ID. The guarded staging tools refuse this placeholder when applying.
     "staging": {
       "name": "business-records-staging",
-      "secrets": { "required": ["TURNSTILE_SECRET_KEY"] },
+      "secrets": {
+        "required": ["TURNSTILE_SECRET_KEY", "STAGING_AUTH_CREDENTIALS"],
+      },
+      "limits": { "cpu_ms": 1000 },
       "vars": {
         "APP_ENV": "staging",
         "LOCAL_AUTH_ENABLED": "false",
@@ -172,6 +176,11 @@
           "name": "EXPENSIVE_RATE_LIMITER",
           "namespace_id": "4003",
           "simple": { "limit": 6, "period": 60 },
+        },
+        {
+          "name": "STAGING_PASSWORD_RATE_LIMITER",
+          "namespace_id": "4004",
+          "simple": { "limit": 5, "period": 60 },
         },
       ],
     },

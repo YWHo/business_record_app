@@ -26,6 +26,7 @@ interface AppShellPresentationProps extends AppShellProps {
   children?: ReactNode;
   isDemo?: boolean;
   onLogout: () => void;
+  onLeaveDemo?: () => void;
   onResetDemo?: () => void;
   userEmail: string;
   auditor?: boolean;
@@ -93,6 +94,7 @@ export function AppShellPresentation({
   mobileNavigation,
   navigation,
   onLogout,
+  onLeaveDemo,
   onResetDemo,
   secondaryNavigation = [],
   userEmail,
@@ -159,7 +161,7 @@ export function AppShellPresentation({
                 ? 'Read-only inspection of fictional data'
                 : 'Changes are saved only in this browser'}
               {' · '}
-              <WorkspaceEntryLink demo workspace />
+              <WorkspaceEntryLink demo workspace onLeaveDemo={onLeaveDemo} />
             </p>
           ) : (
             <p>
@@ -176,13 +178,14 @@ export function AppShellPresentation({
 }
 
 export function AppShell(props: AppShellProps) {
-  const { configuration, logout, resetDemo, user } = useAuth();
+  const { configuration, logout, leaveDemo, resetDemo, user } = useAuth();
 
   return (
     <AppShellPresentation
       {...props}
       isDemo={configuration?.demoHelper === true}
       onLogout={() => void logout()}
+      onLeaveDemo={leaveDemo}
       onResetDemo={() => void resetDemo()}
       userEmail={user?.email ?? ''}
       auditor={user?.role === 'AUDITOR'}

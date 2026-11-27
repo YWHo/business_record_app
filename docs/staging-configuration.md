@@ -1,8 +1,9 @@
 # Staging configuration and guarded provisioning
 
-This is Phase 3 of the staged redesign. Configuration and local validation are
-implemented; no remote resources have been created, repurposed, reset or deployed.
-Password verification, configured credential identities and login UI are Phase 4.
+Configuration and Phase 4 password authentication are implemented and locally
+validated; no remote resources have been created, repurposed, reset or deployed.
+See [staging authentication](staging-authentication.md) for credential setup,
+rotation, session revocation and the required paid Workers plan review.
 
 ## Binding review
 
@@ -18,7 +19,7 @@ The checked-in `wrangler.jsonc` currently describes:
 This review is of repository configuration, not a live Cloudflare inventory.
 Legacy demo and production IDs/bindings are unchanged. Staging intentionally has
 the placeholder `00000000-0000-4000-8000-000000000000`; apply operations refuse it.
-It has a distinct HTTPS origin and rate-limit namespaces 4001–4003. No existing
+It has a distinct HTTPS origin and rate-limit namespaces 4001–4004. No existing
 database is automatically adopted. Review actual resources before conversion;
 remote creation, deployment and legacy retirement remain explicit later actions.
 
@@ -35,10 +36,11 @@ Owner bootstrap rejects staging, including accidentally copied production
 bootstrap secrets. Staging memberships originate in administration, not public
 login payloads. Production bootstrap and passwordless invitation flows remain.
 
-The widget site key is unconfigured and only its backend secret is declared as
-required at this phase. No password login endpoint or secret verifier format is
-introduced yet. Email delivery is unconfigured. Complete Phase 4 credential
-setup and Phase 5 deployment checks before treating staging as usable sign-in.
+The widget site key is unconfigured. Backend secrets `TURNSTILE_SECRET_KEY` and
+`STAGING_AUTH_CREDENTIALS` are required. Staging uses password sign-in and rejects
+passwordless email login/verification. Complete credential installation and
+guarded identity sync, then Phase 5 deployment checks, before treating staging
+as usable sign-in.
 Public `/demo` remains the same static, browser-only experience on every target.
 
 ## Planning and applying
@@ -49,6 +51,7 @@ These commands only print plans by default; they never call Wrangler:
 pnpm staging:plan
 pnpm staging:provision
 pnpm staging:reset
+pnpm staging:sync
 ```
 
 After separately creating disposable resources and configuring the new staging
@@ -79,8 +82,8 @@ three placeholder users (`staging-owner`, `staging-accountant`, `staging-auditor
 with `example.invalid` emails. Owner/Accountant receive account scopes. Auditor
 receives only the contracting business, records dated 2026-04-01 through
 2027-03-31, and a 30-day membership expiry. There are no login tokens, sessions,
-passwords, verifiers, email deliveries or seeded R2 objects. Phase 4 will sync
-secret-configured identities through administration without implicit renewal.
+passwords, verifiers, email deliveries or seeded R2 objects. The separate guarded
+sync command binds secret-configured identities without implicit renewal.
 
 Reset refuses existing attachment metadata rather than deleting references and
 orphaning evidence. R2 is always untouched. Review and clean disposable evidence

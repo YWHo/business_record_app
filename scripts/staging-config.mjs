@@ -20,7 +20,9 @@ export function stagingBindings(config, { applying = false } = {}) {
     staging?.name !== stagingTarget ||
     staging.vars?.APP_ENV !== 'staging' ||
     staging.vars.LOCAL_AUTH_ENABLED !== 'false' ||
-    staging.vars.TURNSTILE_REQUIRED !== 'true'
+    staging.vars.TURNSTILE_REQUIRED !== 'true' ||
+    !config.compatibility_flags?.includes('nodejs_compat') ||
+    staging.limits?.cpu_ms !== 1000
   ) {
     throw new Error('Staging environment guards are invalid.');
   }
@@ -64,6 +66,7 @@ export function stagingBindings(config, { applying = false } = {}) {
       'AUTH_RATE_LIMITER',
       'INVITE_RATE_LIMITER',
       'EXPENSIVE_RATE_LIMITER',
+      'STAGING_PASSWORD_RATE_LIMITER',
     ].every((name) => limits.some((limit) => limit.name === name)) ||
     new Set(limits.map((limit) => String(limit.namespace_id))).size !==
       limits.length

@@ -33,6 +33,7 @@ DELETE FROM business_entities WHERE id <> 'business-entity-primary';
 UPDATE retention_settings SET updated_by = NULL;
 DELETE FROM development_outbox;
 DELETE FROM sessions;
+DELETE FROM staging_auth_identities;
 DELETE FROM invitations;
 DELETE FROM business_account_members;
 DELETE FROM users;

@@ -11,6 +11,7 @@ import { LocalRoleChooser } from '../features/auth/LocalRoleChooser';
 import { AccessEndedNotice } from '../features/auth/AccessEndedNotice';
 import { WorkspaceEntryLink } from '../components/WorkspaceEntryLink';
 import { TurnstileWidget } from '../features/auth/TurnstileWidget';
+import { StagingPasswordForm } from '../features/auth/StagingPasswordForm';
 
 export function LoginPage() {
   const apiRequest = useApiRequest();
@@ -21,12 +22,14 @@ export function LoginPage() {
     demoLogin,
     localLogin,
     user,
+    refresh,
   } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [challengeSequence, setChallengeSequence] = useState(0);
 
   if (user) {
     return <Navigate to="/app/businesses" replace />;
@@ -75,6 +78,14 @@ export function LoginPage() {
       );
     }
   };
+  const loginToStaging = async (stagingEmail: string, password: string) => {
+    await apiRequest('/api/auth/staging-login', {
+      method: 'POST',
+      body: JSON.stringify({ email: stagingEmail, password, turnstileToken }),
+    });
+    await refresh();
+    await navigate('/app/businesses');
+  };
 
   return (
     <main className="auth-page">
@@ -91,7 +102,9 @@ export function LoginPage() {
         <p>
           {configuration?.demoHelper
             ? 'Explore fictional New Zealand business records. Your changes stay only in this browser until you reset them.'
-            : 'We will send a single-use sign-in link to your registered email.'}
+            : configuration?.environment === 'staging'
+              ? 'Sign in to your staging account to work with disposable records.'
+              : 'We will send a single-use sign-in link to your registered email.'}
         </p>
         {configurationError ? (
           <p role="alert" className="notice error">
@@ -101,7 +114,27 @@ export function LoginPage() {
         <p>
           <WorkspaceEntryLink demo={configuration?.demoHelper === true} />
         </p>
-        {configuration && !configuration.demoHelper ? (
+        {configuration?.environment === 'staging' ? (
+          <StagingPasswordForm
+            onSubmit={loginToStaging}
+            challengeReady={Boolean(turnstileToken)}
+            onSettled={() => {
+              setTurnstileToken('');
+              setChallengeSequence((value) => value + 1);
+            }}
+            challenge={
+              configuration.turnstileSiteKey ? (
+                <TurnstileWidget
+                  key={challengeSequence}
+                  siteKey={configuration.turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                />
+              ) : (
+                <p role="status">Sign-in is temporarily unavailable.</p>
+              )
+            }
+          />
+        ) : configuration && !configuration.demoHelper ? (
           <form onSubmit={(event) => void submit(event)} className="stack-form">
             <label htmlFor="login-email">Email address</label>
             <input
@@ -140,7 +173,7 @@ export function LoginPage() {
           </p>
         ) : null}
 
-        {configuration?.localHelper ? (
+        {configuration?.environment === 'local' && configuration.localHelper ? (
           <LocalRoleChooser
             onSelect={(identity) => void loginWithLocalIdentity(identity)}
           />

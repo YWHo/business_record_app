@@ -4,12 +4,29 @@ import { Link } from 'react-router-dom';
 export function WorkspaceEntryLink({
   demo,
   workspace = false,
+  onLeaveDemo,
 }: {
   demo: boolean;
   workspace?: boolean;
+  onLeaveDemo?: () => void;
 }) {
   return (
-    <Link to={demo ? (workspace ? '/app/businesses' : '/login') : '/demo'}>
+    <Link
+      to={demo ? (workspace ? '/app/businesses' : '/login') : '/demo'}
+      onClick={(event) => {
+        if (
+          demo &&
+          workspace &&
+          event.button === 0 &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey
+        ) {
+          onLeaveDemo?.();
+        }
+      }}
+    >
       {demo
         ? workspace
           ? 'Leave demo'

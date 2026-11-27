@@ -5,5 +5,5 @@
     "lib": ["ES2023", "WebWorker"],
     "types": ["@cloudflare/workers-types", "vite/client"]
   },
-  "include": ["worker"]
+  "include": ["worker", "shared/**/*.d.mts"]
 }

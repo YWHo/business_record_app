@@ -34,6 +34,7 @@ describe('LoginPage local identities', () => {
       demoLogin: vi.fn(),
       logout: vi.fn(),
       resetDemo: vi.fn(),
+      leaveDemo: vi.fn(),
     });
   });
   it('shows an accessible recovery notice after a session or grant ends', () => {
@@ -138,6 +139,7 @@ describe('LoginPage demo roles', () => {
       demoLogin,
       logout: vi.fn(),
       resetDemo: vi.fn(),
+      leaveDemo: vi.fn(),
     });
   });
 

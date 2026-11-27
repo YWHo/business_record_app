@@ -26,6 +26,7 @@ const upgradeNames = [
   '0008_business_identity_backfill.sql',
   '0009_auditor_access_foundation.sql',
   '0010_auditor_access_lifecycle.sql',
+  '0011_staging_credential_sessions.sql',
 ];
 
 function readSql(filePath) {

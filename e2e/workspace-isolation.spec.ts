@@ -120,11 +120,18 @@ for (const environment of ['production', 'staging'] as const) {
     await expect(
       page.getByRole('link', { name: 'Open Private example business' }),
     ).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        sessionStorage.getItem('business-records-demo-role'),
+      ),
+    ).toBeNull();
     await expect(page.getByRole('link', { name: 'Open DoorDash' })).toHaveCount(
       0,
     );
     expect(logoutCount).toBe(0);
     await page.getByRole('link', { name: 'Explore the public demo' }).click();
+    await expect(page).toHaveURL(/\/demo$/);
+    await page.getByRole('button', { name: 'Continue as Demo Owner' }).click();
     await expect(page).toHaveURL(/\/demo\/businesses$/);
     await page.locator('summary[aria-label="Open account menu"]').click();
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
@@ -141,7 +148,12 @@ for (const environment of ['production', 'staging'] as const) {
     await page.locator('summary[aria-label="Open account menu"]').click();
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await expect(
-      page.getByRole('button', { name: 'Email sign-in link' }),
+      page.getByRole('button', {
+        name:
+          environment === 'staging'
+            ? 'Sign in to staging'
+            : 'Email sign-in link',
+      }),
     ).toBeVisible();
     expect(logoutCount).toBe(1);
     expect(
